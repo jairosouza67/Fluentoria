@@ -75,8 +75,8 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={48} />
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#FF6A00]" size={48} />
       </div>
     );
   }
@@ -114,7 +114,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#0B0B0B] text-[#F3F4F6] font-sans flex flex-col md:flex-row">
       <Sidebar
         viewMode={viewMode}
         currentScreen={currentScreen}
@@ -128,12 +128,12 @@ const App: React.FC = () => {
 
         {/* Floating Toggle Button for Demo Purposes - Only visible if logged in */}
         <div className="fixed bottom-24 md:bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-          <div className="bg-card border border-border text-muted-foreground text-xs py-1 px-3 rounded shadow-lg mb-1 pointer-events-none">
+          <div className="bg-[#111111] border border-white/[0.06] text-[#9CA3AF] text-xs py-1 px-3 rounded-lg shadow-card mb-1 pointer-events-none">
             Modo: {viewMode === 'student' ? 'Aluno' : 'Admin'}
           </div>
           <button
             onClick={toggleViewMode}
-            className="bg-primary text-white p-4 rounded-full shadow-xl hover:bg-orange-600 transition-transform hover:scale-105 active:scale-95 flex items-center justify-center"
+            className="bg-[#FF6A00] text-white p-4 rounded-full shadow-elevated hover:bg-[#E15B00] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-[0_8px_24px_rgba(255,106,0,0.12)] flex items-center justify-center"
             title="Alternar entre visão de Aluno e Admin"
           >
             <Eye size={24} />
