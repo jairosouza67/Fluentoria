@@ -10,7 +10,11 @@ export type Screen =
   | 'mindful' 
   | 'music' 
   | 'profile'
-  | 'admin-catalog';
+  | 'admin-catalog'
+  | 'admin-students'
+  | 'admin-reports'
+  | 'admin-settings'
+  | 'admin-help';
 
 export interface Module {
   id: string;

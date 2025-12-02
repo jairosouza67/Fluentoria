@@ -83,9 +83,9 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
             <>
               <NavItem icon={<Home size={20} />} label="Início" active={currentScreen === 'dashboard'} onClick={() => onNavigate('dashboard')} />
               <NavItem icon={<BookOpen size={20} />} label="Aulas" active={currentScreen === 'admin-catalog'} onClick={() => onNavigate('admin-catalog')} />
-              <NavItem icon={<Users size={20} />} label="Alunos" onClick={() => { }} />
-              <NavItem icon={<BarChart3 size={20} />} label="Relatórios" onClick={() => { }} />
-              <NavItem icon={<Settings size={20} />} label="Configurações" onClick={() => { }} />
+              <NavItem icon={<Users size={20} />} label="Alunos" active={currentScreen === 'admin-students'} onClick={() => onNavigate('admin-students')} />
+              <NavItem icon={<BarChart3 size={20} />} label="Relatórios" active={currentScreen === 'admin-reports'} onClick={() => onNavigate('admin-reports')} />
+              <NavItem icon={<Settings size={20} />} label="Configurações" active={currentScreen === 'admin-settings'} onClick={() => onNavigate('admin-settings')} />
             </>
           )}
         </nav>
@@ -100,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
           </>
         ) : (
           <>
-            <NavItem icon={<HelpCircle size={20} />} label="Ajuda" onClick={() => { }} />
+            <NavItem icon={<HelpCircle size={20} />} label="Ajuda" active={currentScreen === 'admin-help'} onClick={() => onNavigate('admin-help')} />
             <button
               onClick={onLogout}
               className="w-full flex items-center gap-3 px-4 py-3 text-white rounded-xl transition-all duration-200 bg-[#FF6A00]/10 hover:bg-[#FF6A00] hover:shadow-[0_8px_24px_rgba(255,106,0,0.12)] hover:-translate-y-0.5 mt-4 font-medium justify-center border border-[#FF6A00]/20"

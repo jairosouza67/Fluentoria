@@ -95,6 +95,15 @@
   @apply border-white/[0.06];
 }
 
+/* Hover elevate effects */
+.hover-elevate {
+  @apply hover:-translate-y-0.5 transition-transform duration-200;
+}
+
+.active-elevate-2 {
+  @apply active:translate-y-0 active:scale-[0.98];
+}
+
 /* Animations */
 @keyframes float {
   0% {

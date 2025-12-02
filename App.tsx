@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import StudentDashboard from './components/StudentDashboard';
 import AdminCatalog from './components/AdminCatalog';
+import Students from './components/Students';
+import Reports from './components/Reports';
+import Settings from './components/Settings';
+import Help from './components/Help';
 import Auth from './components/Auth';
 import CourseList from './components/CourseList';
 import CourseDetail from './components/CourseDetail';
@@ -87,8 +91,21 @@ const App: React.FC = () => {
 
   const renderScreen = () => {
     if (viewMode === 'admin') {
-      // Modos Admin (Simplificado para o demo, focado no catálogo)
-      return <AdminCatalog />;
+      // Admin screens
+      switch (currentScreen) {
+        case 'admin-catalog':
+          return <AdminCatalog />;
+        case 'admin-students':
+          return <Students />;
+        case 'admin-reports':
+          return <Reports />;
+        case 'admin-settings':
+          return <Settings />;
+        case 'admin-help':
+          return <Help />;
+        default:
+          return <AdminCatalog />;
+      }
     }
 
     // Modos Student
