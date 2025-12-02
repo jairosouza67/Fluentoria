@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
   const isStudent = viewMode === 'student';
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-card/30 backdrop-blur-xl border-r border-white/5 flex flex-col justify-between p-6 z-20 shadow-2xl">
+    <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-card/30 backdrop-blur-xl border-r border-white/5 flex-col justify-between p-6 z-20 shadow-2xl">
 
       {/* User Profile Header */}
       <div>
@@ -127,8 +127,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => {
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${active
-          ? 'bg-primary/10 text-primary shadow-[0_0_20px_rgba(234,88,12,0.1)] border border-primary/20'
-          : 'text-muted-foreground hover:text-white hover:bg-white/5'
+        ? 'bg-primary/10 text-primary shadow-[0_0_20px_rgba(234,88,12,0.1)] border border-primary/20'
+        : 'text-muted-foreground hover:text-white hover:bg-white/5'
         }`}
     >
       {active && <div className="absolute left-0 top-0 h-full w-1 bg-primary rounded-r-full" />}

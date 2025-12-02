@@ -12,6 +12,7 @@ import { ViewMode, Screen } from './types';
 import { Eye, Loader2 } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
+import MobileNav from './components/MobileNav';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('student');
@@ -56,12 +57,16 @@ const App: React.FC = () => {
   };
 
   const toggleViewMode = () => {
-    const newMode = viewMode === 'student' ? 'admin' : 'student';
-    setViewMode(newMode);
-    // Redireciona para a tela inicial apropriada do modo
-    if (newMode === 'admin') {
-      setCurrentScreen('admin-catalog');
+    if (viewMode === 'student') {
+      // Check for admin privileges
+      if (user?.email === 'jairosouza67@gmail.com') {
+        setViewMode('admin');
+        setCurrentScreen('admin-catalog');
+      } else {
+        alert('Acesso negado. Apenas administradores podem acessar esta área.');
+      }
     } else {
+      setViewMode('student');
       setCurrentScreen('dashboard');
     }
   };
@@ -107,7 +112,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans flex">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col md:flex-row">
       <Sidebar
         viewMode={viewMode}
         currentScreen={currentScreen}
@@ -116,11 +121,11 @@ const App: React.FC = () => {
         user={user}
       />
 
-      <main className="pl-64 w-full min-h-screen relative">
+      <main className="w-full min-h-screen relative pb-20 md:pb-0 md:pl-64 transition-all duration-300">
         {renderScreen()}
 
         {/* Floating Toggle Button for Demo Purposes - Only visible if logged in */}
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+        <div className="fixed bottom-24 md:bottom-6 right-6 z-50 flex flex-col items-end gap-2">
           <div className="bg-card border border-border text-muted-foreground text-xs py-1 px-3 rounded shadow-lg mb-1 pointer-events-none">
             Modo: {viewMode === 'student' ? 'Aluno' : 'Admin'}
           </div>
@@ -133,6 +138,8 @@ const App: React.FC = () => {
           </button>
         </div>
       </main>
+
+      <MobileNav currentScreen={currentScreen} onNavigate={navigateTo} />
     </div>
   );
 };
