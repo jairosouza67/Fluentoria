@@ -6,9 +6,10 @@ import { Course, getCourses } from '../lib/db';
 
 interface CourseListProps {
   onNavigate: (screen: Screen) => void;
+  onSelectCourse: (course: Course) => void;
 }
 
-const CourseList: React.FC<CourseListProps> = ({ onNavigate }) => {
+const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,7 +63,10 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate }) => {
           {filteredCourses.map((course) => (
             <div
               key={course.id}
-              onClick={() => onNavigate('course-detail')}
+              onClick={() => {
+                onSelectCourse(course);
+                onNavigate('course-detail');
+              }}
               className="group bg-[#1c1917] border border-stone-800 rounded-xl overflow-hidden hover:border-orange-500/50 transition-all cursor-pointer hover:shadow-lg hover:shadow-orange-900/10"
             >
               {/* Thumbnail */}

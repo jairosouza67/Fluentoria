@@ -134,8 +134,9 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                             value={formData.videoUrl || ''}
                             onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                             className="w-full bg-[#292524] border border-stone-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-orange-500"
-                            placeholder="https://..."
+                            placeholder="Cole o link do YouTube (ex: https://youtu.be/...)"
                         />
+                        <p className="text-xs text-stone-500">Suporta links do YouTube, vídeos diretos ou outros formatos</p>
                     </div>
 
                     <div className="space-y-2">

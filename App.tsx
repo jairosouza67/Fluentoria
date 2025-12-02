@@ -13,12 +13,14 @@ import { Eye, Loader2 } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
+import { Course } from './lib/db';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('student');
   const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -94,9 +96,9 @@ const App: React.FC = () => {
       case 'dashboard':
         return <StudentDashboard onNavigate={navigateTo} />;
       case 'courses':
-        return <CourseList onNavigate={navigateTo} />;
+        return <CourseList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
       case 'course-detail':
-        return <CourseDetail onBack={() => navigateTo('courses')} />;
+        return <CourseDetail onBack={() => navigateTo('courses')} course={selectedCourse} />;
       case 'daily':
         return <DailyContact />;
       case 'mindful':

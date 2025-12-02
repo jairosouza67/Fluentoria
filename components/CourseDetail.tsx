@@ -2,14 +2,37 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play } from 'lucide-react';
 import { Screen } from '../types';
+import { Course } from '../lib/db';
+import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl } from '../lib/youtube';
 
 interface CourseDetailProps {
   onBack: () => void;
+  course: Course | null;
 }
 
-const CourseDetail: React.FC<CourseDetailProps> = ({ onBack }) => {
+const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'notes' | 'resources'>('content');
   const [isCompleted, setIsCompleted] = useState(false);
+
+  // Extract YouTube video ID if available
+  const videoId = course?.videoUrl ? extractYouTubeId(course.videoUrl) : null;
+  const hasYouTubeVideo = videoId && isYouTubeUrl(course?.videoUrl || '');
+
+  if (!course) {
+    return (
+      <div className="max-w-7xl mx-auto min-h-screen bg-[#12100e] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-stone-400 mb-4">Curso não encontrado</p>
+          <button
+            onClick={onBack}
+            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto min-h-screen bg-[#12100e] flex flex-col">
@@ -19,8 +42,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack }) => {
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-semibold text-white">Comunicação Não-Violenta</h1>
-          <p className="text-xs text-stone-500">Aula 3 de 10 • Módulo 1</p>
+          <h1 className="text-lg font-semibold text-white">{course.title}</h1>
+          <p className="text-xs text-stone-500">{course.author} • {course.duration}</p>
         </div>
         <button 
           onClick={() => setIsCompleted(!isCompleted)}
@@ -38,19 +61,37 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack }) => {
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Main Content Area (Player) */}
         <div className="flex-1 p-6 space-y-6">
-          {/* Video Player Placeholder */}
+          {/* Video Player */}
           <div className="aspect-video w-full bg-stone-900 rounded-2xl overflow-hidden relative group border border-stone-800 shadow-2xl">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center pl-1 cursor-pointer hover:scale-110 transition-transform shadow-lg shadow-orange-900/50">
-                <Play size={24} className="text-white" fill="white" />
+            {hasYouTubeVideo ? (
+              <iframe
+                className="w-full h-full"
+                src={getYouTubeEmbedUrl(videoId!)}
+                title={course.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : course.videoUrl ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <video
+                  className="w-full h-full"
+                  controls
+                  src={course.videoUrl}
+                >
+                  Seu navegador não suporta a tag de vídeo.
+                </video>
               </div>
-            </div>
-            {/* Fake Controls */}
-            <div className="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t from-black/80 to-transparent flex items-end px-4 pb-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="w-full h-1 bg-stone-600 rounded-full overflow-hidden">
-                <div className="w-1/3 h-full bg-orange-500"></div>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center pl-1 mb-4 mx-auto">
+                    <Play size={24} className="text-orange-500" fill="currentColor" />
+                  </div>
+                  <p className="text-stone-500 text-sm">Vídeo não disponível</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -73,14 +114,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack }) => {
           <div className="prose prose-invert max-w-none">
             <h2 className="text-xl font-bold text-white mb-4">Sobre esta aula</h2>
             <p className="text-stone-400 leading-relaxed">
-              Nesta aula, exploraremos os quatro componentes da Comunicação Não-Violenta (CNV): observação, sentimento, necessidade e pedido. Aprenderemos como expressar nossos sentimentos de forma clara sem culpar os outros e como ouvir com empatia.
+              {course.description || 'Descrição não disponível.'}
             </p>
-            <h3 className="text-lg font-semibold text-white mt-6 mb-3">O que você vai aprender</h3>
-            <ul className="space-y-2 text-stone-400 list-disc pl-5">
-              <li>Diferenciar observações de julgamentos.</li>
-              <li>Identificar e expressar sentimentos.</li>
-              <li>Reconhecer as necessidades por trás dos sentimentos.</li>
-            </ul>
           </div>
         </div>
 
