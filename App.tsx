@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import StudentDashboard from './components/StudentDashboard';
 import AdminCatalog from './components/AdminCatalog';
@@ -10,11 +9,32 @@ import DailyContact from './components/DailyContact';
 import MindfulFlow from './components/MindfulFlow';
 import Profile from './components/Profile';
 import { ViewMode, Screen } from './types';
-import { Eye } from 'lucide-react';
+import { Eye, Loader2 } from 'lucide-react';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('student');
   const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        // Only redirect to dashboard if currently on auth screen
+        if (currentScreen === 'auth') {
+          setCurrentScreen('dashboard');
+        }
+      } else {
+        setCurrentScreen('auth');
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [currentScreen]);
 
   // Navegação simples baseada em estado
   const navigateTo = (screen: Screen) => {
@@ -23,11 +43,16 @@ const App: React.FC = () => {
   };
 
   const handleLogin = () => {
-    setCurrentScreen('dashboard');
+    // Handled by onAuthStateChanged
   };
 
-  const handleLogout = () => {
-    setCurrentScreen('auth');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // State update handled by onAuthStateChanged
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   const toggleViewMode = () => {
@@ -41,7 +66,15 @@ const App: React.FC = () => {
     }
   };
 
-  if (currentScreen === 'auth') {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    );
+  }
+
+  if (!user || currentScreen === 'auth') {
     return <Auth onLogin={handleLogin} />;
   }
 
@@ -67,32 +100,33 @@ const App: React.FC = () => {
         return <Profile />;
       case 'music':
         // Reuse MindfulFlow style for now or create specific if needed later
-        return <MindfulFlow />; 
+        return <MindfulFlow />;
       default:
         return <StudentDashboard onNavigate={navigateTo} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#12100e] text-stone-100 font-sans flex">
-      <Sidebar 
-        viewMode={viewMode} 
-        currentScreen={currentScreen} 
+    <div className="min-h-screen bg-background text-foreground font-sans flex">
+      <Sidebar
+        viewMode={viewMode}
+        currentScreen={currentScreen}
         onNavigate={navigateTo}
         onLogout={handleLogout}
+        user={user}
       />
-      
+
       <main className="pl-64 w-full min-h-screen relative">
         {renderScreen()}
-        
+
         {/* Floating Toggle Button for Demo Purposes - Only visible if logged in */}
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-           <div className="bg-stone-800 text-stone-400 text-xs py-1 px-3 rounded shadow-lg mb-1 pointer-events-none">
-             Modo: {viewMode === 'student' ? 'Aluno' : 'Admin'}
-           </div>
-           <button 
+          <div className="bg-card border border-border text-muted-foreground text-xs py-1 px-3 rounded shadow-lg mb-1 pointer-events-none">
+            Modo: {viewMode === 'student' ? 'Aluno' : 'Admin'}
+          </div>
+          <button
             onClick={toggleViewMode}
-            className="bg-white text-black p-4 rounded-full shadow-xl hover:bg-stone-200 transition-transform hover:scale-105 active:scale-95 flex items-center justify-center"
+            className="bg-primary text-white p-4 rounded-full shadow-xl hover:bg-orange-600 transition-transform hover:scale-105 active:scale-95 flex items-center justify-center"
             title="Alternar entre visão de Aluno e Admin"
           >
             <Eye size={24} />
