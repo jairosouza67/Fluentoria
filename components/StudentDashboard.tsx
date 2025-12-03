@@ -105,14 +105,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
               className="flex items-center gap-2 text-primary hover:text-primary/80 text-sm font-medium transition-colors"
             >
               <Trophy className="w-4 h-4" />
-              <span>{studentProgress.unlockedAchievements.length} Conquistas</span>
-            </button>
-            <span className="text-muted-foreground">•</span>
-            <button
-              onClick={() => onNavigate('leaderboard' as Screen)}
-              className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-            >
-              Ver Ranking
+              <span>{studentProgress.unlockedAchievements.length} Conquistas • Ver Ranking</span>
             </button>
           </div>
         </div>

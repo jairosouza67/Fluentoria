@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, Trophy, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
 import { Screen } from '../types';
 
 interface MobileNavProps {
@@ -27,12 +27,6 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate }) => {
                 label="Achievements"
                 active={currentScreen === 'achievements'}
                 onClick={() => onNavigate('achievements')}
-            />
-            <NavItem
-                icon={<TrendingUp size={20} />}
-                label="Leaderboard"
-                active={currentScreen === 'leaderboard'}
-                onClick={() => onNavigate('leaderboard')}
             />
         </div>
     );

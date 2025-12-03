@@ -180,8 +180,7 @@ const App: React.FC = () => {
                 {currentScreen === 'daily' && 'Daily Contact'}
                 {currentScreen === 'mindful' && 'Mindful Flow'}
                 {currentScreen === 'music' && 'Músicas'}
-                {currentScreen === 'achievements' && 'Conquistas'}
-                {currentScreen === 'leaderboard' && 'Ranking'}
+                {currentScreen === 'achievements' && 'Conquistas e Ranking'}
                 {currentScreen === 'attendance' && 'Presença'}
                 {currentScreen === 'profile' && 'Perfil'}
                 {currentScreen === 'admin-catalog' && 'Catálogo de Aulas'}

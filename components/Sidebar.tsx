@@ -11,7 +11,6 @@ import {
   LogOut,
   Edit3,
   Trophy,
-  TrendingUp,
   Calendar,
   Activity,
   Music
@@ -79,12 +78,6 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
                 label="Achievements"
                 active={currentScreen === 'achievements'}
                 onClick={() => onNavigate('achievements')}
-              />
-              <NavItem
-                icon={<TrendingUp size={20} />}
-                label="Leaderboard"
-                active={currentScreen === 'leaderboard'}
-                onClick={() => onNavigate('leaderboard')}
               />
               <NavItem
                 icon={<Calendar size={20} />}
