@@ -37,3 +37,14 @@ export const isYouTubeUrl = (url: string): boolean => {
   if (!url) return false;
   return /(?:youtube\.com|youtu\.be)/.test(url);
 };
+
+/**
+ * Get YouTube thumbnail URL from video URL
+ */
+export const getYouTubeThumbnail = (videoUrl: string): string | null => {
+  const videoId = extractYouTubeId(videoUrl);
+  if (!videoId) return null;
+  
+  // Return high quality thumbnail URL
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+};

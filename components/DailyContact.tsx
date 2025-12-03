@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, PlayCircle, FileText, Mic, Clock, Filter, Loader2, ArrowLeft, CheckCircle, Download, Bookmark, Share2, Play } from 'lucide-react';
 import { DailyContact as DailyContactType, getDailyContacts } from '../lib/db';
-import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl } from '../lib/youtube';
+import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl, getYouTubeThumbnail } from '../lib/youtube';
 import MediaUpload from './MediaUpload';
 import CourseChat from './CourseChat';
 import { logActivity } from '../lib/attendance';
@@ -254,7 +254,10 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDailyContacts.map((daily) => (
+          {filteredDailyContacts.map((daily) => {
+            const thumbnailUrl = daily.videoUrl ? getYouTubeThumbnail(daily.videoUrl) : null;
+            
+            return (
             <div
               key={daily.id}
               onClick={() => {
@@ -263,16 +266,30 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
               className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
             >
               {/* Thumbnail */}
-              <div className={`h-40 w-full bg-gradient-to-br ${daily.thumbnail} relative flex items-center justify-center`}>
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20">
+              <div className={`h-40 w-full ${thumbnailUrl ? 'bg-black' : `bg-gradient-to-br ${daily.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
+                {thumbnailUrl ? (
+                  <>
+                    <img 
+                      src={thumbnailUrl} 
+                      alt={daily.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                )}
+                <div className="absolute w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20 z-10">
                   {daily.type === 'video' && <PlayCircle size={24} fill="white" className="text-white opacity-80" />}
                   {daily.type === 'pdf' && <FileText size={24} />}
                   {daily.type === 'audio' && <Mic size={24} />}
                 </div>
 
                 {/* Progress Bar overlay */}
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-black/30">
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-black/30 z-10">
                   <div className="h-full bg-[#FF6A00]" style={{ width: `${daily.viewed ? 100 : 0}%` }}></div>
                 </div>
               </div>
@@ -294,7 +311,8 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
