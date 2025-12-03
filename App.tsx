@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import StudentDashboard from './components/StudentDashboard';
 import AdminCatalog from './components/AdminCatalog';
@@ -10,10 +10,14 @@ import Auth from './components/Auth';
 import CourseList from './components/CourseList';
 import CourseDetail from './components/CourseDetail';
 import DailyContact from './components/DailyContact';
-import MindfulFlow from './components/MindfulFlow';
+import MindfulFlowList from './components/MindfulFlowList';
+import MusicList from './components/MusicList';
 import Profile from './components/Profile';
+import Achievements from './components/Achievements';
+import Leaderboard from './components/Leaderboard';
+import AttendanceTracker from './components/AttendanceTracker';
 import { ViewMode, Screen } from './types';
-import { Eye, Loader2 } from 'lucide-react';
+import { Eye, Loader2, ChevronDown, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
@@ -25,6 +29,8 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -42,6 +48,23 @@ const App: React.FC = () => {
 
     return () => unsubscribe();
   }, [currentScreen]);
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileMenu]);
 
   // Navegação simples baseada em estado
   const navigateTo = (screen: Screen) => {
@@ -119,12 +142,17 @@ const App: React.FC = () => {
       case 'daily':
         return <DailyContact />;
       case 'mindful':
-        return <MindfulFlow />;
+        return <MindfulFlowList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
+      case 'music':
+        return <MusicList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
       case 'profile':
         return <Profile />;
-      case 'music':
-        // Reuse MindfulFlow style for now or create specific if needed later
-        return <MindfulFlow />;
+      case 'achievements':
+        return user ? <Achievements studentId={user.uid} /> : null;
+      case 'leaderboard':
+        return user ? <Leaderboard currentUserId={user.uid} /> : null;
+      case 'attendance':
+        return user ? <AttendanceTracker studentId={user.uid} studentName={user.displayName || user.email || 'Student'} /> : null;
       default:
         return <StudentDashboard onNavigate={navigateTo} />;
     }
@@ -141,6 +169,94 @@ const App: React.FC = () => {
       />
 
       <main className="w-full min-h-screen relative pb-20 md:pb-0 md:pl-64 transition-all duration-300">
+        {/* Top Header with Avatar - Mobile and Desktop */}
+        <div className="sticky top-0 z-40 bg-[#0B0B0B]/95 backdrop-blur-xl border-b border-white/[0.06] px-4 md:px-8 py-4">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-[#F3F4F6]">
+                {currentScreen === 'dashboard' && 'Dashboard'}
+                {currentScreen === 'courses' && 'Cursos'}
+                {currentScreen === 'course-detail' && 'Detalhes do Curso'}
+                {currentScreen === 'daily' && 'Daily Contact'}
+                {currentScreen === 'mindful' && 'Mindful Flow'}
+                {currentScreen === 'music' && 'Músicas'}
+                {currentScreen === 'achievements' && 'Conquistas'}
+                {currentScreen === 'leaderboard' && 'Ranking'}
+                {currentScreen === 'attendance' && 'Presença'}
+                {currentScreen === 'profile' && 'Perfil'}
+                {currentScreen === 'admin-catalog' && 'Catálogo de Aulas'}
+                {currentScreen === 'admin-students' && 'Alunos'}
+                {currentScreen === 'admin-reports' && 'Relatórios'}
+                {currentScreen === 'admin-settings' && 'Configurações'}
+                {currentScreen === 'admin-help' && 'Ajuda'}
+              </h2>
+            </div>
+            
+            {/* Avatar with Dropdown Menu */}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] hover:border-[#FF6A00]/50 transition-all duration-200 group"
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white/10 group-hover:ring-[#FF6A00] transition-all duration-200">
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#FF6A00] to-[#E15B00] flex items-center justify-center text-white text-sm font-bold">
+                      {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-semibold text-[#F3F4F6] group-hover:text-[#FF6A00] transition-colors">
+                    {user?.displayName || 'Usuário'}
+                  </p>
+                  <p className="text-xs text-[#9CA3AF]">
+                    {viewMode === 'student' ? 'Aluno' : 'Admin'}
+                  </p>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-[#9CA3AF] transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-white/[0.1] rounded-xl shadow-elevated overflow-hidden animate-fade-in">
+                  <div className="p-4 border-b border-white/[0.06]">
+                    <p className="text-sm font-semibold text-[#F3F4F6]">{user?.displayName || 'Usuário'}</p>
+                    <p className="text-xs text-[#9CA3AF] mt-1">{user?.email}</p>
+                  </div>
+                  
+                  <div className="py-2">
+                    <button
+                      onClick={() => {
+                        navigateTo('profile');
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[#F3F4F6] hover:bg-white/[0.05] transition-colors"
+                    >
+                      <UserIcon className="w-5 h-5 text-[#FF6A00]" />
+                      <span className="text-sm">Perfil</span>
+                    </button>
+                  </div>
+                  
+                  <div className="p-2 border-t border-white/[0.06]">
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <LogOutIcon className="w-5 h-5" />
+                      <span className="text-sm font-medium">Sair</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {renderScreen()}
 
         {/* Floating Toggle Button for Demo Purposes - Only visible if logged in */}

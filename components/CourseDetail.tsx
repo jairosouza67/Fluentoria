@@ -1,9 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play } from 'lucide-react';
 import { Screen } from '../types';
 import { Course } from '../lib/db';
 import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl } from '../lib/youtube';
+import CourseChat from './CourseChat';
+import MediaUpload from './MediaUpload';
+import { logActivity } from '../lib/attendance';
+import { addXP, XP_REWARDS } from '../lib/gamification';
+import { auth } from '../lib/firebase';
 
 interface CourseDetailProps {
   onBack: () => void;
@@ -11,8 +16,30 @@ interface CourseDetailProps {
 }
 
 const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
-  const [activeTab, setActiveTab] = useState<'content' | 'notes' | 'resources'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'media' | 'chat'>('content');
   const [isCompleted, setIsCompleted] = useState(false);
+  const user = auth.currentUser;
+
+  useEffect(() => {
+    // Log course started activity
+    if (user && course?.id) {
+      logActivity(user.uid, 'course_started', course.id, course.title);
+    }
+  }, [user, course?.id]);
+
+  const handleMarkComplete = async () => {
+    if (!user || !course?.id) return;
+    
+    const newStatus = !isCompleted;
+    setIsCompleted(newStatus);
+    
+    if (newStatus) {
+      // Log course completion
+      await logActivity(user.uid, 'course_completed', course.id, course.title);
+      // Award XP
+      await addXP(user.uid, XP_REWARDS.course_completed, `Completed: ${course.title}`);
+    }
+  };
 
   // Extract YouTube video ID if available
   const videoId = course?.videoUrl ? extractYouTubeId(course.videoUrl) : null;
@@ -46,7 +73,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
           <p className="text-xs text-[#9CA3AF]">{course.author} • {course.duration}</p>
         </div>
         <button 
-          onClick={() => setIsCompleted(!isCompleted)}
+          onClick={handleMarkComplete}
           className={`px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 ${
             isCompleted 
               ? 'bg-[#23D18B]/20 text-[#23D18B] border border-[#23D18B]/30' 
@@ -121,31 +148,31 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
 
         {/* Sidebar Context (Tabs) */}
         <div className="w-full lg:w-96 border-l border-white/[0.06] bg-[#111111] flex flex-col">
-          <div className="flex border-b border-white/[0.06]">
+          <div className="flex border-b border-white/[0.06] overflow-x-auto">
             <button 
               onClick={() => setActiveTab('content')}
-              className={`flex-1 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === 'content' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
+              className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'content' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
             >
-              Conteúdo
+              Content
             </button>
             <button 
-              onClick={() => setActiveTab('notes')}
-              className={`flex-1 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === 'notes' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
+              onClick={() => setActiveTab('media')}
+              className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'media' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
             >
-              Anotações
+              Media
             </button>
             <button 
-              onClick={() => setActiveTab('resources')}
-              className={`flex-1 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === 'resources' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
+              onClick={() => setActiveTab('chat')}
+              className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'chat' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
             >
-              Recursos
+              Questions
             </button>
           </div>
 
           <div className="flex-1 p-6 overflow-y-auto">
             {activeTab === 'content' && (
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">Próximas Aulas</h3>
+                <h3 className="text-sm font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">Next Lessons</h3>
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className={`flex items-start gap-3 p-3 rounded-lg hover:bg-white/[0.02] transition-all duration-200 cursor-pointer ${i === 1 ? 'bg-white/[0.04] border border-white/[0.06]' : ''}`}>
                     <div className="mt-1">
@@ -153,7 +180,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
                     </div>
                     <div>
                       <h4 className={`text-sm font-medium ${i === 1 ? 'text-[#F3F4F6]' : 'text-[#9CA3AF]'}`}>
-                        {i === 1 ? 'Identificando Sentimentos' : `Aula Prática ${i}`}
+                        {i === 1 ? 'Identifying Feelings' : `Practical Lesson ${i}`}
                       </h4>
                       <span className="text-xs text-[#9CA3AF]/60">12 min</span>
                     </div>
@@ -162,39 +189,25 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
               </div>
             )}
 
-            {activeTab === 'notes' && (
-              <div className="space-y-4 h-full flex flex-col">
-                 <textarea 
-                   className="w-full flex-1 bg-[#111111] border border-white/[0.06] rounded-lg p-4 text-[#F3F4F6] resize-none focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-120 placeholder-[#9CA3AF]"
-                   placeholder="Digite suas anotações pessoais aqui..."
-                 ></textarea>
-                 <button className="w-full bg-[#FF6A00] text-white py-3 rounded-xl hover:bg-[#E15B00] hover:-translate-y-0.5 transition-all duration-200 font-medium shadow-sm hover:shadow-[0_8px_24px_rgba(255,106,0,0.12)]">
-                   Salvar Anotação
-                 </button>
-              </div>
+            {activeTab === 'media' && user && course && (
+              <MediaUpload
+                courseId={course.id || ''}
+                courseName={course.title}
+                studentId={user.uid}
+                studentName={user.displayName || user.email || 'User'}
+                isInstructor={user.email === 'jairosouza67@gmail.com'}
+              />
             )}
-             
-            {activeTab === 'resources' && (
-              <div className="space-y-3">
-                 <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/[0.06] hover:border-[#FF6A00]/30 transition-all duration-200 cursor-pointer group">
-                   <div className="p-2 bg-[#111111] rounded text-[#FF6A00]">
-                     <Download size={20} />
-                   </div>
-                   <div>
-                     <h4 className="text-sm font-medium text-[#9CA3AF] group-hover:text-[#F3F4F6]">Slides da Aula.pdf</h4>
-                     <p className="text-xs text-[#9CA3AF]/60">2.4 MB</p>
-                   </div>
-                 </div>
-                 <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-lg border border-white/[0.06] hover:border-[#FF6A00]/30 transition-all duration-200 cursor-pointer group">
-                   <div className="p-2 bg-stone-800 rounded text-blue-500">
-                     <Download size={20} />
-                   </div>
-                   <div>
-                     <h4 className="text-sm font-medium text-stone-300 group-hover:text-white">Exercício Prático.docx</h4>
-                     <p className="text-xs text-stone-600">1.1 MB</p>
-                   </div>
-                 </div>
-              </div>
+
+            {activeTab === 'chat' && user && course && (
+              <CourseChat
+                courseId={course.id || ''}
+                courseName={course.title}
+                userId={user.uid}
+                userName={user.displayName || user.email || 'User'}
+                userEmail={user.email || ''}
+                isInstructor={user.email === 'jairosouza67@gmail.com'}
+              />
             )}
           </div>
         </div>

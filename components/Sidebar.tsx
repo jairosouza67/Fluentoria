@@ -9,7 +9,12 @@ import {
   Home,
   BarChart3,
   LogOut,
-  Edit3
+  Edit3,
+  Trophy,
+  TrendingUp,
+  Calendar,
+  Activity,
+  Music
 } from 'lucide-react';
 import { ViewMode, Screen } from '../types';
 import { User as FirebaseUser } from 'firebase/auth';
@@ -28,26 +33,11 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-[#111111]/95 backdrop-blur-xl border-r border-white/[0.06] flex-col justify-between p-6 z-20 shadow-elevated">
 
-      {/* User Profile Header */}
+      {/* Logo or Brand */}
       <div>
-        <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer group" onClick={() => onNavigate('profile')}>
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-stone-900 font-bold overflow-hidden ring-2 ring-white/10 group-hover:ring-[#FF6A00] transition-all duration-200 shadow-lg`}>
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#FF6A00] to-[#E15B00] flex items-center justify-center text-white text-lg">
-                {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-              </div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-[#F3F4F6] group-hover:text-[#FF6A00] transition-colors duration-200 truncate">
-              {user?.displayName || 'Usuário'}
-            </h3>
-            <p className="text-xs text-[#9CA3AF] truncate">
-              {isStudent ? 'Aluno' : 'Admin'}
-            </p>
-          </div>
+        <div className="mb-10 px-2">
+          <h1 className="text-2xl font-bold text-[#FF6A00]">Fluentoria</h1>
+          <p className="text-xs text-[#9CA3AF] mt-1">Learning Platform</p>
         </div>
 
         {/* Navigation Items */}
@@ -62,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
               />
               <NavItem
                 icon={<BookOpen size={20} />}
-                label="Aulas"
+                label="Courses"
                 active={currentScreen === 'courses' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
               />
@@ -73,10 +63,34 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
                 onClick={() => onNavigate('daily')}
               />
               <NavItem
-                icon={<User size={20} />}
-                label="Meu Perfil"
-                active={currentScreen === 'profile'}
-                onClick={() => onNavigate('profile')}
+                icon={<Activity size={20} />}
+                label="Mindful Flow"
+                active={currentScreen === 'mindful'}
+                onClick={() => onNavigate('mindful')}
+              />
+              <NavItem
+                icon={<Music size={20} />}
+                label="Music"
+                active={currentScreen === 'music'}
+                onClick={() => onNavigate('music')}
+              />
+              <NavItem
+                icon={<Trophy size={20} />}
+                label="Achievements"
+                active={currentScreen === 'achievements'}
+                onClick={() => onNavigate('achievements')}
+              />
+              <NavItem
+                icon={<TrendingUp size={20} />}
+                label="Leaderboard"
+                active={currentScreen === 'leaderboard'}
+                onClick={() => onNavigate('leaderboard')}
+              />
+              <NavItem
+                icon={<Calendar size={20} />}
+                label="Attendance"
+                active={currentScreen === 'attendance'}
+                onClick={() => onNavigate('attendance')}
               />
             </>
           ) : (
@@ -95,7 +109,6 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
       <nav className="space-y-2">
         {isStudent ? (
           <>
-            <NavItem icon={<Settings size={20} />} label="Configurações" onClick={() => onNavigate('profile')} />
             <NavItem icon={<LogOut size={20} />} label="Sair" onClick={onLogout} />
           </>
         ) : (
