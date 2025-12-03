@@ -178,20 +178,18 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
             <div className="flex-1 p-6 overflow-y-auto">
               {activeTab === 'content' && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">Next Daily Contacts</h3>
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className={`flex items-start gap-3 p-3 rounded-lg hover:bg-white/[0.02] transition-all duration-200 cursor-pointer ${i === 1 ? 'bg-white/[0.04] border border-white/[0.06]' : ''}`}>
-                      <div className="mt-1">
-                        {i === 1 ? <Play size={16} className="text-[#FF6A00]" /> : <div className="w-4 h-4 rounded-full border border-white/[0.2]" />}
-                      </div>
-                      <div>
-                        <h4 className={`text-sm font-medium ${i === 1 ? 'text-[#F3F4F6]' : 'text-[#9CA3AF]'}`}>
-                          {i === 1 ? 'Next Contact' : `Daily Contact ${i}`}
-                        </h4>
-                        <span className="text-xs text-[#9CA3AF]/60">10 min</span>
-                      </div>
+                  <h3 className="text-sm font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">Daily Contact Atual</h3>
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.04] border border-white/[0.06]">
+                    <div className="mt-1">
+                      <Play size={16} className="text-[#FF6A00]" fill="currentColor" />
                     </div>
-                  ))}
+                    <div>
+                      <h4 className="text-sm font-medium text-[#F3F4F6]">
+                        {selectedDaily.title}
+                      </h4>
+                      <span className="text-xs text-[#9CA3AF]/60">{selectedDaily.duration}</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
