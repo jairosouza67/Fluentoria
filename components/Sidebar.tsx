@@ -11,7 +11,6 @@ import {
   LogOut,
   Edit3,
   Trophy,
-  Calendar,
   Activity,
   Music
 } from 'lucide-react';
@@ -78,12 +77,6 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
                 label="Achievements"
                 active={currentScreen === 'achievements'}
                 onClick={() => onNavigate('achievements')}
-              />
-              <NavItem
-                icon={<Calendar size={20} />}
-                label="Attendance"
-                active={currentScreen === 'attendance'}
-                onClick={() => onNavigate('attendance')}
               />
             </>
           ) : (

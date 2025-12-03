@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Edit3, Activity, Music, TrendingUp, Clock, Award, ArrowUpRight, Sparkles, Trophy, Zap } from 'lucide-react';
-import { Module, Recommendation, Screen } from '../types';
+import { Module, Screen } from '../types';
 import { auth } from '../lib/firebase';
 import { getStudentProgress, createStudentProgress } from '../lib/gamification';
 import LevelProgress from './LevelProgress';
+import AttendanceTracker from './AttendanceTracker';
 
 interface StudentDashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -60,13 +61,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
     { id: '2', title: 'Daily Contact', subtitle: 'Comece sua atividade diária', iconType: 'edit', actionLabel: 'Começar', targetScreen: 'daily' },
     { id: '3', title: 'Mindful Flow', subtitle: 'Inicie seu exercício', iconType: 'activity', actionLabel: 'Iniciar Prática', targetScreen: 'mindful' },
     { id: '4', title: 'Músicas', subtitle: 'Playlists para foco', iconType: 'music', actionLabel: 'Ouvir Agora', targetScreen: 'music' },
-  ];
-
-  const recommendations: Recommendation[] = [
-    { id: '1', title: 'Liderança Efetiva', subtitle: 'Desenvolva suas habilidades', gradient: 'from-orange-500 to-purple-900' },
-    { id: '2', title: 'Comunicação Assertiva', subtitle: 'Módulo intermediário', gradient: 'from-cyan-500 to-blue-900' },
-    { id: '3', title: 'Gestão de Tempo', subtitle: 'Técnicas e ferramentas', gradient: 'from-orange-600 to-red-900' },
-    { id: '4', title: 'Produtividade', subtitle: 'Maximize seu potencial', gradient: 'from-indigo-600 to-purple-900' },
   ];
 
   return (
@@ -180,25 +174,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground mb-6">Recomendações para Você</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {recommendations.map((rec) => (
-            <div
-              key={rec.id}
-              className="group relative bg-card border-border rounded-xl p-6 overflow-hidden cursor-pointer hover:-translate-y-1 transition-all duration-300 shadow-card-custom hover:shadow-elevated"
-              onClick={() => onNavigate('courses')}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${rec.gradient} opacity-10 group-hover:opacity-20 transition-opacity`} />
-              <div className="relative z-10">
-                <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{rec.title}</h3>
-                <p className="text-sm text-muted-foreground">{rec.subtitle}</p>
-              </div>
-            </div>
-          ))}
+      {/* Attendance Tracker */}
+      {user && (
+        <div>
+          <h2 className="text-2xl font-bold text-foreground mb-6">Frequência e Atividades</h2>
+          <AttendanceTracker 
+            studentId={user.uid} 
+            studentName={user.displayName || user.email || 'Estudante'} 
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 };
