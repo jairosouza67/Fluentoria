@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Edit3, Activity, Music, TrendingUp, Clock, Award, ArrowUpRight, Sparkles, Trophy, Zap } from 'lucide-react';
-import { Module, Screen } from '../types';
+import { TrendingUp, Clock, Award, ArrowUpRight, Sparkles, Trophy, Zap } from 'lucide-react';
+import { Screen } from '../types';
 import { auth } from '../lib/firebase';
 import { getStudentProgress, createStudentProgress } from '../lib/gamification';
 import LevelProgress from './LevelProgress';
@@ -16,6 +16,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     loadProgress();
+    // Reload progress every 30 seconds to catch updates
+    const interval = setInterval(loadProgress, 30000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const loadProgress = async () => {
@@ -35,33 +38,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
     
     setStudentProgress(progress);
   };
-  const stats = [
-    {
-      title: "Aulas Concluídas",
-      value: "12",
-      change: "+3 este mês",
-      icon: Award,
-    },
-    {
-      title: "Horas de Estudo",
-      value: "24h",
-      change: "+5h esta semana",
-      icon: Clock,
-    },
-    {
-      title: "Sequência",
-      value: "7 dias",
-      change: "Melhor: 12 dias",
-      icon: TrendingUp,
-    },
-  ];
-
-  const activeModules: Module[] = [
-    { id: '1', title: 'Aulas', subtitle: '15/30 Aulas Concluídas', progress: 50, iconType: 'book', actionLabel: 'Continuar', targetScreen: 'courses' },
-    { id: '2', title: 'Daily Contact', subtitle: 'Comece sua atividade diária', iconType: 'edit', actionLabel: 'Começar', targetScreen: 'daily' },
-    { id: '3', title: 'Mindful Flow', subtitle: 'Inicie seu exercício', iconType: 'activity', actionLabel: 'Iniciar Prática', targetScreen: 'mindful' },
-    { id: '4', title: 'Músicas', subtitle: 'Playlists para foco', iconType: 'music', actionLabel: 'Ouvir Agora', targetScreen: 'music' },
-  ];
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
@@ -105,74 +81,49 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-card border-border rounded-xl p-6 shadow-card-custom hover:-translate-y-0.5 transition-transform duration-200"
-          >
+      {/* Stats Grid - Now shows real data */}
+      {studentProgress && (
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="bg-card border-border rounded-xl p-6 shadow-card-custom hover:-translate-y-0.5 transition-transform duration-200">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-muted-foreground">{stat.title}</span>
+              <span className="text-sm font-medium text-muted-foreground">Total XP</span>
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <stat.icon className="h-5 w-5" />
+                <Zap className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+            <div className="text-3xl font-bold text-foreground mb-1">{studentProgress.totalXP}</div>
             <p className="text-xs text-green-500 flex items-center gap-1">
-              {stat.change} <ArrowUpRight className="w-3 h-3" />
+              Nível {studentProgress.currentLevel} <ArrowUpRight className="w-3 h-3" />
             </p>
           </div>
-        ))}
-      </div>
 
-      {/* Continue Learning */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground mb-6">Continue Aprendendo</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {activeModules.map((module) => (
-            <div
-              key={module.id}
-              onClick={() => module.targetScreen && onNavigate(module.targetScreen)}
-              className="group bg-card border-border rounded-xl p-6 shadow-card-custom hover:shadow-elevated hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
-                    {module.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">{module.subtitle}</p>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                  {module.iconType === 'book' && <BookOpen size={20} />}
-                  {module.iconType === 'edit' && <Edit3 size={20} />}
-                  {module.iconType === 'activity' && <Activity size={20} />}
-                  {module.iconType === 'music' && <Music size={20} />}
-                </div>
+          <div className="bg-card border-border rounded-xl p-6 shadow-card-custom hover:-translate-y-0.5 transition-transform duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-muted-foreground">Conquistas</span>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <Trophy className="h-5 w-5" />
               </div>
-
-              {module.progress !== undefined && (
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                    <span>Progresso</span>
-                    <span>{module.progress}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${module.progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <button className="w-full bg-secondary/50 text-muted-foreground py-2.5 rounded-lg text-sm font-medium border border-transparent group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all mt-auto">
-                {module.actionLabel}
-              </button>
             </div>
-          ))}
+            <div className="text-3xl font-bold text-foreground mb-1">{studentProgress.unlockedAchievements.length}</div>
+            <p className="text-xs text-green-500 flex items-center gap-1">
+              Desbloqueadas <ArrowUpRight className="w-3 h-3" />
+            </p>
+          </div>
+
+          <div className="bg-card border-border rounded-xl p-6 shadow-card-custom hover:-translate-y-0.5 transition-transform duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-muted-foreground">Ranking</span>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-foreground mb-1">#{studentProgress.rank || '-'}</div>
+            <p className="text-xs text-green-500 flex items-center gap-1">
+              Posição global <ArrowUpRight className="w-3 h-3" />
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Attendance Tracker */}
       {user && (

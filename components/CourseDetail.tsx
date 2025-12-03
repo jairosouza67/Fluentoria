@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play } from 'lucide-react';
 import { Screen } from '../types';
-import { Course } from '../lib/db';
+import { Course, getStudentCompletion, markContentComplete } from '../lib/db';
 import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl } from '../lib/youtube';
 import CourseChat from './CourseChat';
 import MediaUpload from './MediaUpload';
@@ -21,23 +20,39 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
   const user = auth.currentUser;
 
   useEffect(() => {
-    // Log course started activity
-    if (user && course?.id) {
-      logActivity(user.uid, 'course_started', course.id, course.title);
-    }
+    // Log course started activity and load completion status
+    const initializeCourse = async () => {
+      if (user && course?.id) {
+        await logActivity(user.uid, 'course_started', course.id, course.title);
+        
+        // Load completion status
+        const completion = await getStudentCompletion(user.uid, course.id, 'course');
+        if (completion) {
+          setIsCompleted(completion.completed);
+        }
+      }
+    };
+    
+    initializeCourse();
   }, [user, course?.id]);
 
   const handleMarkComplete = async () => {
     if (!user || !course?.id) return;
     
     const newStatus = !isCompleted;
-    setIsCompleted(newStatus);
     
     if (newStatus) {
+      // Save completion status
+      await markContentComplete(user.uid, course.id, 'course', true);
       // Log course completion
       await logActivity(user.uid, 'course_completed', course.id, course.title);
       // Award XP
       await addXP(user.uid, XP_REWARDS.course_completed, `Completed: ${course.title}`);
+      setIsCompleted(true);
+    } else {
+      // Allow unchecking
+      await markContentComplete(user.uid, course.id, 'course', false);
+      setIsCompleted(false);
     }
   };
 

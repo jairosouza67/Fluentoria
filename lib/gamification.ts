@@ -7,7 +7,7 @@ const ACHIEVEMENTS_COLLECTION = 'achievements';
 
 // XP and Level System
 const XP_PER_LEVEL = 500;
-const XP_REWARDS = {
+export const XP_REWARDS = {
   course_completed: 100,
   daily_contact: 20,
   mindful_flow: 15,
@@ -346,5 +346,3 @@ export const getDefaultAchievements = (): Achievement[] => {
     },
   ];
 };
-
-export { XP_REWARDS };

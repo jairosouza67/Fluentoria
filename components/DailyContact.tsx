@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, PlayCircle, FileText, Mic, Clock, Filter, Loader2, ArrowLeft, CheckCircle, Download, Bookmark, Share2, Play } from 'lucide-react';
-import { DailyContact as DailyContactType, getDailyContacts } from '../lib/db';
+import { DailyContact as DailyContactType, getDailyContacts, getStudentCompletion, markContentComplete } from '../lib/db';
 import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl, getYouTubeThumbnail } from '../lib/youtube';
 import MediaUpload from './MediaUpload';
 import CourseChat from './CourseChat';
@@ -30,10 +30,22 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
   }, [selectedDaily]);
 
   useEffect(() => {
-    // Log daily contact started activity
-    if (user && selectedDaily?.id) {
-      logActivity(user.uid, 'course_started', selectedDaily.id, selectedDaily.title);
-    }
+    // Log daily contact started activity and load completion status
+    const initializeDaily = async () => {
+      if (user && selectedDaily?.id) {
+        await logActivity(user.uid, 'course_started', selectedDaily.id, selectedDaily.title);
+        
+        // Load completion status
+        const completion = await getStudentCompletion(user.uid, selectedDaily.id, 'daily');
+        if (completion) {
+          setIsCompleted(completion.completed);
+        } else {
+          setIsCompleted(false);
+        }
+      }
+    };
+    
+    initializeDaily();
   }, [user, selectedDaily?.id]);
 
   const loadDailyContacts = async () => {
@@ -47,13 +59,19 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
     if (!user || !selectedDaily?.id) return;
     
     const newStatus = !isCompleted;
-    setIsCompleted(newStatus);
     
     if (newStatus) {
-      // Log completion
-      await logActivity(user.uid, 'course_completed', selectedDaily.id, selectedDaily.title);
+      // Save completion status
+      await markContentComplete(user.uid, selectedDaily.id, 'daily', true);
+      // Log daily contact completion
+      await logActivity(user.uid, 'daily_contact', selectedDaily.id, selectedDaily.title);
       // Award XP
-      await addXP(user.uid, XP_REWARDS.course_completed, `Completed: ${selectedDaily.title}`);
+      await addXP(user.uid, XP_REWARDS.daily_contact, `Completed Daily Contact: ${selectedDaily.title}`);
+      setIsCompleted(true);
+    } else {
+      // Allow unchecking
+      await markContentComplete(user.uid, selectedDaily.id, 'daily', false);
+      setIsCompleted(false);
     }
   };
 

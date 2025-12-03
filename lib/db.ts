@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc } from 'firebase/firestore';
 
 export interface Course {
     id?: string;
@@ -31,6 +31,7 @@ const COURSES_COLLECTION = 'courses';
 const DAILY_CONTACTS_COLLECTION = 'daily_contacts';
 const MINDFUL_FLOW_COLLECTION = 'mindful_flow';
 const MUSIC_COLLECTION = 'music';
+const STUDENT_COMPLETIONS_COLLECTION = 'student_completions';
 
 export const getCourses = async (): Promise<Course[]> => {
     try {
@@ -203,6 +204,66 @@ export const deleteDailyContact = async (id: string): Promise<boolean> => {
         return true;
     } catch (error) {
         console.error("Error deleting daily contact:", error);
+        return false;
+    }
+};
+
+// Student Completion Tracking
+export interface StudentCompletion {
+    studentId: string;
+    contentId: string;
+    contentType: 'course' | 'daily' | 'mindful' | 'music';
+    completed: boolean;
+    completedAt?: Date;
+}
+
+export const getStudentCompletion = async (
+    studentId: string,
+    contentId: string,
+    contentType: 'course' | 'daily' | 'mindful' | 'music'
+): Promise<StudentCompletion | null> => {
+    try {
+        const completionId = `${studentId}_${contentType}_${contentId}`;
+        const docRef = doc(db, STUDENT_COMPLETIONS_COLLECTION, completionId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            return {
+                ...data,
+                completedAt: data.completedAt?.toDate(),
+            } as StudentCompletion;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error("Error fetching student completion:", error);
+        return null;
+    }
+};
+
+export const markContentComplete = async (
+    studentId: string,
+    contentId: string,
+    contentType: 'course' | 'daily' | 'mindful' | 'music',
+    completed: boolean
+): Promise<boolean> => {
+    try {
+        const completionId = `${studentId}_${contentType}_${contentId}`;
+        const docRef = doc(db, STUDENT_COMPLETIONS_COLLECTION, completionId);
+        
+        const completionData: StudentCompletion = {
+            studentId,
+            contentId,
+            contentType,
+            completed,
+            completedAt: completed ? new Date() : undefined,
+        };
+        
+        await setDoc(docRef, completionData);
+        return true;
+    } catch (error) {
+        console.error("Error marking content complete:", error);
         return false;
     }
 };
