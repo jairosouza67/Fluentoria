@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, PlayCircle, FileText, Mic, Clock, Filter, Loader2 } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, getCourses } from '../lib/db';
+import { Course, getMindfulFlows } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/youtube';
 
 interface MindfulFlowListProps {
@@ -17,7 +17,7 @@ const MindfulFlowList: React.FC<MindfulFlowListProps> = ({ onNavigate, onSelectC
   useEffect(() => {
     const fetchCourses = async () => {
       setLoading(true);
-      const data = await getCourses();
+      const data = await getMindfulFlows();
       setCourses(data);
       setLoading(false);
     };
