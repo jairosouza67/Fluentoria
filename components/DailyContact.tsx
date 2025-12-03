@@ -1,143 +1,302 @@
 
-import React, { useState } from 'react';
-import { Calendar, Check, Volume2, ArrowRight, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, PlayCircle, FileText, Mic, Clock, Filter, Loader2, ArrowLeft, CheckCircle, Download, Bookmark, Share2, Play } from 'lucide-react';
+import { DailyContact as DailyContactType, getDailyContacts } from '../lib/db';
+import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl } from '../lib/youtube';
+import MediaUpload from './MediaUpload';
+import CourseChat from './CourseChat';
+import { logActivity } from '../lib/attendance';
+import { addXP, XP_REWARDS } from '../lib/gamification';
+import { auth } from '../lib/firebase';
 
-const DailyContact: React.FC = () => {
-  const [step, setStep] = useState(0);
-  const [completed, setCompleted] = useState(false);
+interface DailyContactProps {
+  onSelectDaily?: (daily: DailyContactType) => void;
+  selectedDaily?: DailyContactType | null;
+  onBack?: () => void;
+}
 
-  const steps = [
-    {
-      type: 'quote',
-      title: 'Frase do Dia',
-      content: '"A única maneira de fazer um excelente trabalho é amar o que você faz."',
-      author: 'Steve Jobs',
-      sub: 'Reflita: O que te motiva hoje?'
-    },
-    {
-      type: 'listening',
-      title: 'Listening Practice',
-      content: 'Ouça o áudio e repita a frase.',
-      audio: true,
-      phrase: 'Consistency is the key to mastery.'
-    },
-    {
-      type: 'quiz',
-      title: 'Quiz Rápido',
-      question: 'Qual a tradução correta para "Improvement"?',
-      options: ['Aprovação', 'Melhoria', 'Improviso'],
-      answer: 1
+const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDaily, onBack }) => {
+  const [dailyContacts, setDailyContacts] = useState<DailyContactType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'content' | 'media' | 'chat'>('content');
+  const [isCompleted, setIsCompleted] = useState(false);
+  const user = auth.currentUser;
+
+  useEffect(() => {
+    if (!selectedDaily) {
+      loadDailyContacts();
     }
-  ];
+  }, [selectedDaily]);
 
-  const handleNext = () => {
-    if (step < steps.length - 1) {
-      setStep(step + 1);
-    } else {
-      setCompleted(true);
+  useEffect(() => {
+    // Log daily contact started activity
+    if (user && selectedDaily?.id) {
+      logActivity(user.uid, 'course_started', selectedDaily.id, selectedDaily.title);
+    }
+  }, [user, selectedDaily?.id]);
+
+  const loadDailyContacts = async () => {
+    setLoading(true);
+    const data = await getDailyContacts();
+    setDailyContacts(data);
+    setLoading(false);
+  };
+
+  const handleMarkComplete = async () => {
+    if (!user || !selectedDaily?.id) return;
+    
+    const newStatus = !isCompleted;
+    setIsCompleted(newStatus);
+    
+    if (newStatus) {
+      // Log completion
+      await logActivity(user.uid, 'course_completed', selectedDaily.id, selectedDaily.title);
+      // Award XP
+      await addXP(user.uid, XP_REWARDS.course_completed, `Completed: ${selectedDaily.title}`);
     }
   };
 
-  if (completed) {
+  const filteredDailyContacts = dailyContacts.filter(daily =>
+    daily.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    daily.author.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Detail View
+  if (selectedDaily) {
+    const videoId = selectedDaily.videoUrl ? extractYouTubeId(selectedDaily.videoUrl) : null;
+    const hasYouTubeVideo = videoId && isYouTubeUrl(selectedDaily.videoUrl || '');
+
     return (
-      <div className="p-8 max-w-3xl mx-auto min-h-[80vh] flex flex-col items-center justify-center text-center animate-in zoom-in duration-300">
-        <div className="w-24 h-24 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mb-6">
-          <Check size={48} />
+      <div className="max-w-container mx-auto min-h-screen bg-[#0B0B0B] flex flex-col">
+        {/* Top Bar */}
+        <div className="p-4 md:p-6 flex items-center gap-4 border-b border-white/[0.06] sticky top-0 bg-[#0B0B0B]/95 backdrop-blur-sm z-10">
+          <button onClick={onBack} className="p-2 hover:bg-white/[0.02] rounded-xl text-[#9CA3AF] hover:text-[#F3F4F6] transition-all duration-200">
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold text-[#F3F4F6]">{selectedDaily.title}</h1>
+            <p className="text-xs text-[#9CA3AF]">{selectedDaily.author} • {selectedDaily.duration}</p>
+          </div>
+          <button 
+            onClick={handleMarkComplete}
+            className={`px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 ${
+              isCompleted 
+                ? 'bg-[#23D18B]/20 text-[#23D18B] border border-[#23D18B]/30' 
+                : 'bg-white/[0.02] text-[#9CA3AF] hover:bg-white/[0.04] border border-white/[0.06]'
+            }`}
+          >
+            <CheckCircle size={16} />
+            {isCompleted ? 'Concluída' : 'Marcar Concluída'}
+          </button>
         </div>
-        <h2 className="text-3xl font-bold text-white mb-4">Daily Contact Concluído!</h2>
-        <p className="text-stone-400 mb-8 max-w-md">
-          Parabéns! Você manteve sua ofensiva de 5 dias. Volte amanhã para mais pílulas de conhecimento.
-        </p>
-        <button 
-          onClick={() => { setCompleted(false); setStep(0); }}
-          className="bg-stone-800 text-stone-300 px-6 py-3 rounded-lg hover:bg-stone-700 transition-colors flex items-center gap-2"
-        >
-          <RefreshCw size={18} />
-          Refazer Atividade
-        </button>
+
+        <div className="flex-1 flex flex-col lg:flex-row">
+          {/* Main Content Area (Player) */}
+          <div className="flex-1 p-6 space-y-6">
+            {/* Video Player */}
+            <div className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
+              {hasYouTubeVideo ? (
+                <iframe
+                  className="w-full h-full"
+                  src={getYouTubeEmbedUrl(videoId!)}
+                  title={selectedDaily.title}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : selectedDaily.videoUrl ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <video
+                    className="w-full h-full"
+                    controls
+                    src={selectedDaily.videoUrl}
+                  >
+                    Seu navegador não suporta a tag de vídeo.
+                  </video>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-[#FF6A00]/20 rounded-full flex items-center justify-center pl-1 mb-4 mx-auto">
+                      <Play size={24} className="text-[#FF6A00]" fill="currentColor" />
+                    </div>
+                    <p className="text-[#9CA3AF] text-sm">Vídeo não disponível</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex gap-4">
+                 <button className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] text-sm font-medium transition-colors duration-200">
+                   <Download size={18} />
+                   <span>Material</span>
+                 </button>
+                 <button className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] text-sm font-medium transition-colors duration-200">
+                   <Bookmark size={18} />
+                   <span>Salvar</span>
+                 </button>
+              </div>
+              <button className="flex items-center gap-2 text-stone-400 hover:text-white text-sm font-medium transition-colors">
+                 <Share2 size={18} />
+                 <span>Compartilhar</span>
+              </button>
+            </div>
+
+            <div className="prose prose-invert max-w-none">
+              <h2 className="text-xl font-bold text-[#F3F4F6] mb-4">Sobre este Daily Contact</h2>
+              <p className="text-[#9CA3AF] leading-relaxed">
+                {selectedDaily.description || 'Descrição não disponível.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Sidebar Context (Tabs) */}
+          <div className="w-full lg:w-96 border-l border-white/[0.06] bg-[#111111] flex flex-col">
+            <div className="flex border-b border-white/[0.06] overflow-x-auto">
+              <button 
+                onClick={() => setActiveTab('content')}
+                className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'content' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
+              >
+                Content
+              </button>
+              <button 
+                onClick={() => setActiveTab('media')}
+                className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'media' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
+              >
+                Media
+              </button>
+              <button 
+                onClick={() => setActiveTab('chat')}
+                className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'chat' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
+              >
+                Questions
+              </button>
+            </div>
+
+            <div className="flex-1 p-6 overflow-y-auto">
+              {activeTab === 'content' && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">Next Daily Contacts</h3>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className={`flex items-start gap-3 p-3 rounded-lg hover:bg-white/[0.02] transition-all duration-200 cursor-pointer ${i === 1 ? 'bg-white/[0.04] border border-white/[0.06]' : ''}`}>
+                      <div className="mt-1">
+                        {i === 1 ? <Play size={16} className="text-[#FF6A00]" /> : <div className="w-4 h-4 rounded-full border border-white/[0.2]" />}
+                      </div>
+                      <div>
+                        <h4 className={`text-sm font-medium ${i === 1 ? 'text-[#F3F4F6]' : 'text-[#9CA3AF]'}`}>
+                          {i === 1 ? 'Next Contact' : `Daily Contact ${i}`}
+                        </h4>
+                        <span className="text-xs text-[#9CA3AF]/60">10 min</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === 'media' && user && selectedDaily && (
+                <MediaUpload
+                  courseId={selectedDaily.id || ''}
+                  courseName={selectedDaily.title}
+                  studentId={user.uid}
+                  studentName={user.displayName || user.email || 'User'}
+                  isInstructor={user.email === 'jairosouza67@gmail.com'}
+                />
+              )}
+
+              {activeTab === 'chat' && user && selectedDaily && (
+                <CourseChat
+                  courseId={selectedDaily.id || ''}
+                  courseName={selectedDaily.title}
+                  userId={user.uid}
+                  userName={user.displayName || user.email || 'User'}
+                  userEmail={user.email || ''}
+                  isInstructor={user.email === 'jairosouza67@gmail.com'}
+                />
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const currentStep = steps[step];
-
+  // List View
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-8">
-      <header className="flex items-center justify-between mb-8">
+    <div className="p-8 max-w-container mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Daily Contact</h1>
-          <p className="text-stone-400">Sua dose diária de evolução.</p>
+          <h1 className="text-[44px] leading-[1.05] font-bold text-[#F3F4F6]">Daily Contact</h1>
+          <p className="text-[#9CA3AF] mt-1">Sua dose diária de evolução e aprendizado.</p>
         </div>
-        <div className="flex items-center gap-2 bg-[#292524] px-4 py-2 rounded-full border border-stone-800">
-          <Calendar size={18} className="text-orange-500" />
-          <span className="text-stone-300 font-medium">Dia 5 Streak</span>
-        </div>
-      </header>
 
-      {/* Progress Bar */}
-      <div className="w-full bg-stone-800 h-1 rounded-full mb-8">
-        <div 
-          className="bg-orange-500 h-full rounded-full transition-all duration-500"
-          style={{ width: `${((step) / steps.length) * 100}%` }}
-        />
+        <div className="flex gap-3 w-full md:w-auto">
+          <div className="relative flex-grow md:flex-grow-0">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF]" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar daily contact..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full md:w-64 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-[#FF6A00]/40 transition-all duration-120 placeholder-[#9CA3AF]"
+            />
+          </div>
+          <button className="bg-white/[0.02] border border-white/[0.06] text-[#9CA3AF] p-2.5 rounded-lg hover:bg-white/[0.04] hover:text-[#F3F4F6] transition-all duration-200">
+            <Filter size={20} />
+          </button>
+        </div>
       </div>
 
-      {/* Activity Card */}
-      <div className="bg-[#1c1917] border border-stone-800 rounded-2xl p-8 md:p-12 shadow-2xl min-h-[400px] flex flex-col justify-center relative overflow-hidden">
-        {/* Decorative background element */}
-        <div className="absolute -right-20 -top-20 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl"></div>
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-[#FF6A00]" size={40} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDailyContacts.map((daily) => (
+            <div
+              key={daily.id}
+              onClick={() => {
+                if (onSelectDaily) onSelectDaily(daily);
+              }}
+              className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
+            >
+              {/* Thumbnail */}
+              <div className={`h-40 w-full bg-gradient-to-br ${daily.thumbnail} relative flex items-center justify-center`}>
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20">
+                  {daily.type === 'video' && <PlayCircle size={24} fill="white" className="text-white opacity-80" />}
+                  {daily.type === 'pdf' && <FileText size={24} />}
+                  {daily.type === 'audio' && <Mic size={24} />}
+                </div>
 
-        <div className="relative z-10 text-center space-y-8">
-          <span className="text-orange-500 font-semibold tracking-widest text-sm uppercase">{currentStep.title}</span>
-          
-          {currentStep.type === 'quote' && (
-            <div className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-serif italic text-white leading-tight">
-                {currentStep.content}
-              </h2>
-              <p className="text-stone-500">- {currentStep.author}</p>
-              <p className="text-stone-400 text-sm bg-stone-800/50 inline-block px-4 py-2 rounded-lg">{currentStep.sub}</p>
+                {/* Progress Bar overlay */}
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-black/30">
+                  <div className="h-full bg-[#FF6A00]" style={{ width: `${daily.viewed ? 100 : 0}%` }}></div>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-xs font-semibold text-[#FF6A00] uppercase tracking-wider">{daily.type}</span>
+                  <div className="flex items-center gap-1 text-[#9CA3AF] text-xs">
+                    <Clock size={12} />
+                    <span>{daily.duration}</span>
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-bold text-[#F3F4F6] mb-1 group-hover:text-[#FF6A00] transition-colors duration-200">{daily.title}</h3>
+                <p className="text-sm text-[#9CA3AF] mb-4">{daily.author}</p>
+
+                <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200">
+                  {daily.viewed ? 'Rever' : 'Assistir'}
+                </button>
+              </div>
             </div>
-          )}
-
-          {currentStep.type === 'listening' && (
-            <div className="space-y-8 flex flex-col items-center">
-              <p className="text-xl text-stone-300">{currentStep.content}</p>
-              <button className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform hover:shadow-orange-500/20">
-                <Volume2 size={32} />
-              </button>
-              <p className="text-2xl font-bold text-white border-b border-stone-700 pb-2">{currentStep.phrase}</p>
-            </div>
-          )}
-
-          {currentStep.type === 'quiz' && (
-             <div className="space-y-6 w-full max-w-md mx-auto">
-               <h3 className="text-2xl font-semibold text-white">{currentStep.question}</h3>
-               <div className="space-y-3">
-                 {currentStep.options?.map((opt, idx) => (
-                   <button 
-                    key={idx} 
-                    className="w-full p-4 rounded-xl bg-stone-800 border border-stone-700 text-stone-300 hover:border-orange-500 hover:text-orange-500 transition-all text-left font-medium"
-                    onClick={() => {}} // In a real app, validate answer here
-                   >
-                     {opt}
-                   </button>
-                 ))}
-               </div>
-             </div>
-          )}
+          ))}
         </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button 
-          onClick={handleNext}
-          className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-stone-200 transition-transform hover:scale-105 flex items-center gap-2 shadow-lg"
-        >
-          {step === steps.length - 1 ? 'Concluir' : 'Próximo'}
-          <ArrowRight size={20} />
-        </button>
-      </div>
+      )}
     </div>
   );
 };

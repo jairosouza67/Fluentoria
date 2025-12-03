@@ -64,7 +64,7 @@ const MindfulFlowList: React.FC<MindfulFlowListProps> = ({ onNavigate, onSelectC
               key={course.id}
               onClick={() => {
                 onSelectCourse(course);
-                onNavigate('course-detail');
+                onNavigate('mindful-detail');
               }}
               className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
             >
