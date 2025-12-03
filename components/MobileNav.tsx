@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, Trophy } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Trophy, Edit3, Activity, Music as MusicIcon } from 'lucide-react';
 import { Screen } from '../types';
 
 interface MobileNavProps {
@@ -21,6 +21,24 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate }) => {
                 label="Courses"
                 active={currentScreen === 'courses' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
+            />
+            <NavItem
+                icon={<Edit3 size={20} />}
+                label="Daily"
+                active={currentScreen === 'daily'}
+                onClick={() => onNavigate('daily')}
+            />
+            <NavItem
+                icon={<Activity size={20} />}
+                label="Flow"
+                active={currentScreen === 'mindful'}
+                onClick={() => onNavigate('mindful')}
+            />
+            <NavItem
+                icon={<MusicIcon size={20} />}
+                label="Music"
+                active={currentScreen === 'music'}
+                onClick={() => onNavigate('music')}
             />
             <NavItem
                 icon={<Trophy size={20} />}
