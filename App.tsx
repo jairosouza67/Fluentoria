@@ -21,7 +21,7 @@ import { Eye, Loader2, ChevronDown, User as UserIcon, LogOut as LogOutIcon } fro
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
-import { Course, getUserRole } from './lib/db';
+import { Course, getUserRole, forceUpdateUserRole } from './lib/db';
 import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
@@ -33,26 +33,39 @@ const App: React.FC = () => {
   const [selectedDaily, setSelectedDaily] = useState<DailyContactType | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'student'>('student');
+  const [roleLoaded, setRoleLoaded] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
       if (currentUser) {
-        // Get user role from Firestore
-        const role = await getUserRole(currentUser.uid);
-        setUserRole(role);
-        console.log('User role loaded:', role);
+        console.log('User logged in:', currentUser.email);
         
-        // Always start in student mode
-        setViewMode('student');
+        // Only load role once per session
+        if (!roleLoaded || user?.uid !== currentUser.uid) {
+          // Force update role if admin email (ensures admin always has correct role)
+          if (currentUser.email === 'jairosouza67@gmail.com') {
+            await forceUpdateUserRole(currentUser.uid, currentUser.email);
+          }
+          
+          // Get user role from Firestore
+          const role = await getUserRole(currentUser.uid);
+          setUserRole(role);
+          setRoleLoaded(true);
+          console.log('User role loaded:', role, 'for user:', currentUser.email);
+        }
+        
+        setUser(currentUser);
         
         // Only redirect to dashboard if currently on auth screen
         if (currentScreen === 'auth') {
           setCurrentScreen('dashboard');
         }
       } else {
+        console.log('User logged out');
+        setUser(null);
         setUserRole('student');
+        setRoleLoaded(false);
         setViewMode('student');
         setCurrentScreen('auth');
       }
@@ -60,7 +73,7 @@ const App: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [currentScreen]);
+  }, [currentScreen, user, roleLoaded]);
 
   // Close profile menu when clicking outside
   useEffect(() => {

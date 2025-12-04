@@ -420,13 +420,39 @@ export const getUserRole = async (uid: string): Promise<'admin' | 'student'> => 
         
         if (userSnap.exists()) {
             const userData = userSnap.data();
+            console.log('User data from Firestore:', userData);
             return userData.role === 'admin' ? 'admin' : 'student';
         }
         
+        console.log('User document not found in Firestore for uid:', uid);
         // Default to student if user not found
         return 'student';
     } catch (error) {
         console.error("Error getting user role:", error);
         return 'student';
+    }
+};
+
+// Force update user role (for admin setup)
+export const forceUpdateUserRole = async (uid: string, email: string): Promise<void> => {
+    try {
+        const role = email === 'jairosouza67@gmail.com' ? 'admin' : 'student';
+        const userRef = doc(db, 'users', uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+            await updateDoc(userRef, { role });
+            console.log('User role updated to:', role);
+        } else {
+            await setDoc(userRef, {
+                email: email.toLowerCase(),
+                role,
+                createdAt: new Date(),
+                lastLogin: new Date(),
+            });
+            console.log('User document created with role:', role);
+        }
+    } catch (error) {
+        console.error("Error force updating user role:", error);
     }
 };
