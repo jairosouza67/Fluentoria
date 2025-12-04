@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, File, Image, Video, Music, FileText, Trash2, Download, X, Mic, Square } from 'lucide-react';
+import { Upload, File, Image, Video, Music, FileText, Trash2, Download, X, Mic, Square, Send } from 'lucide-react';
 import { MediaSubmission } from '../types';
 import { uploadMedia, getCourseMedia, formatFileSize } from '../lib/media';
 
@@ -96,27 +96,34 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
       fileToUpload = new File([recordedAudio], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
     }
 
-    if (!fileToUpload) return;
-
-    const success = await uploadMedia(
-      fileToUpload,
-      courseId,
-      studentId,
-      studentName,
-      description,
-      (progress) => setUploadProgress(progress)
-    );
-
-    if (success) {
-      setSelectedFile(null);
-      setRecordedAudio(null);
-      setDescription('');
-      setPreviewUrl(null);
-      await loadMedia();
+    if (!fileToUpload) {
+      setUploading(false);
+      return;
     }
 
-    setUploading(false);
-    setUploadProgress(0);
+    try {
+      const mediaId = await uploadMedia(
+        fileToUpload,
+        courseId,
+        studentId,
+        studentName,
+        description,
+        (progress) => setUploadProgress(progress)
+      );
+
+      if (mediaId) {
+        setSelectedFile(null);
+        setRecordedAudio(null);
+        setDescription('');
+        setPreviewUrl(null);
+        await loadMedia();
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const startRecording = async () => {
@@ -185,140 +192,147 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
         <p className="text-sm text-[#9CA3AF]">
           {isInstructor 
             ? 'Visualize as mídias enviadas pelos alunos nesta aula'
-            : 'Envie vídeos, áudios ou documentos relacionados à aula'}
+            : 'Envie vídeos, imagens, áudios ou documentos relacionados à aula'}
         </p>
       </div>
 
-      {/* Upload Area - Only for students */}
-      {!isInstructor && !selectedFile && !recordedAudio && (
-        <div className="space-y-4">
-          <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-              dragActive
-                ? 'border-[#FF6A00] bg-[#FF6A00]/5'
-                : 'border-white/[0.1] hover:border-[#FF6A00]/50 bg-white/[0.02]'
-            }`}
-          >
-            <Upload className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
-            <p className="text-[#F3F4F6] font-medium mb-2">
-              Arraste e solte seu arquivo aqui
-            </p>
-            <p className="text-sm text-[#9CA3AF] mb-4">ou</p>
-            <label className="inline-block bg-[#FF6A00] hover:bg-[#FF6A00]/90 text-white px-6 py-2.5 rounded-lg font-medium cursor-pointer transition-all hover:-translate-y-0.5">
-              Escolher Arquivo
-              <input
-                type="file"
-                onChange={handleFileChange}
-                className="hidden"
-                accept="video/*,audio/*,.pdf,.doc,.docx"
-              />
-            </label>
-            <p className="text-xs text-[#9CA3AF] mt-4">
-              Suporta: Vídeos, Áudios, PDFs e Documentos
-            </p>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-[#9CA3AF] mb-3">Ou grave uma mensagem de áudio</p>
-            {!isRecording ? (
-              <button
-                onClick={startRecording}
-                className="inline-flex items-center gap-2 bg-white/[0.02] border border-white/[0.1] hover:bg-[#FF6A00]/10 hover:border-[#FF6A00]/50 text-[#F3F4F6] px-6 py-3 rounded-lg font-medium transition-all"
-              >
-                <Mic className="w-5 h-5" />
-                Iniciar Gravação
-              </button>
-            ) : (
-              <button
-                onClick={stopRecording}
-                className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/50 text-red-500 px-6 py-3 rounded-lg font-medium transition-all animate-pulse"
-              >
-                <Square className="w-5 h-5" />
-                Parar Gravação
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* File Preview & Upload */}
-      {!isInstructor && (selectedFile || recordedAudio) && (
-        <div className="border border-white/[0.1] bg-white/[0.02] rounded-lg p-6 space-y-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4 flex-1">
-              {previewUrl ? (
-                <img src={previewUrl} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
-              ) : recordedAudio ? (
-                <div className="w-24 h-24 bg-[#FF6A00]/10 rounded-lg flex items-center justify-center">
-                  <Music className="w-8 h-8 text-[#FF6A00]" />
-                </div>
-              ) : (
-                <div className="w-24 h-24 bg-white/[0.05] rounded-lg flex items-center justify-center">
-                  {selectedFile && getFileIcon(selectedFile.type.startsWith('image/') ? 'image' : 
-                               selectedFile.type.startsWith('video/') ? 'video' :
-                               selectedFile.type.startsWith('audio/') ? 'audio' :
-                               selectedFile.type === 'application/pdf' ? 'pdf' : 'document')}
-                </div>
-              )}
-              <div className="flex-1">
-                <p className="font-medium text-[#F3F4F6]">
-                  {recordedAudio ? `Gravação de Áudio ${new Date().toLocaleTimeString()}` : selectedFile?.name}
-                </p>
-                <p className="text-sm text-[#9CA3AF]">
-                  {recordedAudio ? 'Arquivo de áudio' : selectedFile && formatFileSize(selectedFile.size)}
-                </p>
+      {/* Collapsible Upload Area */}
+      <div className="border border-white/[0.1] bg-white/[0.02] rounded-lg overflow-hidden">
+        {!selectedFile && !recordedAudio && (
+          <div className="space-y-4 p-6">
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
+                dragActive
+                  ? 'border-[#FF6A00] bg-[#FF6A00]/5'
+                  : 'border-white/[0.1] hover:border-[#FF6A00]/50 bg-white/[0.02]'
+              }`}
+            >
+              <Upload className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
+              <p className="text-[#F3F4F6] font-medium mb-2">
+                Arraste e solte seu arquivo aqui
+              </p>
+              <p className="text-sm text-[#9CA3AF] mb-4">ou</p>
+              <label className="inline-block bg-[#FF6A00] hover:bg-[#FF6A00]/90 text-white px-6 py-2.5 rounded-lg font-medium cursor-pointer transition-all hover:-translate-y-0.5">
+                Escolher Arquivo
                 <input
-                  type="text"
-                  placeholder="Adicione uma descrição (opcional)"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full mt-3 bg-white/[0.05] border border-white/[0.1] focus:border-[#FF6A00]/50 rounded-lg px-3 py-2 text-sm text-[#F3F4F6] placeholder-[#9CA3AF] focus:outline-none"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
                 />
-              </div>
+              </label>
+              <p className="text-xs text-[#9CA3AF] mt-4">
+                Suporta: Imagens, Vídeos, Áudios, PDFs e Documentos
+              </p>
             </div>
-            <button
-              onClick={() => {
-                setSelectedFile(null);
-                setRecordedAudio(null);
-                setPreviewUrl(null);
-                setDescription('');
-              }}
-              className="text-[#9CA3AF] hover:text-[#F3F4F6] p-2"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
 
-          {uploading && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-[#9CA3AF]">Enviando...</span>
-                <span className="text-[#FF6A00] font-medium">{Math.round(uploadProgress)}%</span>
-              </div>
-              <div className="w-full h-2 bg-white/[0.05] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-[#FF6A00] transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
+            <div className="text-center border-t border-white/[0.06] pt-4">
+              <p className="text-sm text-[#9CA3AF] mb-3">Ou grave uma mensagem de áudio</p>
+              {!isRecording ? (
+                <button
+                  onClick={startRecording}
+                  type="button"
+                  className="inline-flex items-center gap-2 bg-white/[0.02] border border-white/[0.1] hover:bg-[#FF6A00]/10 hover:border-[#FF6A00]/50 text-[#F3F4F6] px-6 py-3 rounded-lg font-medium transition-all"
+                >
+                  <Mic className="w-5 h-5" />
+                  Iniciar Gravação
+                </button>
+              ) : (
+                <button
+                  onClick={stopRecording}
+                  type="button"
+                  className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/50 text-red-500 px-6 py-3 rounded-lg font-medium transition-all animate-pulse"
+                >
+                  <Square className="w-5 h-5" />
+                  Parar Gravação
+                </button>
+              )}
             </div>
-          )}
-
-          <div className="flex gap-3">
-            <button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="flex-1 bg-[#FF6A00] hover:bg-[#FF6A00]/90 disabled:bg-[#9CA3AF]/20 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-medium transition-all"
-            >
-              {uploading ? 'Enviando...' : recordedAudio ? 'Enviar Áudio' : 'Enviar Arquivo'}
-            </button>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* File Preview & Upload - Inside the box */}
+        {(selectedFile || recordedAudio) && (
+          <div className="p-6 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-4 flex-1">
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Preview" className="w-24 h-24 object-cover rounded-lg" />
+                ) : recordedAudio ? (
+                  <div className="w-24 h-24 bg-[#FF6A00]/10 rounded-lg flex items-center justify-center">
+                    <Music className="w-8 h-8 text-[#FF6A00]" />
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 bg-white/[0.05] rounded-lg flex items-center justify-center">
+                    {selectedFile && getFileIcon(selectedFile.type.startsWith('image/') ? 'image' : 
+                                 selectedFile.type.startsWith('video/') ? 'video' :
+                                 selectedFile.type.startsWith('audio/') ? 'audio' :
+                                 selectedFile.type === 'application/pdf' ? 'pdf' : 'document')}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-medium text-[#F3F4F6]">
+                    {recordedAudio ? `Gravação de Áudio ${new Date().toLocaleTimeString()}` : selectedFile?.name}
+                  </p>
+                  <p className="text-sm text-[#9CA3AF]">
+                    {recordedAudio ? 'Arquivo de áudio' : selectedFile && formatFileSize(selectedFile.size)}
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Adicione uma descrição (opcional)"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full mt-3 bg-white/[0.05] border border-white/[0.1] focus:border-[#FF6A00]/50 rounded-lg px-3 py-2 text-sm text-[#F3F4F6] placeholder-[#9CA3AF] focus:outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedFile(null);
+                  setRecordedAudio(null);
+                  setPreviewUrl(null);
+                  setDescription('');
+                }}
+                type="button"
+                className="text-[#9CA3AF] hover:text-[#F3F4F6] p-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {uploading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#9CA3AF]">Enviando...</span>
+                  <span className="text-[#FF6A00] font-medium">{Math.round(uploadProgress)}%</span>
+                </div>
+                <div className="w-full h-2 bg-white/[0.05] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#FF6A00] transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleUpload}
+                disabled={uploading}
+                type="button"
+                className="flex-1 bg-[#FF6A00] hover:bg-[#FF6A00]/90 disabled:bg-[#9CA3AF]/20 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                {uploading ? 'Enviando...' : recordedAudio ? 'Enviar Áudio' : 'Enviar Arquivo'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Videos Section */}
       {videos.length > 0 && (

@@ -81,10 +81,9 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
             </>
           ) : (
             <>
-              <NavItem icon={<Home size={20} />} label="Início" active={currentScreen === 'dashboard'} onClick={() => onNavigate('dashboard')} />
+              <NavItem icon={<BarChart3 size={20} />} label="Dashboard" active={currentScreen === 'admin-reports'} onClick={() => onNavigate('admin-reports')} />
               <NavItem icon={<BookOpen size={20} />} label="Content" active={currentScreen === 'admin-catalog'} onClick={() => onNavigate('admin-catalog')} />
               <NavItem icon={<Users size={20} />} label="Alunos" active={currentScreen === 'admin-students'} onClick={() => onNavigate('admin-students')} />
-              <NavItem icon={<BarChart3 size={20} />} label="Relatórios" active={currentScreen === 'admin-reports'} onClick={() => onNavigate('admin-reports')} />
               <NavItem icon={<Settings size={20} />} label="Configurações" active={currentScreen === 'admin-settings'} onClick={() => onNavigate('admin-settings')} />
             </>
           )}

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, ChevronDown, Edit2, Trash2, Clock, Calendar, Loader2, MoreVertical } from 'lucide-react';
+import { Search, Plus, ChevronDown, Edit2, Trash2, Clock, Calendar, Loader2, MoreVertical, Eye } from 'lucide-react';
 import { Course, getCourses, addCourse, updateCourse, deleteCourse, getDailyContacts, addDailyContact, updateDailyContact, deleteDailyContact, getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, getMusic, addMusic, updateMusic, deleteMusic, DailyContact } from '../lib/db';
 import CourseForm from './CourseForm';
+import CourseDetail from './CourseDetail';
+import { getYouTubeThumbnail } from '../lib/youtube';
 
 type TabType = 'courses' | 'daily' | 'mindful' | 'music';
 
@@ -15,6 +17,7 @@ const AdminCatalog: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [viewingCourse, setViewingCourse] = useState<Course | null>(null);
 
   const fetchCourses = async () => {
     setLoading(true);
@@ -117,6 +120,10 @@ const AdminCatalog: React.FC = () => {
   const handleEditCourse = (course: Course) => {
     setEditingCourse(course);
     setIsFormOpen(true);
+  };
+
+  const handleViewCourse = (course: Course) => {
+    setViewingCourse(course);
   };
 
   const getCurrentList = () => {
@@ -229,28 +236,47 @@ const AdminCatalog: React.FC = () => {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCourses.map((course) => (
-            <div key={course.id} className="overflow-hidden bg-card border-border group hover:shadow-elevated transition-all duration-300 rounded-xl">
-              {/* Thumbnail */}
-              <div className={`aspect-video relative overflow-hidden bg-gradient-to-br ${course.thumbnail}`}>
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <div className="absolute top-3 right-3 flex gap-2">
-                  <button
-                    onClick={() => handleEditCourse(course)}
-                    className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
-                    title="Editar"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteCourse(course.id!)}
-                    className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-destructive p-2 rounded-lg transition-colors"
-                    title="Excluir"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+          {filteredCourses.map((course) => {
+            const thumbnailUrl = course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
+            
+            return (
+              <div key={course.id} className="overflow-hidden bg-card border-border group hover:shadow-elevated transition-all duration-300 rounded-xl">
+                {/* Thumbnail */}
+                <div className="aspect-video relative overflow-hidden">
+                  {thumbnailUrl ? (
+                    <img 
+                      src={thumbnailUrl} 
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className={`w-full h-full bg-gradient-to-br ${course.thumbnail}`} />
+                  )}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                  <div className="absolute top-3 right-3 flex gap-2">
+                    <button
+                      onClick={() => handleViewCourse(course)}
+                      className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
+                      title="Visualizar"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleEditCourse(course)}
+                      className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
+                      title="Editar"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCourse(course.id!)}
+                      className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-destructive p-2 rounded-lg transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
               
               {/* Content */}
               <div className="p-6">
@@ -276,12 +302,16 @@ const AdminCatalog: React.FC = () => {
               
               <div className="p-6 pt-0 flex justify-between items-center border-t border-border/50">
                 <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{course.type}</span>
-                <button className="border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary px-4 py-2 rounded-lg text-sm font-medium border transition-all">
-                  Gerenciar
+                <button 
+                  onClick={() => handleViewCourse(course)}
+                  className="border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary px-4 py-2 rounded-lg text-sm font-medium border transition-all"
+                >
+                  Acessar
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -291,6 +321,15 @@ const AdminCatalog: React.FC = () => {
           onSave={handleSaveCourse}
           onCancel={() => setIsFormOpen(false)}
         />
+      )}
+
+      {viewingCourse && (
+        <div className="fixed inset-0 z-50 bg-[#0B0B0B]">
+          <CourseDetail 
+            course={viewingCourse} 
+            onBack={() => setViewingCourse(null)}
+          />
+        </div>
       )}
     </div>
   );

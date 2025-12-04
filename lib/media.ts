@@ -35,7 +35,7 @@ export const uploadMedia = async (
         (error) => {
           console.error("Upload error:", error);
           alert(`Erro ao fazer upload: ${error.message}`);
-          reject(null);
+          resolve(null);
         },
         async () => {
           try {
@@ -60,7 +60,7 @@ export const uploadMedia = async (
           } catch (error: any) {
             console.error("Error saving media metadata:", error);
             alert(`Erro ao salvar metadados: ${error.message}`);
-            reject(null);
+            resolve(null);
           }
         }
       );

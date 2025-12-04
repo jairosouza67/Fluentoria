@@ -23,6 +23,7 @@ const CourseChat: React.FC<CourseChatProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,7 +109,7 @@ const CourseChat: React.FC<CourseChatProps> = ({
   const messageGroups = groupMessagesByDate(messages);
 
   return (
-    <div className="bg-card border border-border rounded-xl shadow-card-custom flex flex-col h-[600px]">
+    <div className="bg-card border border-border rounded-xl shadow-card-custom flex flex-col">
       {/* Header */}
       <div className="px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">
@@ -123,7 +124,7 @@ const CourseChat: React.FC<CourseChatProps> = ({
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className={`overflow-y-auto p-6 space-y-6 ${expanded ? 'max-h-[600px]' : 'max-h-96'}`}>
         {Object.keys(messageGroups).length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageCircle className="w-16 h-16 text-muted-foreground/30 mb-4" />
@@ -187,6 +188,12 @@ const CourseChat: React.FC<CourseChatProps> = ({
           ))
         )}
         <div ref={messagesEndRef} />
+      </div>
+
+      <div className="px-6 py-2 border-t border-border flex justify-end">
+        <button onClick={() => setExpanded(!expanded)} className="text-xs text-muted-foreground hover:text-foreground">
+          {expanded ? 'Mostrar menos' : 'Mostrar mais'}
+        </button>
       </div>
 
       {/* Input Area */}

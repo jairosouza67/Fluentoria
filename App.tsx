@@ -92,7 +92,7 @@ const App: React.FC = () => {
       // Check for admin privileges
       if (user?.email === 'jairosouza67@gmail.com') {
         setViewMode('admin');
-        setCurrentScreen('admin-catalog');
+        setCurrentScreen('admin-reports');
       } else {
         alert('Acesso negado. Apenas administradores podem acessar esta área.');
       }
@@ -129,7 +129,7 @@ const App: React.FC = () => {
         case 'admin-help':
           return <Help />;
         default:
-          return <AdminCatalog />;
+          return <Reports />;
       }
     }
 
@@ -196,7 +196,7 @@ const App: React.FC = () => {
                 {currentScreen === 'profile' && 'Perfil'}
                 {currentScreen === 'admin-catalog' && 'Catálogo de Aulas'}
                 {currentScreen === 'admin-students' && 'Alunos'}
-                {currentScreen === 'admin-reports' && 'Relatórios'}
+                {currentScreen === 'admin-reports' && 'Dashboard'}
                 {currentScreen === 'admin-settings' && 'Configurações'}
                 {currentScreen === 'admin-help' && 'Ajuda'}
               </h2>
