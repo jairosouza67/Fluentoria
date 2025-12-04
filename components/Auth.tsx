@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Mail, Lock, ArrowRight, User, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { createOrUpdateUser } from '../lib/db';
+import AnimatedInput from './ui/AnimatedInput';
 
 interface AuthProps {
   onLogin: () => void;
@@ -114,50 +115,38 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {!isLogin && (
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-stone-300">Nome Completo</label>
-              <div className="relative group">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-500 group-focus-within:text-primary transition-colors" size={18} />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-secondary/50 border border-border text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-stone-600"
-                  placeholder="Seu nome"
-                  required={!isLogin}
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[#F3F4F6]">Nome Completo</label>
+              <AnimatedInput
+                type="text"
+                value={name}
+                onChange={setName}
+                placeholder="Seu nome"
+                icon="user"
+              />
             </div>
           )}
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-stone-300">Email</label>
-            <div className="relative group">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-500 group-focus-within:text-primary transition-colors" size={18} />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-secondary/50 border border-border text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-stone-600"
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#F3F4F6]">Email</label>
+            <AnimatedInput
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="seu@email.com"
+              icon="email"
+            />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-stone-300">Senha</label>
-            <div className="relative group">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-stone-500 group-focus-within:text-primary transition-colors" size={18} />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-secondary/50 border border-border text-white pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-stone-600"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#F3F4F6]">Senha</label>
+            <AnimatedInput
+              type="password"
+              value={password}
+              onChange={setPassword}
+              placeholder="••••••••"
+              icon="password"
+            />
           </div>
 
           <button

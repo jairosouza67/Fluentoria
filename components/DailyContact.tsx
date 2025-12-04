@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Search, PlayCircle, FileText, Mic, Clock, Filter, Loader2, ArrowLeft, CheckCircle, Download, Bookmark, Share2, Play } from 'lucide-react';
+import { PlayCircle, FileText, Mic, Clock, Filter, Loader2, ArrowLeft, CheckCircle, Download, Bookmark, Share2, Play } from 'lucide-react';
 import { DailyContact as DailyContactType, getDailyContacts, getStudentCompletion, markContentComplete } from '../lib/db';
 import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl, getYouTubeThumbnail } from '../lib/youtube';
 import MediaUpload from './MediaUpload';
@@ -8,6 +7,7 @@ import CourseChat from './CourseChat';
 import { logActivity } from '../lib/attendance';
 import { addXP, XP_REWARDS } from '../lib/gamification';
 import { auth } from '../lib/firebase';
+import AnimatedInput from './ui/AnimatedInput';
 
 interface DailyContactProps {
   onSelectDaily?: (daily: DailyContactType) => void;
@@ -248,14 +248,13 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
         </div>
 
         <div className="flex gap-3 w-full md:w-auto">
-          <div className="relative flex-grow md:flex-grow-0">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#9CA3AF]" size={18} />
-            <input
-              type="text"
+          <div className="flex-grow md:flex-grow-0 md:w-64">
+            <AnimatedInput
+              type="search"
               placeholder="Buscar daily contact..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full md:w-64 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-[#FF6A00]/40 transition-all duration-120 placeholder-[#9CA3AF]"
+              onChange={setSearchTerm}
+              icon="search"
             />
           </div>
           <button className="bg-white/[0.02] border border-white/[0.06] text-[#9CA3AF] p-2.5 rounded-lg hover:bg-white/[0.04] hover:text-[#F3F4F6] transition-all duration-200">

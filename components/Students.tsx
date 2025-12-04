@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MoreVertical, Mail, Calendar, Award, TrendingUp, Filter, UserPlus, X, Download, Video, Music, File, Image, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { MoreVertical, Mail, Calendar, Award, TrendingUp, Filter, UserPlus, X, Download, Video, Music, File, Image, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { getAllStudents, Student, getCourses, addStudent } from '../lib/db';
 import { getAllStudentMediaGrouped, formatFileSize } from '../lib/media';
 import { MediaSubmission } from '../types';
+import AnimatedInput from './ui/AnimatedInput';
 
 const Students: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,14 +159,13 @@ const Students: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <div className="relative flex-1 max-w-md w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
+        <div className="flex-1 max-w-md w-full">
+          <AnimatedInput
+            type="search"
             placeholder="Buscar alunos..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 bg-secondary/50 border-transparent focus:border-primary/50 transition-all px-4 py-2.5 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none"
+            onChange={setSearchTerm}
+            icon="search"
           />
         </div>
       </div>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, ChevronDown, Edit2, Trash2, Clock, Calendar, Loader2, MoreVertical, Eye } from 'lucide-react';
+import { Plus, ChevronDown, Edit2, Trash2, Clock, Calendar, Loader2, Eye } from 'lucide-react';
 import { Course, getCourses, addCourse, updateCourse, deleteCourse, getDailyContacts, addDailyContact, updateDailyContact, deleteDailyContact, getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, getMusic, addMusic, updateMusic, deleteMusic, DailyContact } from '../lib/db';
 import CourseForm from './CourseForm';
 import CourseDetail from './CourseDetail';
 import { getYouTubeThumbnail } from '../lib/youtube';
+import AnimatedInput from './ui/AnimatedInput';
 
 type TabType = 'courses' | 'daily' | 'mindful' | 'music';
 
@@ -209,14 +210,13 @@ const AdminCatalog: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
+        <div className="flex-1 max-w-md">
+          <AnimatedInput
+            type="search"
             placeholder="Buscar conteúdo..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 bg-secondary/50 border-transparent focus:border-primary/50 transition-all px-4 py-2.5 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none"
+            onChange={setSearchTerm}
+            icon="search"
           />
         </div>
         <div className="flex gap-2">
