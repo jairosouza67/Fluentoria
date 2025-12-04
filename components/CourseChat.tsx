@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { Message } from '../types';
 import { sendMessage, subscribeToCourseMessages } from '../lib/messages';
+import { AIInput } from './ui/ai-input';
 
 interface CourseChatProps {
   courseId: string;
@@ -42,10 +43,8 @@ const CourseChat: React.FC<CourseChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newMessage.trim() || sending) {
+  const handleSendMessage = async (message: string) => {
+    if (!message || sending) {
       return;
     }
 
@@ -56,7 +55,7 @@ const CourseChat: React.FC<CourseChatProps> = ({
       userId,
       userName,
       userEmail,
-      newMessage.trim(),
+      message,
       isInstructor
     );
 
@@ -197,25 +196,13 @@ const CourseChat: React.FC<CourseChatProps> = ({
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-border">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your question or comment..."
-            className="flex-1 bg-secondary/50 border border-border focus:border-primary/50 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none transition-all"
-            disabled={sending}
-          />
-          <button
-            type="submit"
-            disabled={!newMessage.trim() || sending}
-            className="bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed text-primary-foreground px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:-translate-y-0.5 disabled:translate-y-0"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-      </form>
+      <div className="p-4 border-t border-border">
+        <AIInput 
+          onSubmit={handleSendMessage}
+          placeholder="Type your question or comment..."
+          disabled={sending}
+        />
+      </div>
     </div>
   );
 };
