@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, ArrowRight, User, Loader2, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { createOrUpdateUser } from '../lib/db';
 
 interface AuthProps {
   onLogin: () => void;
@@ -31,6 +32,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             displayName: name
           });
         }
+        
+        // Create user in Firestore
+        await createOrUpdateUser(userCredential.user.uid, {
+          displayName: name || userCredential.user.displayName,
+          email: userCredential.user.email,
+          photoURL: userCredential.user.photoURL,
+        });
       }
       onLogin();
     } catch (err: any) {
@@ -58,7 +66,15 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      
+      // Create or update user in Firestore, merging with existing student if email matches
+      await createOrUpdateUser(result.user.uid, {
+        displayName: result.user.displayName,
+        email: result.user.email,
+        photoURL: result.user.photoURL,
+      });
+      
       onLogin();
     } catch (err: any) {
       console.error("Google auth error:", err);

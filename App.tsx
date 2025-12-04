@@ -21,7 +21,7 @@ import { Eye, Loader2, ChevronDown, User as UserIcon, LogOut as LogOutIcon } fro
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
-import { Course } from './lib/db';
+import { Course, getUserRole } from './lib/db';
 import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
@@ -32,17 +32,28 @@ const App: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedDaily, setSelectedDaily] = useState<DailyContactType | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'student'>('student');
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
+        // Get user role from Firestore
+        const role = await getUserRole(currentUser.uid);
+        setUserRole(role);
+        console.log('User role loaded:', role);
+        
+        // Always start in student mode
+        setViewMode('student');
+        
         // Only redirect to dashboard if currently on auth screen
         if (currentScreen === 'auth') {
           setCurrentScreen('dashboard');
         }
       } else {
+        setUserRole('student');
+        setViewMode('student');
         setCurrentScreen('auth');
       }
       setLoading(false);
@@ -88,14 +99,15 @@ const App: React.FC = () => {
   };
 
   const toggleViewMode = () => {
+    // Only allow admin users to toggle
+    if (userRole !== 'admin') {
+      alert('Acesso negado. Apenas administradores podem acessar esta área.');
+      return;
+    }
+    
     if (viewMode === 'student') {
-      // Check for admin privileges
-      if (user?.email === 'jairosouza67@gmail.com') {
-        setViewMode('admin');
-        setCurrentScreen('admin-reports');
-      } else {
-        alert('Acesso negado. Apenas administradores podem acessar esta área.');
-      }
+      setViewMode('admin');
+      setCurrentScreen('admin-reports');
     } else {
       setViewMode('student');
       setCurrentScreen('dashboard');
@@ -269,19 +281,21 @@ const App: React.FC = () => {
 
         {renderScreen()}
 
-        {/* Floating Toggle Button for Demo Purposes - Only visible if logged in */}
-        <div className="fixed bottom-24 md:bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-          <div className="bg-[#111111] border border-white/[0.06] text-[#9CA3AF] text-xs py-1 px-3 rounded-lg shadow-card mb-1 pointer-events-none">
-            Modo: {viewMode === 'student' ? 'Aluno' : 'Admin'}
+        {/* Floating Toggle Button - Only visible for admin users */}
+        {userRole === 'admin' && (
+          <div className="fixed bottom-24 md:bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+            <div className="bg-[#111111] border border-white/[0.06] text-[#9CA3AF] text-xs py-1 px-3 rounded-lg shadow-card mb-1 pointer-events-none">
+              Modo: {viewMode === 'student' ? 'Aluno' : 'Admin'}
+            </div>
+            <button
+              onClick={toggleViewMode}
+              className="bg-[#FF6A00] text-white p-4 rounded-full shadow-elevated hover:bg-[#E15B00] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-[0_8px_24px_rgba(255,106,0,0.12)] flex items-center justify-center"
+              title="Alternar entre visão de Aluno e Admin"
+            >
+              <Eye size={24} />
+            </button>
           </div>
-          <button
-            onClick={toggleViewMode}
-            className="bg-[#FF6A00] text-white p-4 rounded-full shadow-elevated hover:bg-[#E15B00] hover:-translate-y-0.5 transition-all duration-200 hover:shadow-[0_8px_24px_rgba(255,106,0,0.12)] flex items-center justify-center"
-            title="Alternar entre visão de Aluno e Admin"
-          >
-            <Eye size={24} />
-          </button>
-        </div>
+        )}
       </main>
 
       <MobileNav currentScreen={currentScreen} onNavigate={navigateTo} />

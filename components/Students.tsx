@@ -1,76 +1,120 @@
-import React, { useState } from 'react';
-import { Search, MoreVertical, Mail, Phone, Calendar, Award, TrendingUp, Filter, UserPlus } from 'lucide-react';
-
-interface Student {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  enrolledDate: string;
-  coursesCompleted: number;
-  progress: number;
-  status: 'active' | 'inactive';
-  avatar?: string;
-}
+import React, { useState, useEffect } from 'react';
+import { Search, MoreVertical, Mail, Calendar, Award, TrendingUp, Filter, UserPlus, X, Download, Video, Music, File, Image, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { getAllStudents, Student, getCourses, addStudent } from '../lib/db';
+import { getAllStudentMediaGrouped, formatFileSize } from '../lib/media';
+import { MediaSubmission } from '../types';
 
 const Students: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [studentMedia, setStudentMedia] = useState<{ [date: string]: { [courseId: string]: MediaSubmission[] } }>({});
+  const [courses, setCourses] = useState<{ [id: string]: string }>({});
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [expandedDates, setExpandedDates] = useState<{ [date: string]: boolean }>({});
+  
+  // Add Student Modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+  const [newStudentPhoto, setNewStudentPhoto] = useState('');
+  const [addingStudent, setAddingStudent] = useState(false);
 
-  const students: Student[] = [
-    {
-      id: '1',
-      name: 'Ana Silva',
-      email: 'ana.silva@email.com',
-      phone: '+55 11 98765-4321',
-      enrolledDate: '2024-01-15',
-      coursesCompleted: 8,
-      progress: 75,
-      status: 'active',
-    },
-    {
-      id: '2',
-      name: 'Carlos Santos',
-      email: 'carlos.santos@email.com',
-      phone: '+55 11 91234-5678',
-      enrolledDate: '2024-02-20',
-      coursesCompleted: 5,
-      progress: 45,
-      status: 'active',
-    },
-    {
-      id: '3',
-      name: 'Maria Oliveira',
-      email: 'maria.oliveira@email.com',
-      phone: '+55 11 99876-5432',
-      enrolledDate: '2023-11-10',
-      coursesCompleted: 12,
-      progress: 90,
-      status: 'active',
-    },
-    {
-      id: '4',
-      name: 'João Costa',
-      email: 'joao.costa@email.com',
-      phone: '+55 11 92345-6789',
-      enrolledDate: '2024-03-05',
-      coursesCompleted: 2,
-      progress: 20,
-      status: 'inactive',
-    },
-  ];
+  useEffect(() => {
+    loadStudents();
+    loadCourses();
+  }, []);
+
+  const loadStudents = async () => {
+    setLoading(true);
+    const fetchedStudents = await getAllStudents();
+    setStudents(fetchedStudents);
+    setLoading(false);
+  };
+
+  const loadCourses = async () => {
+    const fetchedCourses = await getCourses();
+    const coursesMap: { [id: string]: string } = {};
+    fetchedCourses.forEach(course => {
+      if (course.id) coursesMap[course.id] = course.title;
+    });
+    setCourses(coursesMap);
+  };
+
+  const handleStudentClick = async (student: Student) => {
+    setSelectedStudent(student);
+    setLoadingMedia(true);
+    const media = await getAllStudentMediaGrouped(student.id);
+    setStudentMedia(media);
+    setLoadingMedia(false);
+    // Expand all dates by default
+    const expanded: { [date: string]: boolean } = {};
+    Object.keys(media).forEach(date => expanded[date] = true);
+    setExpandedDates(expanded);
+  };
+
+  const toggleDate = (date: string) => {
+    setExpandedDates(prev => ({ ...prev, [date]: !prev[date] }));
+  };
+
+  const handleAddStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newStudentName.trim() || !newStudentEmail.trim()) {
+      alert('Por favor, preencha nome e email');
+      return;
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newStudentEmail)) {
+      alert('Por favor, insira um email válido');
+      return;
+    }
+
+    setAddingStudent(true);
+    
+    const studentId = await addStudent(
+      newStudentName.trim(),
+      newStudentEmail.trim(),
+      newStudentPhoto.trim() || undefined
+    );
+
+    if (studentId) {
+      alert('Aluno adicionado com sucesso!');
+      setShowAddModal(false);
+      setNewStudentName('');
+      setNewStudentEmail('');
+      setNewStudentPhoto('');
+      await loadStudents(); // Reload students list
+    } else {
+      alert('Erro ao adicionar aluno. Tente novamente.');
+    }
+    
+    setAddingStudent(false);
+  };
+
+  const getFileIcon = (fileType: MediaSubmission['fileType']) => {
+    switch (fileType) {
+      case 'image': return <Image className="w-5 h-5" />;
+      case 'video': return <Video className="w-5 h-5" />;
+      case 'audio': return <Music className="w-5 h-5" />;
+      case 'pdf': return <FileText className="w-5 h-5" />;
+      default: return <File className="w-5 h-5" />;
+    }
+  };
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || student.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
 
   const stats = [
-    { title: 'Total de Alunos', value: '1,240', icon: Award, color: 'primary' },
-    { title: 'Alunos Ativos', value: '1,180', icon: TrendingUp, color: 'green' },
-    { title: 'Novos este Mês', value: '42', icon: UserPlus, color: 'blue' },
+    { title: 'Total de Alunos', value: students.length.toString(), icon: Award, color: 'primary' },
+    { title: 'Com Uploads', value: '0', icon: TrendingUp, color: 'green' },
+    { title: 'Este Mês', value: '0', icon: UserPlus, color: 'blue' },
   ];
 
   return (
@@ -81,7 +125,10 @@ const Students: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground">Alunos</h1>
           <p className="text-muted-foreground mt-2">Gerencie e acompanhe seus estudantes.</p>
         </div>
-        <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-md font-medium flex items-center gap-2 shadow-sm hover:-translate-y-0.5 transition-all duration-200">
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-md font-medium flex items-center gap-2 shadow-sm hover:-translate-y-0.5 transition-all duration-200"
+        >
           <UserPlus className="w-4 h-4" />
           Adicionar Aluno
         </button>
@@ -117,32 +164,6 @@ const Students: React.FC = () => {
             className="w-full pl-10 bg-secondary/50 border-transparent focus:border-primary/50 transition-all px-4 py-2.5 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none"
           />
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === 'all' ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Todos
-          </button>
-          <button
-            onClick={() => setFilterStatus('active')}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === 'active' ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Ativos
-          </button>
-          <button
-            onClick={() => setFilterStatus('inactive')}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === 'inactive' ? 'bg-primary text-primary-foreground' : 'bg-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Inativos
-          </button>
-        </div>
       </div>
 
       {/* Students Table */}
@@ -152,85 +173,284 @@ const Students: React.FC = () => {
             <thead className="bg-secondary/50 border-b border-border">
               <tr>
                 <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Aluno</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Contato</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Inscrição</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Progresso</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Status</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Email</th>
+                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Cadastro</th>
                 <th className="text-right py-4 px-6 text-sm font-semibold text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredStudents.map((student, index) => (
-                <tr
-                  key={student.id}
-                  className={`border-b border-border hover:bg-secondary/30 transition-colors ${
-                    index === filteredStudents.length - 1 ? 'border-b-0' : ''
-                  }`}
-                >
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {student.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div className="font-medium text-foreground">{student.name}</div>
-                        <div className="text-xs text-muted-foreground">{student.coursesCompleted} aulas concluídas</div>
-                      </div>
-                    </div>
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center text-muted-foreground">
+                    Carregando alunos...
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="space-y-1">
+                </tr>
+              ) : filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center text-muted-foreground">
+                    Nenhum aluno encontrado
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((student, index) => (
+                  <tr
+                    key={student.id}
+                    onClick={() => handleStudentClick(student)}
+                    className={`border-b border-border hover:bg-secondary/30 transition-colors cursor-pointer ${
+                      index === filteredStudents.length - 1 ? 'border-b-0' : ''
+                    }`}
+                  >
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        {student.photoURL ? (
+                          <img src={student.photoURL} alt={student.name} className="w-10 h-10 rounded-full" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                            {student.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-foreground">{student.name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="w-3 h-3" />
                         {student.email}
                       </div>
+                    </td>
+                    <td className="py-4 px-6">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="w-3 h-3" />
-                        {student.phone}
+                        <Calendar className="w-4 h-4" />
+                        {student.createdAt ? student.createdAt.toLocaleDateString('pt-BR') : 'N/A'}
                       </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      {new Date(student.enrolledDate).toLocaleDateString('pt-BR')}
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{student.progress}%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${student.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        student.status === 'active'
-                          ? 'bg-green-500/10 text-green-500 border border-green-500/20'
-                          : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
-                      }`}
-                    >
-                      {student.status === 'active' ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-right">
-                    <button className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary/50 transition-colors">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStudentClick(student);
+                        }}
+                        className="text-primary hover:text-primary/80 px-4 py-2 rounded-lg hover:bg-secondary/50 transition-colors text-sm font-medium"
+                      >
+                        Ver Arquivos
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Student Media Modal */}
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {selectedStudent.photoURL ? (
+                  <img src={selectedStudent.photoURL} alt={selectedStudent.name} className="w-12 h-12 rounded-full" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-lg">
+                    {selectedStudent.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">{selectedStudent.name}</h2>
+                  <p className="text-sm text-muted-foreground">{selectedStudent.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedStudent(null)}
+                className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingMedia ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p>Carregando arquivos...</p>
+                </div>
+              ) : Object.keys(studentMedia).length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <File className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                  <p>Nenhum arquivo enviado ainda</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(studentMedia)
+                    .sort(([dateA], [dateB]) => new Date(dateB.split('/').reverse().join('-')).getTime() - new Date(dateA.split('/').reverse().join('-')).getTime())
+                    .map(([date, courseFiles]) => (
+                      <div key={date} className="border border-border rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => toggleDate(date)}
+                          className="w-full p-4 bg-secondary/30 hover:bg-secondary/50 transition-colors flex items-center justify-between"
+                        >
+                          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-primary" />
+                            {date}
+                          </h3>
+                          {expandedDates[date] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        </button>
+                        
+                        {expandedDates[date] && (
+                          <div className="p-4 space-y-4">
+                            {Object.entries(courseFiles).map(([courseId, files]) => (
+                              <div key={courseId} className="space-y-3">
+                                <h4 className="text-sm font-semibold text-primary">
+                                  {courses[courseId] || 'Aula Desconhecida'}
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {files.map((media) => (
+                                    <div
+                                      key={media.id}
+                                      className="border border-border bg-secondary/20 rounded-lg p-3 hover:bg-secondary/40 transition-colors"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+                                          {getFileIcon(media.fileType)}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-medium text-foreground truncate text-sm">{media.fileName}</p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            {formatFileSize(media.fileSize)} • {new Date(media.uploadedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                          </p>
+                                          {media.description && (
+                                            <p className="text-xs text-muted-foreground mt-2">{media.description}</p>
+                                          )}
+                                        </div>
+                                        <a
+                                          href={media.fileUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:text-primary/80 p-2 shrink-0"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Download className="w-4 h-4" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Student Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-xl shadow-2xl max-w-md w-full">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-foreground">Adicionar Aluno</h2>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setNewStudentName('');
+                  setNewStudentEmail('');
+                  setNewStudentPhoto('');
+                }}
+                className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <form onSubmit={handleAddStudent} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Nome Completo <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                  placeholder="Ex: Maria Silva"
+                  required
+                  className="w-full bg-secondary/50 border border-border focus:border-primary/50 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={newStudentEmail}
+                  onChange={(e) => setNewStudentEmail(e.target.value)}
+                  placeholder="Ex: maria@email.com"
+                  required
+                  className="w-full bg-secondary/50 border border-border focus:border-primary/50 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  URL da Foto (opcional)
+                </label>
+                <input
+                  type="url"
+                  value={newStudentPhoto}
+                  onChange={(e) => setNewStudentPhoto(e.target.value)}
+                  placeholder="Ex: https://exemplo.com/foto.jpg"
+                  className="w-full bg-secondary/50 border border-border focus:border-primary/50 rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setNewStudentName('');
+                    setNewStudentEmail('');
+                    setNewStudentPhoto('');
+                  }}
+                  className="flex-1 bg-secondary/50 hover:bg-secondary/70 text-foreground px-4 py-3 rounded-lg font-medium transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingStudent}
+                  className="flex-1 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed text-primary-foreground px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+                >
+                  {addingStudent ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Adicionando...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      Adicionar
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

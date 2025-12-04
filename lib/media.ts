@@ -186,6 +186,34 @@ export const getStudentMedia = async (studentId: string, courseId?: string): Pro
   }
 };
 
+export const getAllStudentMediaGrouped = async (studentId: string) => {
+  try {
+    const media = await getStudentMedia(studentId);
+    
+    // Group by date and course
+    const grouped: { [date: string]: { [courseId: string]: MediaSubmission[] } } = {};
+    
+    media.forEach(item => {
+      const dateKey = item.uploadedAt.toLocaleDateString('pt-BR');
+      
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = {};
+      }
+      
+      if (!grouped[dateKey][item.courseId]) {
+        grouped[dateKey][item.courseId] = [];
+      }
+      
+      grouped[dateKey][item.courseId].push(item);
+    });
+    
+    return grouped;
+  } catch (error) {
+    console.error("Error grouping student media:", error);
+    return {};
+  }
+};
+
 export const deleteMedia = async (mediaId: string, fileUrl: string): Promise<boolean> => {
   try {
     // Delete from Storage

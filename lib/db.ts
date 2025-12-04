@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc, where } from 'firebase/firestore';
 
 export interface Course {
     id?: string;
@@ -265,5 +265,168 @@ export const markContentComplete = async (
     } catch (error) {
         console.error("Error marking content complete:", error);
         return false;
+    }
+};
+
+// Students Functions
+export interface Student {
+    id: string;
+    name: string;
+    email: string;
+    photoURL?: string;
+    createdAt?: Date;
+}
+
+export const getAllStudents = async (): Promise<Student[]> => {
+    try {
+        const q = query(collection(db, 'users'), orderBy('name'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name || data.displayName || 'Unknown',
+                email: data.email || '',
+                photoURL: data.photoURL,
+                createdAt: data.createdAt?.toDate(),
+            } as Student;
+        });
+    } catch (error) {
+        console.error("Error fetching students:", error);
+        return [];
+    }
+};
+
+export const addStudent = async (name: string, email: string, photoURL?: string): Promise<string | null> => {
+    try {
+        const studentData = {
+            name,
+            email: email.toLowerCase(),
+            displayName: name,
+            photoURL: photoURL || '',
+            createdAt: new Date(),
+            role: 'student',
+        };
+        
+        const docRef = await addDoc(collection(db, 'users'), studentData);
+        console.log('Student added successfully:', docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error("Error adding student:", error);
+        return null;
+    }
+};
+
+export const updateStudent = async (id: string, updates: Partial<Student>): Promise<boolean> => {
+    try {
+        const docRef = doc(db, 'users', id);
+        await updateDoc(docRef, updates as any);
+        return true;
+    } catch (error) {
+        console.error("Error updating student:", error);
+        return false;
+    }
+};
+
+export const deleteStudent = async (id: string): Promise<boolean> => {
+    try {
+        const docRef = doc(db, 'users', id);
+        await deleteDoc(docRef);
+        return true;
+    } catch (error) {
+        console.error("Error deleting student:", error);
+        return false;
+    }
+};
+
+// Check if student exists by email and merge Google user data
+export const findAndMergeStudentByEmail = async (email: string, googleUserData: any): Promise<boolean> => {
+    try {
+        const emailLower = email.toLowerCase();
+        const q = query(collection(db, 'users'), where('email', '==', emailLower));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            // Student with this email already exists
+            const studentDoc = querySnapshot.docs[0];
+            const studentData = studentDoc.data();
+            
+            // Merge Google user data with existing student record
+            const updates: any = {
+                displayName: googleUserData.displayName || studentData.name,
+                photoURL: googleUserData.photoURL || studentData.photoURL || '',
+                lastLogin: new Date(),
+            };
+            
+            // If student didn't have a name, use Google's
+            if (!studentData.name && googleUserData.displayName) {
+                updates.name = googleUserData.displayName;
+            }
+            
+            await updateDoc(doc(db, 'users', studentDoc.id), updates);
+            console.log('Merged Google user with existing student:', studentDoc.id);
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error("Error finding/merging student:", error);
+        return false;
+    }
+};
+
+// Create user in Firestore if doesn't exist
+export const createOrUpdateUser = async (uid: string, userData: any): Promise<void> => {
+    try {
+        const userRef = doc(db, 'users', uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+            // Check if a student with this email was manually added
+            const merged = await findAndMergeStudentByEmail(userData.email, userData);
+            
+            if (!merged) {
+                // Determine role: only specific email is admin, all others are students
+                const role = userData.email === 'jairosouza67@gmail.com' ? 'admin' : 'student';
+                
+                // No existing student, create new user
+                await setDoc(userRef, {
+                    name: userData.displayName || '',
+                    displayName: userData.displayName || '',
+                    email: userData.email.toLowerCase(),
+                    photoURL: userData.photoURL || '',
+                    createdAt: new Date(),
+                    lastLogin: new Date(),
+                    role: role,
+                });
+                console.log('Created new user with role:', role);
+            }
+        } else {
+            // Update last login
+            await updateDoc(userRef, {
+                lastLogin: new Date(),
+            });
+        }
+    } catch (error) {
+        console.error("Error creating/updating user:", error);
+    }
+};
+
+// Get user role from Firestore
+export const getUserRole = async (uid: string): Promise<'admin' | 'student'> => {
+    try {
+        const userRef = doc(db, 'users', uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            return userData.role === 'admin' ? 'admin' : 'student';
+        }
+        
+        // Default to student if user not found
+        return 'student';
+    } catch (error) {
+        console.error("Error getting user role:", error);
+        return 'student';
     }
 };
