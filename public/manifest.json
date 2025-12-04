@@ -1,14 +1,14 @@
 {
-  "short_name": "Dark LMS",
-  "name": "Dark Theme Learning System",
+  "short_name": "Fluentoria",
+  "name": "Fluentoria - English Learning",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936780.png",
+      "src": "/logo.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2936/2936780.png",
+      "src": "/logo.png",
       "type": "image/png",
       "sizes": "512x512"
     }
