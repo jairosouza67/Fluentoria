@@ -5,7 +5,6 @@ import {
   Users,
   User,
   Settings,
-  HelpCircle,
   Home,
   BarChart3,
   LogOut,
@@ -98,7 +97,6 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
           </>
         ) : (
           <>
-            <NavItem icon={<HelpCircle size={20} />} label="Ajuda" active={currentScreen === 'admin-help'} onClick={() => onNavigate('admin-help')} />
             <button
               onClick={onLogout}
               className="w-full flex items-center gap-3 px-4 py-3 text-white rounded-xl transition-all duration-200 bg-[#FF6A00]/10 hover:bg-[#FF6A00] hover:shadow-[0_8px_24px_rgba(255,106,0,0.12)] hover:-translate-y-0.5 mt-4 font-medium justify-center border border-[#FF6A00]/20"

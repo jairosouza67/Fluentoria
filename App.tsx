@@ -5,7 +5,6 @@ import AdminCatalog from './components/AdminCatalog';
 import Students from './components/Students';
 import Reports from './components/Reports';
 import Settings from './components/Settings';
-import Help from './components/Help';
 import Auth from './components/Auth';
 import CourseList from './components/CourseList';
 import CourseDetail from './components/CourseDetail';
@@ -151,8 +150,6 @@ const App: React.FC = () => {
           return <Reports />;
         case 'admin-settings':
           return <Settings />;
-        case 'admin-help':
-          return <Help />;
         default:
           return <Reports />;
       }
@@ -223,7 +220,6 @@ const App: React.FC = () => {
                 {currentScreen === 'admin-students' && 'Alunos'}
                 {currentScreen === 'admin-reports' && 'Dashboard'}
                 {currentScreen === 'admin-settings' && 'Configurações'}
-                {currentScreen === 'admin-help' && 'Ajuda'}
               </h2>
             </div>
             
