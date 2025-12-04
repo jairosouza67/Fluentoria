@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, getDocs } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, onSnapshot, Timestamp, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { Message } from '../types';
 
 const MESSAGES_COLLECTION = 'messages';
@@ -108,5 +108,16 @@ export const getUnreadMessageCount = async (courseId: string, userId: string, la
   } catch (error) {
     console.error("Error getting unread count:", error);
     return 0;
+  }
+};
+
+export const deleteMessage = async (messageId: string): Promise<boolean> => {
+  try {
+    await deleteDoc(doc(db, MESSAGES_COLLECTION, messageId));
+    console.log('Message deleted successfully:', messageId);
+    return true;
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    return false;
   }
 };

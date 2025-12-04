@@ -29,6 +29,8 @@ const Students: React.FC = () => {
   const loadStudents = async () => {
     setLoading(true);
     const fetchedStudents = await getAllStudents();
+    console.log('📊 Admin - Students loaded:', fetchedStudents.length, 'students');
+    console.log('📊 Students data:', fetchedStudents);
     setStudents(fetchedStudents);
     setLoading(false);
   };
@@ -45,7 +47,9 @@ const Students: React.FC = () => {
   const handleStudentClick = async (student: Student) => {
     setSelectedStudent(student);
     setLoadingMedia(true);
+    console.log('🔍 Checking media for student:', student.id, student.name, student.email);
     const media = await getAllStudentMediaGrouped(student.id);
+    console.log('📁 Media found:', Object.keys(media).length, 'dates', media);
     setStudentMedia(media);
     setLoadingMedia(false);
     // Expand all dates by default

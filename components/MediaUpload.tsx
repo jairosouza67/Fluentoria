@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, File, Image, Video, Music, FileText, Trash2, Download, X, Mic, Square, Send } from 'lucide-react';
 import { MediaSubmission } from '../types';
-import { uploadMedia, getCourseMedia, formatFileSize } from '../lib/media';
+import { uploadMedia, getCourseMedia, formatFileSize, deleteMedia } from '../lib/media';
 
 interface MediaUploadProps {
   courseId: string;
@@ -193,6 +193,20 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
     setIsRecording(false);
   };
 
+  const handleDeleteMedia = async (mediaId: string, fileUrl: string) => {
+    if (!confirm('Tem certeza que deseja excluir este arquivo?')) {
+      return;
+    }
+
+    const success = await deleteMedia(mediaId, fileUrl);
+    if (success) {
+      alert('Arquivo excluído com sucesso!');
+      await loadMedia();
+    } else {
+      alert('Erro ao excluir arquivo. Tente novamente.');
+    }
+  };
+
   const getFileIcon = (fileType: MediaSubmission['fileType']) => {
     switch (fileType) {
       case 'image': return <Image className="w-5 h-5" />;
@@ -369,34 +383,52 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
             <Video className="w-4 h-4 text-[#FF6A00]" />
             Vídeos ({videos.length})
           </h4>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {videos.map((media) => (
               <div
                 key={media.id}
-                className="border border-white/[0.1] bg-white/[0.02] rounded-lg p-4 hover:bg-white/[0.04] transition-colors"
+                className="group relative border border-white/[0.1] bg-white/[0.02] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 transition-all hover:shadow-lg hover:shadow-[#FF6A00]/10"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-[#FF6A00]/10 rounded-lg flex items-center justify-center text-[#FF6A00] shrink-0">
-                    {getFileIcon(media.fileType)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#F3F4F6] truncate">{media.fileName}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">
-                      {isInstructor && `${media.studentName} • `}
-                      {formatFileSize(media.fileSize)} • {new Date(media.uploadedAt).toLocaleDateString('pt-BR')}
-                    </p>
-                    {media.description && (
-                      <p className="text-sm text-[#9CA3AF] mt-2">{media.description}</p>
-                    )}
-                  </div>
+                {/* Thumbnail/Preview */}
+                <div className="aspect-video bg-gradient-to-br from-[#FF6A00]/20 to-[#E15B00]/20 flex items-center justify-center relative overflow-hidden">
+                  <Video className="w-12 h-12 text-[#FF6A00]/60" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                
+                {/* Info */}
+                <div className="p-3">
+                  <p className="font-medium text-[#F3F4F6] text-sm truncate mb-1">{media.fileName}</p>
+                  <p className="text-xs text-[#9CA3AF]">
+                    {formatFileSize(media.fileSize)}
+                  </p>
+                  {isInstructor && (
+                    <p className="text-xs text-[#FF6A00] mt-1 truncate">{media.studentName}</p>
+                  )}
+                  {media.description && (
+                    <p className="text-xs text-[#9CA3AF] mt-2 line-clamp-2">{media.description}</p>
+                  )}
+                </div>
+
+                {/* Action Buttons - Appear on hover */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <a
                     href={media.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#FF6A00] hover:text-[#FF6A00]/80 p-2"
+                    className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg text-white transition-all hover:scale-110"
+                    title="Baixar arquivo"
                   >
                     <Download className="w-4 h-4" />
                   </a>
+                  {(isInstructor || media.studentId === studentId) && (
+                    <button
+                      onClick={() => handleDeleteMedia(media.id!, media.fileUrl)}
+                      className="p-2 bg-red-500/60 hover:bg-red-500/80 backdrop-blur-sm rounded-lg text-white transition-all hover:scale-110"
+                      title="Excluir arquivo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -411,34 +443,52 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
             <Music className="w-4 h-4 text-[#FF6A00]" />
             Áudios ({audios.length})
           </h4>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {audios.map((media) => (
               <div
                 key={media.id}
-                className="border border-white/[0.1] bg-white/[0.02] rounded-lg p-4 hover:bg-white/[0.04] transition-colors"
+                className="group relative border border-white/[0.1] bg-white/[0.02] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 transition-all hover:shadow-lg hover:shadow-[#FF6A00]/10"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-[#FF6A00]/10 rounded-lg flex items-center justify-center text-[#FF6A00] shrink-0">
-                    {getFileIcon(media.fileType)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#F3F4F6] truncate">{media.fileName}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">
-                      {isInstructor && `${media.studentName} • `}
-                      {formatFileSize(media.fileSize)} • {new Date(media.uploadedAt).toLocaleDateString('pt-BR')}
-                    </p>
-                    {media.description && (
-                      <p className="text-sm text-[#9CA3AF] mt-2">{media.description}</p>
-                    )}
-                  </div>
+                {/* Thumbnail/Preview */}
+                <div className="aspect-video bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center relative overflow-hidden">
+                  <Music className="w-12 h-12 text-purple-400/60" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                
+                {/* Info */}
+                <div className="p-3">
+                  <p className="font-medium text-[#F3F4F6] text-sm truncate mb-1">{media.fileName}</p>
+                  <p className="text-xs text-[#9CA3AF]">
+                    {formatFileSize(media.fileSize)}
+                  </p>
+                  {isInstructor && (
+                    <p className="text-xs text-[#FF6A00] mt-1 truncate">{media.studentName}</p>
+                  )}
+                  {media.description && (
+                    <p className="text-xs text-[#9CA3AF] mt-2 line-clamp-2">{media.description}</p>
+                  )}
+                </div>
+
+                {/* Action Buttons - Appear on hover */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <a
                     href={media.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#FF6A00] hover:text-[#FF6A00]/80 p-2"
+                    className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg text-white transition-all hover:scale-110"
+                    title="Baixar arquivo"
                   >
                     <Download className="w-4 h-4" />
                   </a>
+                  {(isInstructor || media.studentId === studentId) && (
+                    <button
+                      onClick={() => handleDeleteMedia(media.id!, media.fileUrl)}
+                      className="p-2 bg-red-500/60 hover:bg-red-500/80 backdrop-blur-sm rounded-lg text-white transition-all hover:scale-110"
+                      title="Excluir arquivo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -453,34 +503,65 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
             <File className="w-4 h-4 text-[#FF6A00]" />
             Outros Arquivos ({others.length})
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {others.map((media) => (
               <div
                 key={media.id}
-                className="border border-white/[0.1] bg-white/[0.02] rounded-lg p-4 hover:bg-white/[0.04] transition-colors"
+                className="group relative border border-white/[0.1] bg-white/[0.02] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 transition-all hover:shadow-lg hover:shadow-[#FF6A00]/10"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-[#FF6A00]/10 rounded-lg flex items-center justify-center text-[#FF6A00] shrink-0">
-                    {getFileIcon(media.fileType)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#F3F4F6] truncate">{media.fileName}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">
-                      {isInstructor && `${media.studentName} • `}
-                      {formatFileSize(media.fileSize)} • {new Date(media.uploadedAt).toLocaleDateString('pt-BR')}
-                    </p>
-                    {media.description && (
-                      <p className="text-sm text-[#9CA3AF] mt-2">{media.description}</p>
-                    )}
-                  </div>
+                {/* Thumbnail/Preview */}
+                <div className="aspect-video bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center relative overflow-hidden">
+                  {media.fileType === 'image' ? (
+                    <>
+                      <img 
+                        src={media.fileUrl} 
+                        alt={media.fileName}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </>
+                  ) : (
+                    <>
+                      {getFileIcon(media.fileType)}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </>
+                  )}
+                </div>
+                
+                {/* Info */}
+                <div className="p-3">
+                  <p className="font-medium text-[#F3F4F6] text-sm truncate mb-1">{media.fileName}</p>
+                  <p className="text-xs text-[#9CA3AF]">
+                    {formatFileSize(media.fileSize)}
+                  </p>
+                  {isInstructor && (
+                    <p className="text-xs text-[#FF6A00] mt-1 truncate">{media.studentName}</p>
+                  )}
+                  {media.description && (
+                    <p className="text-xs text-[#9CA3AF] mt-2 line-clamp-2">{media.description}</p>
+                  )}
+                </div>
+
+                {/* Action Buttons - Appear on hover */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <a
                     href={media.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[#FF6A00] hover:text-[#FF6A00]/80 p-2"
+                    className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg text-white transition-all hover:scale-110"
+                    title="Baixar arquivo"
                   >
                     <Download className="w-4 h-4" />
                   </a>
+                  {(isInstructor || media.studentId === studentId) && (
+                    <button
+                      onClick={() => handleDeleteMedia(media.id!, media.fileUrl)}
+                      className="p-2 bg-red-500/60 hover:bg-red-500/80 backdrop-blur-sm rounded-lg text-white transition-all hover:scale-110"
+                      title="Excluir arquivo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

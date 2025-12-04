@@ -279,9 +279,9 @@ export interface Student {
 
 export const getAllStudents = async (): Promise<Student[]> => {
     try {
-        const q = query(collection(db, 'users'), orderBy('name'));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => {
+        const querySnapshot = await getDocs(collection(db, 'users'));
+        
+        const students = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -291,6 +291,13 @@ export const getAllStudents = async (): Promise<Student[]> => {
                 createdAt: data.createdAt?.toDate(),
             } as Student;
         });
+        
+        console.log('📂 DB - getAllStudents: Found', students.length, 'users in database');
+        
+        // Sort by name (client-side to avoid index requirement)
+        students.sort((a, b) => a.name.localeCompare(b.name));
+        
+        return students;
     } catch (error) {
         console.error("Error fetching students:", error);
         return [];
@@ -441,10 +448,20 @@ export const forceUpdateUserRole = async (uid: string, email: string): Promise<v
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
-            await updateDoc(userRef, { role });
+            const updates: any = { role };
+            
+            // Update admin name if missing
+            if (role === 'admin' && !userSnap.data().name) {
+                updates.name = 'Administrador';
+                updates.displayName = 'Administrador';
+            }
+            
+            await updateDoc(userRef, updates);
             console.log('User role updated to:', role);
         } else {
             await setDoc(userRef, {
+                name: role === 'admin' ? 'Administrador' : '',
+                displayName: role === 'admin' ? 'Administrador' : '',
                 email: email.toLowerCase(),
                 role,
                 createdAt: new Date(),

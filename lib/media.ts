@@ -148,6 +148,8 @@ export const getCourseMedia = async (courseId: string): Promise<MediaSubmission[
 
 export const getStudentMedia = async (studentId: string, courseId?: string): Promise<MediaSubmission[]> => {
   try {
+    console.log('🔍 Media - Fetching media for studentId:', studentId, 'courseId:', courseId || 'all');
+    
     let q;
     if (courseId) {
       q = query(
@@ -165,7 +167,7 @@ export const getStudentMedia = async (studentId: string, courseId?: string): Pro
     }
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
+    const media = querySnapshot.docs.map(doc => {
       const data: any = doc.data();
       return {
         id: doc.id,
@@ -180,6 +182,9 @@ export const getStudentMedia = async (studentId: string, courseId?: string): Pro
         description: data.description,
       } as MediaSubmission;
     });
+    
+    console.log('📁 Media - Found', media.length, 'files for studentId:', studentId);
+    return media;
   } catch (error) {
     console.error("Error fetching student media:", error);
     return [];

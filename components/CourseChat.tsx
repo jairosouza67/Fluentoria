@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Trash2 } from 'lucide-react';
 import { Message } from '../types';
-import { sendMessage, subscribeToCourseMessages } from '../lib/messages';
+import { sendMessage, subscribeToCourseMessages, deleteMessage } from '../lib/messages';
 import { AIInput } from './ui/ai-input';
 
 interface CourseChatProps {
@@ -64,6 +64,17 @@ const CourseChat: React.FC<CourseChatProps> = ({
     }
     
     setSending(false);
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta mensagem?')) {
+      return;
+    }
+
+    const success = await deleteMessage(messageId);
+    if (!success) {
+      alert('Erro ao excluir mensagem. Tente novamente.');
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -165,7 +176,7 @@ const CourseChat: React.FC<CourseChatProps> = ({
                           </div>
                         )}
                         <div
-                          className={`rounded-2xl px-4 py-3 ${
+                          className={`rounded-2xl px-4 py-3 relative group ${
                             isOwn
                               ? 'bg-primary text-primary-foreground rounded-br-sm'
                               : isInstructorMsg
@@ -173,7 +184,16 @@ const CourseChat: React.FC<CourseChatProps> = ({
                               : 'bg-secondary/80 text-foreground rounded-bl-sm'
                           }`}
                         >
-                          <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
+                          <p className="text-sm whitespace-pre-wrap break-words pr-6">{message.text}</p>
+                          {(isOwn || isInstructor) && (
+                            <button
+                              onClick={() => handleDeleteMessage(message.id!)}
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-black/20 rounded"
+                              title="Excluir mensagem"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                         <span className="text-xs text-muted-foreground mt-1 px-1">
                           {formatTime(message.timestamp)}
