@@ -311,7 +311,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <MobileNav currentScreen={currentScreen} onNavigate={navigateTo} />
+      <MobileNav currentScreen={currentScreen} onNavigate={navigateTo} viewMode={viewMode} />
     </div>
   );
 };
