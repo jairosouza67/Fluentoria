@@ -84,7 +84,18 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
   };
 
   const handleUpload = async () => {
-    if (!selectedFile && !recordedAudio) return;
+    if (!selectedFile && !recordedAudio) {
+      console.log('No file or audio to upload');
+      return;
+    }
+
+    console.log('Starting upload process...', {
+      selectedFile: selectedFile?.name,
+      recordedAudio: !!recordedAudio,
+      courseId,
+      studentId,
+      studentName
+    });
 
     setUploading(true);
     setUploadProgress(0);
@@ -93,13 +104,22 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
     
     // Convert recorded audio to File object if exists
     if (recordedAudio && !selectedFile) {
-      fileToUpload = new File([recordedAudio], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+      const fileName = `audio-${Date.now()}.webm`;
+      fileToUpload = new File([recordedAudio], fileName, { type: 'audio/webm' });
+      console.log('Converted recorded audio to file:', fileName);
     }
 
     if (!fileToUpload) {
+      console.error('No file to upload after conversion');
       setUploading(false);
       return;
     }
+
+    console.log('File to upload:', {
+      name: fileToUpload.name,
+      type: fileToUpload.type,
+      size: fileToUpload.size
+    });
 
     try {
       const mediaId = await uploadMedia(
@@ -108,18 +128,26 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
         studentId,
         studentName,
         description,
-        (progress) => setUploadProgress(progress)
+        (progress) => {
+          console.log('Progress update:', progress);
+          setUploadProgress(progress);
+        }
       );
 
       if (mediaId) {
+        console.log('Upload successful, media ID:', mediaId);
         setSelectedFile(null);
         setRecordedAudio(null);
         setDescription('');
         setPreviewUrl(null);
         await loadMedia();
+      } else {
+        console.error('Upload failed, no media ID returned');
+        alert('Falha no upload. Verifique o console para mais detalhes.');
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Upload error in component:', error);
+      alert('Erro no upload: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
     } finally {
       setUploading(false);
       setUploadProgress(0);

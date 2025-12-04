@@ -14,11 +14,29 @@ export const uploadMedia = async (
   onProgress?: (progress: number) => void
 ): Promise<string | null> => {
   try {
+    console.log('Starting upload...', { fileName: file.name, fileSize: file.size, courseId, studentId });
+    
+    // Validate inputs
+    if (!file) {
+      console.error('No file provided');
+      alert('Nenhum arquivo selecionado');
+      return null;
+    }
+    
+    if (!courseId || !studentId || !studentName) {
+      console.error('Missing required parameters', { courseId, studentId, studentName });
+      alert('Dados incompletos para upload');
+      return null;
+    }
+    
     // Determine file type
     const fileType = determineFileType(file.type);
+    console.log('File type determined:', fileType, 'MIME:', file.type);
     
     // Create storage reference
-    const storageRef = ref(storage, `media/${courseId}/${studentId}/${Date.now()}_${file.name}`);
+    const storagePath = `media/${courseId}/${studentId}/${Date.now()}_${file.name}`;
+    console.log('Storage path:', storagePath);
+    const storageRef = ref(storage, storagePath);
     
     // Upload file
     const uploadTask = uploadBytesResumable(storageRef, file);
@@ -28,18 +46,40 @@ export const uploadMedia = async (
         'state_changed',
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('Upload progress:', progress.toFixed(2) + '%');
           if (onProgress) {
             onProgress(progress);
           }
         },
         (error) => {
           console.error("Upload error:", error);
-          alert(`Erro ao fazer upload: ${error.message}`);
+          console.error("Error code:", error.code);
+          console.error("Error message:", error.message);
+          
+          let errorMessage = 'Erro ao fazer upload do arquivo';
+          if (error.code === 'storage/unauthorized') {
+            errorMessage = 'Você não tem permissão para fazer upload. Verifique as regras do Firebase Storage.';
+          } else if (error.code === 'storage/canceled') {
+            errorMessage = 'Upload cancelado';
+          } else if (error.code === 'storage/unknown') {
+            errorMessage = 'CORS Error: Configure o CORS no Firebase Storage.\n\nSolução:\n1. Vá para Firebase Console\n2. Storage → Rules\n3. Permita leitura/escrita para usuários autenticados\n\nOu execute: gsutil cors set cors.json gs://fluentoria-527b2.firebasestorage.app';
+          } else if (error.message && error.message.includes('CORS')) {
+            errorMessage = 'CORS Error: Configure o CORS no Firebase Storage.\n\nVeja o console para instruções.';
+            console.error('\n=== CORS CONFIGURATION NEEDED ===');
+            console.error('Run this command:');
+            console.error('gsutil cors set cors.json gs://fluentoria-527b2.firebasestorage.app');
+            console.error('\nOr update Storage Rules in Firebase Console');
+            console.error('==================================\n');
+          }
+          
+          alert(errorMessage);
           resolve(null);
         },
         async () => {
           try {
+            console.log('Upload completed, getting download URL...');
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            console.log('Download URL obtained:', downloadURL);
             
             // Save metadata to Firestore
             const mediaData = {
@@ -54,12 +94,15 @@ export const uploadMedia = async (
               description: description || '',
             };
             
+            console.log('Saving metadata to Firestore...', mediaData);
             const docRef = await addDoc(collection(db, MEDIA_COLLECTION), mediaData);
-            console.log('Media uploaded successfully:', docRef.id);
+            console.log('Media uploaded successfully! Document ID:', docRef.id);
+            alert('Arquivo enviado com sucesso!');
             resolve(docRef.id);
           } catch (error: any) {
             console.error("Error saving media metadata:", error);
-            alert(`Erro ao salvar metadados: ${error.message}`);
+            console.error("Error details:", error.message, error.code);
+            alert(`Erro ao salvar informações do arquivo: ${error.message}`);
             resolve(null);
           }
         }
@@ -67,6 +110,7 @@ export const uploadMedia = async (
     });
   } catch (error: any) {
     console.error("Error uploading media:", error);
+    console.error("Error stack:", error.stack);
     alert(`Erro ao preparar upload: ${error.message}`);
     return null;
   }
