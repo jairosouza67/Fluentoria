@@ -96,11 +96,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <div className="absolute inset-0 z-0">
         {/* Instructor Photo Background - accepts both .jpg and .png */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-55"
+          className="absolute inset-0 opacity-55"
           style={{
             backgroundImage: 'url("/instructor-photo.png"), url("/instructor-photo.jpg")',
-            backgroundPosition: '80% 10%',
-            backgroundSize: '55%',
+            backgroundPosition: '60% 10%',
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
           }}
         />
         
