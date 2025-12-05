@@ -460,7 +460,7 @@ const LandingPage: React.FC = () => {
               <h4 className="font-semibold text-[#F3F4F6] mb-4">Suporte</h4>
               <ul className="space-y-2 text-[#9CA3AF]">
                 <li><a href="#" className="hover:text-[#FF6A00] transition-colors">Central de Ajuda</a></li>
-                <li><a href="#" className="href="#" className="hover:text-[#FF6A00] transition-colors">Contato</a></li>
+                <li><a href="#" className="hover:text-[#FF6A00] transition-colors">Contato</a></li>
                 <li><a href="#" className="hover:text-[#FF6A00] transition-colors">FAQ</a></li>
               </ul>
             </div>
