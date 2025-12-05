@@ -99,8 +99,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           className="absolute inset-0 bg-cover bg-center opacity-55"
           style={{
             backgroundImage: 'url("/instructor-photo.png"), url("/instructor-photo.jpg")',
-            backgroundPosition: '40% 10%',
-            backgroundSize: 'cover',
+            backgroundPosition: '80% 10%',
+            backgroundSize: '55%',
           }}
         />
         
