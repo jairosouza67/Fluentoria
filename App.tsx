@@ -15,6 +15,7 @@ import Profile from './components/Profile';
 import Achievements from './components/Achievements';
 import Leaderboard from './components/Leaderboard';
 import AttendanceTracker from './components/AttendanceTracker';
+import LandingPage from './components/LandingPage';
 import { ViewMode, Screen } from './types';
 import { Eye, Loader2, ChevronDown, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
@@ -25,7 +26,7 @@ import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('student');
-  const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -56,8 +57,8 @@ const App: React.FC = () => {
         
         setUser(currentUser);
         
-        // Only redirect to dashboard if currently on auth screen
-        if (currentScreen === 'auth') {
+        // Only redirect to dashboard if currently on auth or landing
+        if (currentScreen === 'auth' || currentScreen === 'landing') {
           setCurrentScreen('dashboard');
         }
       } else {
@@ -66,7 +67,7 @@ const App: React.FC = () => {
         setUserRole('student');
         setRoleLoaded(false);
         setViewMode('student');
-        setCurrentScreen('auth');
+        setCurrentScreen('landing');
       }
       setLoading(false);
     });
@@ -132,6 +133,11 @@ const App: React.FC = () => {
         <Loader2 className="animate-spin text-[#FF6A00]" size={48} />
       </div>
     );
+  }
+
+  // Landing page - show without authentication
+  if (currentScreen === 'landing') {
+    return <LandingPage />;
   }
 
   if (!user || currentScreen === 'auth') {
@@ -254,7 +260,7 @@ const App: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-white/[0.1] rounded-xl shadow-elevated overflow-hidden animate-fade-in">
                   <div className="p-4 border-b border-white/[0.06]">
                     <p className="text-sm font-semibold text-[#F3F4F6]">{user?.displayName || 'Usuário'}</p>
-                    <p className="text-xs text-[#9CA3AF] mt-1">{user?.email}</p>
+                    <p className="text-xs text-[#9CA3AF]">{user?.email}</p>
                   </div>
                   
                   <div className="py-2">

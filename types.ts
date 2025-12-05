@@ -1,7 +1,7 @@
-
 export type ViewMode = 'student' | 'admin';
 
 export type Screen = 
+  | 'landing'
   | 'auth'
   | 'dashboard' 
   | 'courses' 
