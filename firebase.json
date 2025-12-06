@@ -1,9 +1,0 @@
-{
-    "gson": {
-        "projectId": "fluentoria-527b2"
-    },
-    "firestore": {
-        "rules": "firestore.rules",
-        "indexes": "firestore.indexes.json"
-    }
-}
