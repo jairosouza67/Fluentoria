@@ -40,23 +40,23 @@ const App: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         console.log('User logged in:', currentUser.email);
-        
+
         // Only load role once per session
         if (!roleLoaded || user?.uid !== currentUser.uid) {
           // Force update role if admin email (ensures admin always has correct role)
           if (currentUser.email === 'jairosouza67@gmail.com') {
             await forceUpdateUserRole(currentUser.uid, currentUser.email);
           }
-          
+
           // Get user role from Firestore
           const role = await getUserRole(currentUser.uid);
           setUserRole(role);
           setRoleLoaded(true);
           console.log('User role loaded:', role, 'for user:', currentUser.email);
         }
-        
+
         setUser(currentUser);
-        
+
         // Only redirect to dashboard if currently on auth or landing
         if (currentScreen === 'auth' || currentScreen === 'landing') {
           setCurrentScreen('dashboard');
@@ -67,7 +67,7 @@ const App: React.FC = () => {
         setUserRole('student');
         setRoleLoaded(false);
         setViewMode('student');
-        setCurrentScreen('landing');
+        setCurrentScreen('auth');
       }
       setLoading(false);
     });
@@ -117,7 +117,7 @@ const App: React.FC = () => {
       alert('Acesso negado. Apenas administradores podem acessar esta área.');
       return;
     }
-    
+
     if (viewMode === 'student') {
       setViewMode('admin');
       setCurrentScreen('admin-reports');
@@ -228,7 +228,7 @@ const App: React.FC = () => {
                 {currentScreen === 'admin-settings' && 'Configurações'}
               </h2>
             </div>
-            
+
             {/* Avatar with Dropdown Menu */}
             <div className="relative" ref={profileMenuRef}>
               <button
@@ -262,7 +262,7 @@ const App: React.FC = () => {
                     <p className="text-sm font-semibold text-[#F3F4F6]">{user?.displayName || 'Usuário'}</p>
                     <p className="text-xs text-[#9CA3AF]">{user?.email}</p>
                   </div>
-                  
+
                   <div className="py-2">
                     <button
                       onClick={() => {
@@ -275,7 +275,7 @@ const App: React.FC = () => {
                       <span className="text-sm">Perfil</span>
                     </button>
                   </div>
-                  
+
                   <div className="p-2 border-t border-white/[0.06]">
                     <button
                       onClick={() => {
