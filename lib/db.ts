@@ -1,6 +1,21 @@
 import { db } from './firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc, where, onSnapshot, limit } from 'firebase/firestore';
 
+export interface CourseLesson {
+    id: string;
+    title: string;
+    duration: string;
+    videoUrl?: string;
+    type: 'video' | 'audio' | 'pdf';
+    description?: string;
+}
+
+export interface CourseModule {
+    id: string;
+    title: string;
+    lessons: CourseLesson[];
+}
+
 export interface Course {
     id?: string;
     title: string;
@@ -12,6 +27,7 @@ export interface Course {
     thumbnail: string;
     description?: string;
     videoUrl?: string;
+    modules?: CourseModule[];
 }
 
 export interface DailyContact {
