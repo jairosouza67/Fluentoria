@@ -15,7 +15,7 @@ import Profile from './components/Profile';
 import Achievements from './components/Achievements';
 import Leaderboard from './components/Leaderboard';
 import AttendanceTracker from './components/AttendanceTracker';
-import LandingPage from './components/LandingPage';
+
 import { ViewMode, Screen } from './types';
 import { Eye, Loader2, ChevronDown, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
@@ -26,7 +26,7 @@ import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('student');
-  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
+  const [currentScreen, setCurrentScreen] = useState<Screen>('auth');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -57,8 +57,8 @@ const App: React.FC = () => {
 
         setUser(currentUser);
 
-        // Only redirect to dashboard if currently on auth or landing
-        if (currentScreen === 'auth' || currentScreen === 'landing') {
+        // Only redirect to dashboard if currently on auth
+        if (currentScreen === 'auth') {
           setCurrentScreen('dashboard');
         }
       } else {
@@ -135,10 +135,7 @@ const App: React.FC = () => {
     );
   }
 
-  // Landing page - show without authentication
-  if (currentScreen === 'landing') {
-    return <LandingPage />;
-  }
+
 
   if (!user || currentScreen === 'auth') {
     return <Auth onLogin={handleLogin} />;
