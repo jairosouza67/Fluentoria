@@ -1,13 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   Users,
-  DollarSign,
   PlayCircle,
-  ArrowUpRight,
   Clock,
   Download,
-  BarChart3
+  Activity,
 } from 'lucide-react';
 import {
   Area,
@@ -17,65 +15,144 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Bar,
-  BarChart as RechartsBarChart,
-  Cell,
 } from 'recharts';
+import { subscribeToStudents, subscribeToCourses, subscribeToAllCompletions, subscribeToRecentCompletions } from '../lib/db';
 
 const Reports: React.FC = () => {
-  const revenueData = [
-    { name: 'Jan', value: 4000 },
-    { name: 'Fev', value: 3000 },
-    { name: 'Mar', value: 5500 },
-    { name: 'Abr', value: 4500 },
-    { name: 'Mai', value: 6500 },
-    { name: 'Jun', value: 5000 },
-    { name: 'Jul', value: 7500 },
-  ];
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [totalCourses, setTotalCourses] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [activityStats, setActivityStats] = useState<{
+    totalCompletions: number;
+    activityData: any[];
+    popularCourses: any[];
+  }>({ totalCompletions: 0, activityData: [], popularCourses: [] });
 
-  const courseData = [
-    { name: 'React Mastery', students: 240 },
-    { name: 'UI/UX Design', students: 180 },
-    { name: 'Financial Freedom', students: 156 },
-    { name: 'Leadership', students: 120 },
-    { name: 'Communication', students: 98 },
-  ];
+  useEffect(() => {
+    // Subscribe to real-time data
+    const unsubscribeStudents = subscribeToStudents(setTotalStudents);
+
+    // We only need the count for courses here
+    const unsubscribeCourses = subscribeToCourses((count) => setTotalCourses(count));
+
+    // Recent activity list (just last 5)
+    const unsubscribeActivityList = subscribeToRecentCompletions(5, setRecentActivity);
+
+    // Aggregate stats from larger set of completions (last 500)
+    const unsubscribeAggregates = subscribeToAllCompletions(500, (completions) => {
+      // 1. Total Completions (in this set)
+      const total = completions.length;
+
+      // 2. Activity Trends (Group by Month)
+      const months: Record<string, number> = {};
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+      // Initialize last 6 months 0
+      const today = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = `${monthNames[d.getMonth()]}`;
+        months[key] = 0;
+      }
+
+      completions.forEach(c => {
+        if (c.completedAt) {
+          const m = monthNames[c.completedAt.getMonth()];
+          if (months[m] !== undefined) months[m]++;
+        }
+      });
+
+      const chartData = Object.keys(months).map(key => ({
+        name: key,
+        value: months[key]
+      }));
+
+      // 3. Popular Courses
+      const courseCounts: Record<string, { name: string, count: number }> = {};
+      completions.forEach(c => {
+        if (c.contentType === 'course' && c.contentId) {
+          // If we don't have the title easily, use ID or generic. 
+          // Group by ID
+          const id = c.contentId;
+          if (!courseCounts[id]) {
+            courseCounts[id] = { name: c.courseName || 'Curso', count: 0 };
+          }
+          courseCounts[id].count++;
+
+          // If we get a valid name later in stream, update it (though naive)
+          if (c.contentTitle && c.contentTitle !== 'Conteúdo') {
+            courseCounts[id].name = c.contentTitle;
+          }
+        }
+      });
+
+      const popular = Object.values(courseCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+        .map(p => ({ name: p.name, count: p.count }));
+
+      setActivityStats({
+        totalCompletions: total,
+        activityData: chartData,
+        popularCourses: popular
+      });
+    });
+
+    return () => {
+      unsubscribeStudents();
+      unsubscribeCourses();
+      unsubscribeActivityList();
+      unsubscribeAggregates();
+    };
+  }, []);
+
+  // Helper for time ago
+  const getTimeAgo = (date: Date) => {
+    if (!date) return '';
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " a";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " m";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " d";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " h";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " min";
+    return Math.floor(seconds) + " s";
+  };
 
   const stats = [
     {
-      title: 'Receita Total',
-      value: 'R$ 45.230,00',
-      change: '+15% do mês anterior',
-      icon: DollarSign,
+      title: 'Aulas Concluídas',
+      value: activityStats.totalCompletions.toString(),
+      change: 'Total registrado',
+      icon: Activity,
       trend: 'up'
     },
     {
       title: 'Alunos Ativos',
-      value: '1.240',
-      change: '+5% do mês anterior',
+      value: totalStudents.toString(),
+      change: 'Base total',
       icon: Users,
       trend: 'up'
     },
     {
-      title: 'Vendas de Cursos',
-      value: '345',
-      change: '+12% do mês anterior',
+      title: 'Cursos Disponíveis',
+      value: totalCourses.toString(),
+      change: 'Catálogo',
       icon: TrendingUp,
       trend: 'up'
     },
     {
       title: 'Tempo de Visualização',
-      value: '2.850h',
-      change: '+8% do mês anterior',
+      value: '---',
+      change: 'Em breve',
       icon: Clock,
-      trend: 'up'
+      trend: 'neutral'
     }
-  ];
-
-  const topCourses = [
-    { name: 'Advanced React Patterns', revenue: 'R$ 15.450', students: 240, growth: '+18%' },
-    { name: 'Modern UI/UX Design', revenue: 'R$ 12.300', students: 180, growth: '+12%' },
-    { name: 'Financial Freedom 101', revenue: 'R$ 9.800', students: 156, growth: '+8%' },
   ];
 
   return (
@@ -84,11 +161,11 @@ const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
-          <p className="text-muted-foreground mt-2">Visão geral do desempenho da plataforma.</p>
+          <p className="text-muted-foreground mt-2">Visão geral do engajamento em tempo real.</p>
         </div>
         <button className="bg-secondary/50 border border-border text-foreground px-5 py-3 rounded-md font-medium flex items-center gap-2 hover:bg-secondary/70 transition-all duration-200">
           <Download className="w-4 h-4" />
-          Exportar Relatório
+          Exportar Dados
         </button>
       </div>
 
@@ -106,8 +183,8 @@ const Reports: React.FC = () => {
               </div>
             </div>
             <div className="text-2xl font-bold text-foreground mb-1">{stat.value}</div>
-            <p className="text-xs text-green-500 flex items-center gap-1">
-              {stat.change} <ArrowUpRight className="w-3 h-3" />
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              {stat.change}
             </p>
           </div>
         ))}
@@ -115,154 +192,115 @@ const Reports: React.FC = () => {
 
       {/* Main Charts */}
       <div className="grid gap-6 lg:grid-cols-7">
-        {/* Revenue Chart */}
+        {/* Activity Chart */}
         <div className="lg:col-span-4 bg-card border-border rounded-xl shadow-card-custom p-6">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-foreground">Visão Geral de Receita</h2>
-            <p className="text-sm text-muted-foreground mt-1">Receita mensal dos últimos 7 meses</p>
+            <h2 className="text-xl font-bold text-foreground">Engajamento Mensal</h2>
+            <p className="text-sm text-muted-foreground mt-1">Aulas concluídas nos últimos 6 meses</p>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData}>
+              <AreaChart data={activityStats.activityData.length > 0 ? activityStats.activityData : [{ name: 'Sem dados', value: 0 }]}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF6A00" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#FF6A00" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#FF6A00" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#FF6A00" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#666" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis 
+                <XAxis
+                  dataKey="name"
                   stroke="#666"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `R$${value}`}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#111', 
+                <YAxis
+                  stroke="#666"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#111',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px'
                   }}
                   itemStyle={{ color: '#fff' }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#FF6A00" 
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#FF6A00"
                   strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorValue)" 
+                  fillOpacity={1}
+                  fill="url(#colorValue)"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Top Courses */}
+        {/* Popular Courses */}
         <div className="lg:col-span-3 bg-card border-border rounded-xl shadow-card-custom p-6">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-foreground">Cursos Mais Vendidos</h2>
-            <p className="text-sm text-muted-foreground mt-1">Top 3 por receita</p>
+            <h2 className="text-xl font-bold text-foreground">Cursos Mais Ativos</h2>
+            <p className="text-sm text-muted-foreground mt-1">Top por conclusões</p>
           </div>
           <div className="space-y-4">
-            {topCourses.map((course, index) => (
-              <div
-                key={index}
-                className="p-4 bg-secondary/30 rounded-lg border border-border hover:border-primary/30 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground text-sm mb-1">{course.name}</h3>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {course.students} alunos
-                      </span>
-                      <span className="text-green-500">{course.growth}</span>
+            {activityStats.popularCourses.length === 0 ? (
+              <div className="text-muted-foreground text-sm italic py-4 text-center">
+                Ainda sem dados suficientes.
+              </div>
+            ) : (
+              activityStats.popularCourses.map((course, index) => (
+                <div
+                  key={index}
+                  className="p-4 bg-secondary/30 rounded-lg border border-border hover:border-primary/30 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground text-sm mb-1">{course.name}</h3>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Activity className="w-3 h-3" />
+                          {course.count} conclusões
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-foreground">{course.revenue}</div>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
-        </div>
-      </div>
-
-      {/* Course Performance Bar Chart */}
-      <div className="bg-card border-border rounded-xl shadow-card-custom p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-foreground">Desempenho por Curso</h2>
-          <p className="text-sm text-muted-foreground mt-1">Número de alunos matriculados</p>
-        </div>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <RechartsBarChart data={courseData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-              <XAxis 
-                dataKey="name" 
-                stroke="#666"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis 
-                stroke="#666"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#111', 
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px'
-                }}
-                itemStyle={{ color: '#fff' }}
-                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-              />
-              <Bar dataKey="students" radius={[8, 8, 0, 0]}>
-                {courseData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill="#FF6A00" opacity={1 - (index * 0.15)} />
-                ))}
-              </Bar>
-            </RechartsBarChart>
-          </ResponsiveContainer>
         </div>
       </div>
 
       {/* Recent Activity */}
       <div className="bg-card border-border rounded-xl shadow-card-custom p-6">
-        <h2 className="text-xl font-bold text-foreground mb-6">Atividade Recente</h2>
+        <h2 className="text-xl font-bold text-foreground mb-6">Atividade Recente (Tempo Real)</h2>
         <div className="space-y-4">
-          {[
-            { text: 'Novo aluno inscrito em', course: 'React Mastery', time: '2 minutos atrás' },
-            { text: 'Curso completado:', course: 'UI/UX Design', time: '15 minutos atrás' },
-            { text: 'Nova compra de', course: 'Financial Freedom', time: '1 hora atrás' },
-            { text: 'Aluno iniciou', course: 'Leadership Skills', time: '2 horas atrás' },
-          ].map((activity, i) => (
-            <div key={i} className="flex items-start gap-4 group p-3 rounded-lg hover:bg-secondary/30 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                <PlayCircle className="w-4 h-4 text-primary" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-sm font-medium text-foreground">
-                  {activity.text} <span className="text-primary">{activity.course}</span>
-                </p>
-                <p className="text-xs text-muted-foreground">{activity.time}</p>
-              </div>
+          {recentActivity.length === 0 ? (
+            <div className="text-muted-foreground text-sm italic py-4 text-center">
+              Nenhuma atividade recente registrada.
             </div>
-          ))}
+          ) : (
+            recentActivity.map((activity, i) => (
+              <div key={i} className="flex items-start gap-4 group p-3 rounded-lg hover:bg-secondary/30 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <PlayCircle className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    <span className="text-primary font-semibold">{activity.studentName}</span> completou{' '}
+                    <span className="text-white">{activity.contentTitle}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{getTimeAgo(activity.completedAt)} atrás</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

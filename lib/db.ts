@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc, where, onSnapshot, limit } from 'firebase/firestore';
 
 export interface Course {
     id?: string;
@@ -226,7 +226,7 @@ export const getStudentCompletion = async (
         const completionId = `${studentId}_${contentType}_${contentId}`;
         const docRef = doc(db, STUDENT_COMPLETIONS_COLLECTION, completionId);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
             const data = docSnap.data();
             return {
@@ -234,7 +234,7 @@ export const getStudentCompletion = async (
                 completedAt: data.completedAt?.toDate(),
             } as StudentCompletion;
         }
-        
+
         return null;
     } catch (error) {
         console.error("Error fetching student completion:", error);
@@ -251,7 +251,7 @@ export const markContentComplete = async (
     try {
         const completionId = `${studentId}_${contentType}_${contentId}`;
         const docRef = doc(db, STUDENT_COMPLETIONS_COLLECTION, completionId);
-        
+
         const completionData: StudentCompletion = {
             studentId,
             contentId,
@@ -259,7 +259,7 @@ export const markContentComplete = async (
             completed,
             completedAt: completed ? new Date() : undefined,
         };
-        
+
         await setDoc(docRef, completionData);
         return true;
     } catch (error) {
@@ -280,7 +280,7 @@ export interface Student {
 export const getAllStudents = async (): Promise<Student[]> => {
     try {
         const querySnapshot = await getDocs(collection(db, 'users'));
-        
+
         const students = querySnapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -291,12 +291,12 @@ export const getAllStudents = async (): Promise<Student[]> => {
                 createdAt: data.createdAt?.toDate(),
             } as Student;
         });
-        
+
         console.log('📂 DB - getAllStudents: Found', students.length, 'users in database');
-        
+
         // Sort by name (client-side to avoid index requirement)
         students.sort((a, b) => a.name.localeCompare(b.name));
-        
+
         return students;
     } catch (error) {
         console.error("Error fetching students:", error);
@@ -314,7 +314,7 @@ export const addStudent = async (name: string, email: string, photoURL?: string)
             createdAt: new Date(),
             role: 'student',
         };
-        
+
         const docRef = await addDoc(collection(db, 'users'), studentData);
         console.log('Student added successfully:', docRef.id);
         return docRef.id;
@@ -352,29 +352,29 @@ export const findAndMergeStudentByEmail = async (email: string, googleUserData: 
         const emailLower = email.toLowerCase();
         const q = query(collection(db, 'users'), where('email', '==', emailLower));
         const querySnapshot = await getDocs(q);
-        
+
         if (!querySnapshot.empty) {
             // Student with this email already exists
             const studentDoc = querySnapshot.docs[0];
             const studentData = studentDoc.data();
-            
+
             // Merge Google user data with existing student record
             const updates: any = {
                 displayName: googleUserData.displayName || studentData.name,
                 photoURL: googleUserData.photoURL || studentData.photoURL || '',
                 lastLogin: new Date(),
             };
-            
+
             // If student didn't have a name, use Google's
             if (!studentData.name && googleUserData.displayName) {
                 updates.name = googleUserData.displayName;
             }
-            
+
             await updateDoc(doc(db, 'users', studentDoc.id), updates);
             console.log('Merged Google user with existing student:', studentDoc.id);
             return true;
         }
-        
+
         return false;
     } catch (error) {
         console.error("Error finding/merging student:", error);
@@ -387,15 +387,15 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<vo
     try {
         const userRef = doc(db, 'users', uid);
         const userSnap = await getDoc(userRef);
-        
+
         if (!userSnap.exists()) {
             // Check if a student with this email was manually added
             const merged = await findAndMergeStudentByEmail(userData.email, userData);
-            
+
             if (!merged) {
                 // Determine role: only specific email is admin, all others are students
                 const role = userData.email === 'jairosouza67@gmail.com' ? 'admin' : 'student';
-                
+
                 // No existing student, create new user
                 await setDoc(userRef, {
                     name: userData.displayName || '',
@@ -424,13 +424,13 @@ export const getUserRole = async (uid: string): Promise<'admin' | 'student'> => 
     try {
         const userRef = doc(db, 'users', uid);
         const userSnap = await getDoc(userRef);
-        
+
         if (userSnap.exists()) {
             const userData = userSnap.data();
             console.log('User data from Firestore:', userData);
             return userData.role === 'admin' ? 'admin' : 'student';
         }
-        
+
         console.log('User document not found in Firestore for uid:', uid);
         // Default to student if user not found
         return 'student';
@@ -446,16 +446,16 @@ export const forceUpdateUserRole = async (uid: string, email: string): Promise<v
         const role = email === 'jairosouza67@gmail.com' ? 'admin' : 'student';
         const userRef = doc(db, 'users', uid);
         const userSnap = await getDoc(userRef);
-        
+
         if (userSnap.exists()) {
             const updates: any = { role };
-            
+
             // Update admin name if missing
             if (role === 'admin' && !userSnap.data().name) {
                 updates.name = 'Administrador';
                 updates.displayName = 'Administrador';
             }
-            
+
             await updateDoc(userRef, updates);
             console.log('User role updated to:', role);
         } else {
@@ -472,4 +472,108 @@ export const forceUpdateUserRole = async (uid: string, email: string): Promise<v
     } catch (error) {
         console.error("Error force updating user role:", error);
     }
+};
+
+// Real-time Subscriptions
+
+export const subscribeToStudents = (callback: (count: number) => void): (() => void) => {
+    const q = query(collection(db, 'users'));
+    return onSnapshot(q, (snapshot) => {
+        callback(snapshot.size);
+    }, (error) => {
+        console.error("Error subscribing to students:", error);
+    });
+};
+
+export const subscribeToCourses = (callback: (count: number, courses: Course[]) => void): (() => void) => {
+    const q = query(collection(db, COURSES_COLLECTION));
+    return onSnapshot(q, (snapshot) => {
+        const courses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+        callback(snapshot.size, courses);
+    }, (error) => {
+        console.error("Error subscribing to courses:", error);
+    });
+};
+
+export const subscribeToRecentCompletions = (limitCount: number, callback: (completions: any[]) => void): (() => void) => {
+    // Note: We might need an index for 'completedAt' descending.
+    // If it fails without index, it will log an error with a link to create it.
+    const q = query(
+        collection(db, STUDENT_COMPLETIONS_COLLECTION),
+        where('completed', '==', true),
+        orderBy('completedAt', 'desc'),
+        limit(limitCount)
+    );
+
+    return onSnapshot(q, async (snapshot) => {
+        const completions = await Promise.all(snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            // Fetch student name if possible, or store it in completion record to save reads
+            // For now, attempting to fetch user name might be too many reads if high volume.
+            // A better approach is to store studentName in the completion document.
+            // But strict to current schema, we'll try to get it or just return data.
+
+            // Let's try to fetch the student name for the display
+            let studentName = 'Aluno';
+            if (data.studentId) {
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', data.studentId));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        studentName = userData.displayName || userData.name || 'Aluno';
+                    }
+                } catch (e) {
+                    console.error("Error fetching student details for completion:", e);
+                }
+            }
+
+            // Fetch course/content title
+            let contentTitle = 'Conteúdo';
+            if (data.contentId && data.contentType === 'course') {
+                try {
+                    // Try to match with known course list or fetch
+                    // Since we don't want N+1 reads here every time, we might ideally cache courses.
+                    // For this MVP, we will try to fetch if not expensive, or just generic.
+                    // Actually, let's just use a generic fetch since it's "Recent Activity" limited to small number
+                    const courseDoc = await getDoc(doc(db, COURSES_COLLECTION, data.contentId));
+                    if (courseDoc.exists()) {
+                        contentTitle = courseDoc.data().title;
+                    }
+                } catch (e) { }
+            }
+
+            return {
+                id: docSnap.id,
+                ...data,
+                studentName,
+                contentTitle,
+                completedAt: data.completedAt?.toDate()
+            };
+        }));
+
+        callback(completions);
+    }, (error) => {
+        console.error("Error subscribing to completions:", error);
+    });
+};
+
+export const subscribeToAllCompletions = (limitCount: number, callback: (completions: any[]) => void): (() => void) => {
+    // Fetches a larger set of completions for client-side aggregation (charts, popular courses)
+    const q = query(
+        collection(db, STUDENT_COMPLETIONS_COLLECTION),
+        where('completed', '==', true),
+        orderBy('completedAt', 'desc'),
+        limit(limitCount)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        // Just return raw data for aggregation
+        const data = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            completedAt: doc.data().completedAt?.toDate()
+        }));
+        callback(data);
+    }, (error) => {
+        console.error("Error subscribing to all completions:", error);
+    });
 };
