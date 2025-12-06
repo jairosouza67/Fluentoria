@@ -168,41 +168,37 @@ const AdminCatalog: React.FC = () => {
       <div className="flex gap-2 border-b border-border">
         <button
           onClick={() => setActiveTab('courses')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-            activeTab === 'courses'
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'courses'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+            }`}
         >
           Courses
         </button>
         <button
           onClick={() => setActiveTab('daily')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-            activeTab === 'daily'
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'daily'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+            }`}
         >
           Daily Contact
         </button>
         <button
           onClick={() => setActiveTab('mindful')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-            activeTab === 'mindful'
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'mindful'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+            }`}
         >
           Mindful Flow
         </button>
         <button
           onClick={() => setActiveTab('music')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-            activeTab === 'music'
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'music'
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
+            }`}
         >
           Music
         </button>
@@ -238,14 +234,15 @@ const AdminCatalog: React.FC = () => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCourses.map((course) => {
             const thumbnailUrl = course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
-            
+            const displayImage = course.coverImage || thumbnailUrl;
+
             return (
               <div key={course.id} className="overflow-hidden bg-card border-border group hover:shadow-elevated transition-all duration-300 rounded-xl">
                 {/* Thumbnail */}
                 <div className="aspect-video relative overflow-hidden">
-                  {thumbnailUrl ? (
-                    <img 
-                      src={thumbnailUrl} 
+                  {displayImage ? (
+                    <img
+                      src={displayImage}
                       alt={course.title}
                       className="w-full h-full object-cover"
                     />
@@ -277,39 +274,39 @@ const AdminCatalog: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              
-              {/* Content */}
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-bold text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
-                    {course.title}
-                  </h3>
-                </div>
-                
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {course.duration}
+
+                {/* Content */}
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="font-bold text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                      {course.title}
+                    </h3>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {course.launchDate || 'Em breve'}
+
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {course.duration}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {course.launchDate || 'Em breve'}
+                    </div>
                   </div>
+
+                  <p className="text-sm text-muted-foreground mb-1">Por {course.author}</p>
                 </div>
 
-                <p className="text-sm text-muted-foreground mb-1">Por {course.author}</p>
+                <div className="p-6 pt-0 flex justify-between items-center border-t border-border/50">
+                  <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{course.type}</span>
+                  <button
+                    onClick={() => handleViewCourse(course)}
+                    className="border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary px-4 py-2 rounded-lg text-sm font-medium border transition-all"
+                  >
+                    Acessar
+                  </button>
+                </div>
               </div>
-              
-              <div className="p-6 pt-0 flex justify-between items-center border-t border-border/50">
-                <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{course.type}</span>
-                <button 
-                  onClick={() => handleViewCourse(course)}
-                  className="border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary px-4 py-2 rounded-lg text-sm font-medium border transition-all"
-                >
-                  Acessar
-                </button>
-              </div>
-            </div>
             );
           })}
         </div>
@@ -325,8 +322,8 @@ const AdminCatalog: React.FC = () => {
 
       {viewingCourse && (
         <div className="fixed inset-0 z-50 bg-[#0B0B0B]">
-          <CourseDetail 
-            course={viewingCourse} 
+          <CourseDetail
+            course={viewingCourse}
             onBack={() => setViewingCourse(null)}
           />
         </div>

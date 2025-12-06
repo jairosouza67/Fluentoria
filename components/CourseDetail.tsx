@@ -145,10 +145,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
                   className="w-full h-full"
                   controls
                   src={course.videoUrl}
+                  poster={course.coverImage}
                 >
                   Seu navegador não suporta a tag de vídeo.
                 </video>
               </div>
+            ) : course.coverImage ? (
+              <img
+                src={course.coverImage}
+                alt={course.title}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">

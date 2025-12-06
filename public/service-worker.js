@@ -1,84 +1,33 @@
 /* eslint-disable no-restricted-globals */
 
-// Nome do cache para versionamento
-const CACHE_NAME = 'dark-lms-cache-v1';
+// Self-destructing Service Worker
+// This replaces the old SW to ensure caches are cleared and clients are claimed immediately.
 
-// Arquivos essenciais para o App Shell (funcionamento offline básico)
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
+const CACHE_NAME = 'cleanup-cache-v2';
 
-// 1. Instalação: Cache dos assets estáticos
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching App Shell');
-      return cache.addAll(STATIC_ASSETS).catch(err => {
-        console.error('[Service Worker] Failed to cache app shell:', err);
-      });
-    })
-  );
-  // Força o SW a ativar imediatamente
+  console.log('[Service Worker] Installing cleanup worker...');
   self.skipWaiting();
 });
 
-// 2. Ativação: Limpeza de caches antigos
 self.addEventListener('activate', (event) => {
+  console.log('[Service Worker] Activating cleanup worker...');
   event.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(
         keyList.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache', key);
-            return caches.delete(key);
-          }
+          console.log('[Service Worker] Deleting old cache:', key);
+          return caches.delete(key);
         })
       );
+    }).then(() => {
+      console.log('[Service Worker] All caches deleted.');
+      return self.clients.claim();
     })
   );
-  // Reivindica o controle dos clientes imediatamente
-  self.clients.claim();
 });
 
-// 3. Fetch: Estratégia híbrida
-// - Assets estáticos (JS, CSS, Imagens): Cache First, falling back to Network
-// - API/Dados: Network First, falling back to Cache (para simular aqui, tratamos tudo como asset por enquanto)
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições que não sejam GET ou sejam extensões do Chrome, etc.
-  if (event.request.method !== 'GET') return;
-  if (!event.request.url.startsWith('http')) return;
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // Se tiver no cache, retorna. Se não, busca na rede.
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request).then((networkResponse) => {
-        // Verifica se a resposta é válida antes de cachear
-        if (
-          !networkResponse ||
-          networkResponse.status !== 200 ||
-          networkResponse.type !== 'basic'
-        ) {
-          return networkResponse;
-        }
-
-        // Clona a resposta para salvar no cache e retornar ao browser
-        const responseToCache = networkResponse.clone();
-
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
-        return networkResponse;
-      }).catch(() => {
-        // Fallback para página offline se necessário (opcional)
-        // return caches.match('/offline.html');
-      });
-    })
-  );
+  // Pass through to network - no caching
+  return;
 });

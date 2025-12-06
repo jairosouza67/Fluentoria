@@ -28,6 +28,7 @@ export interface Course {
     description?: string;
     videoUrl?: string;
     modules?: CourseModule[];
+    coverImage?: string;
 }
 
 export interface DailyContact {

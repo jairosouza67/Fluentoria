@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film } from 'lucide-react';
+import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film, Upload } from 'lucide-react';
 import { Course, CourseModule, CourseLesson } from '../lib/db';
+import { uploadCourseCover } from '../lib/media';
 
 interface CourseFormProps {
     course?: Course | null;
@@ -21,11 +22,14 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         launchDate: '',
         description: '',
         videoUrl: '',
-        modules: []
+        modules: [],
+        coverImage: ''
     });
     const [loading, setLoading] = useState(false);
     const [expandedModules, setExpandedModules] = useState<string[]>([]);
     const [contentMode, setContentMode] = useState<ContentMode>('modules');
+    const [coverType, setCoverType] = useState<'link' | 'upload'>('link');
+    const [uploadingCover, setUploadingCover] = useState(false);
 
     useEffect(() => {
         if (course) {
@@ -64,6 +68,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
             setLoading(false);
         }
     };
+
 
     const toggleModule = (moduleId: string) => {
         setExpandedModules(prev =>
@@ -153,6 +158,22 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         }
     };
 
+    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setUploadingCover(true);
+            try {
+                const url = await uploadCourseCover(e.target.files[0]);
+                if (url) {
+                    setFormData(prev => ({ ...prev, coverImage: url }));
+                }
+            } catch (error) {
+                console.error("Error uploading cover:", error);
+            } finally {
+                setUploadingCover(false);
+            }
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-[#111111] border border-white/[0.06] rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-elevated">
@@ -227,6 +248,68 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                 className="input-pluma w-full h-24 resize-none"
                                 placeholder="Sobre o que é este curso?"
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-[#9CA3AF]">Capa do Curso</label>
+                            <div className="flex gap-2 mb-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setCoverType('link')}
+                                    className={`px-3 py-1 text-xs rounded-lg transition-colors ${coverType === 'link' ? 'bg-[#FF6A00] text-white' : 'bg-white/[0.05] text-[#9CA3AF]'}`}
+                                >
+                                    Link
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCoverType('upload')}
+                                    className={`px-3 py-1 text-xs rounded-lg transition-colors ${coverType === 'upload' ? 'bg-[#FF6A00] text-white' : 'bg-white/[0.05] text-[#9CA3AF]'}`}
+                                >
+                                    Upload
+                                </button>
+                            </div>
+
+                            {coverType === 'link' ? (
+                                <input
+                                    type="text"
+                                    value={formData.coverImage || ''}
+                                    onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                                    className="input-pluma w-full"
+                                    placeholder="https://..."
+                                />
+                            ) : (
+                                <div className="flex items-center gap-4">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleCoverUpload}
+                                        className="hidden"
+                                        id="cover-upload"
+                                    />
+                                    <label
+                                        htmlFor="cover-upload"
+                                        className="cursor-pointer px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] text-[#F3F4F6] rounded-lg text-sm transition-colors flex items-center gap-2"
+                                    >
+                                        {uploadingCover ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                                        Escolher Imagem
+                                    </label>
+                                    {formData.coverImage && (
+                                        <span className="text-xs text-[#23D18B]">Imagem selecionada</span>
+                                    )}
+                                </div>
+                            )}
+
+                            {formData.coverImage && (
+                                <div className="mt-2 relative aspect-video w-40 rounded-lg overflow-hidden border border-white/[0.1]">
+                                    <img src={formData.coverImage} alt="Preview" className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, coverImage: '' })}
+                                        className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-red-500/80 transition-colors"
+                                    >
+                                        <X size={12} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
