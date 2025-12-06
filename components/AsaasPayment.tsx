@@ -179,7 +179,7 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -190,7 +190,7 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
     try {
       // Create customer first
       const customerId = await createAsaasCustomer();
-      
+
       // Then create payment
       const payment = await createAsaasPayment(customerId);
 
