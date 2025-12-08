@@ -18,7 +18,7 @@ import Leaderboard from './components/Leaderboard';
 import AttendanceTracker from './components/AttendanceTracker';
 
 import { ViewMode, Screen } from './types';
-import { Eye, Loader2, ChevronDown, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
+import { Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
@@ -227,9 +227,9 @@ const App: React.FC = () => {
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] hover:border-[#FF6A00]/50 transition-all duration-200 group"
+                className="relative group focus:outline-none"
               >
-                <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white/10 group-hover:ring-[#FF6A00] transition-all duration-200">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white/10 group-hover:ring-[#FF6A00] transition-all duration-200 shadow-lg">
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
                   ) : (
@@ -238,15 +238,6 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-semibold text-[#F3F4F6] group-hover:text-[#FF6A00] transition-colors">
-                    {user?.displayName || 'Usuário'}
-                  </p>
-                  <p className="text-xs text-[#9CA3AF]">
-                    {viewMode === 'student' ? 'Aluno' : 'Admin'}
-                  </p>
-                </div>
-                <ChevronDown className={`w-4 h-4 text-[#9CA3AF] transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Menu */}
@@ -254,7 +245,10 @@ const App: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-white/[0.1] rounded-xl shadow-elevated overflow-hidden animate-fade-in">
                   <div className="p-4 border-b border-white/[0.06]">
                     <p className="text-sm font-semibold text-[#F3F4F6]">{user?.displayName || 'Usuário'}</p>
-                    <p className="text-xs text-[#9CA3AF]">{user?.email}</p>
+                    <p className="text-xs text-[#9CA3AF] mb-2">{user?.email}</p>
+                    <div className="inline-block px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.1] text-[10px] text-[#9CA3AF] uppercase tracking-wider">
+                      {viewMode === 'student' ? 'Aluno' : 'Admin'}
+                    </div>
                   </div>
 
                   <div className="py-2">
