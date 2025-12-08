@@ -22,9 +22,9 @@ const Achievements: React.FC<AchievementsProps> = ({ studentId }) => {
     const [allAchievements, studentProgress, leaderboardData] = await Promise.all([
       getAchievements(),
       getStudentProgress(studentId),
-      getLeaderboard(20),
+      getLeaderboard(8),
     ]);
-    
+
     setAchievements(allAchievements);
     setProgress(studentProgress);
     setLeaderboard(leaderboardData);
@@ -101,7 +101,7 @@ const Achievements: React.FC<AchievementsProps> = ({ studentId }) => {
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-[#F3F4F6]">Progresso Geral</span>
           <span className="text-sm text-[#9CA3AF]">
-            {Math.round((unlockedAchievements.length / achievements.length) * 100)}%
+            {progress?.rank ? `#${progress.rank}` : '-'}
           </span>
         </div>
         <div className="w-full h-3 bg-white/[0.05] rounded-full overflow-hidden">
@@ -150,7 +150,7 @@ const Achievements: React.FC<AchievementsProps> = ({ studentId }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {lockedAchievements.map((achievement) => {
               const progressPercent = getProgressTowards(achievement);
-              
+
               return (
                 <div
                   key={achievement.id}
@@ -165,7 +165,7 @@ const Achievements: React.FC<AchievementsProps> = ({ studentId }) => {
                     </div>
                     <h3 className="text-lg font-bold text-[#F3F4F6] mb-2">{achievement.title}</h3>
                     <p className="text-sm text-[#9CA3AF]">{achievement.description}</p>
-                    
+
                     {/* Progress Bar */}
                     <div className="mt-4 space-y-2">
                       <div className="flex items-center justify-between text-xs text-[#9CA3AF]">
@@ -284,9 +284,8 @@ const Achievements: React.FC<AchievementsProps> = ({ studentId }) => {
                   return (
                     <tr
                       key={student.id}
-                      className={`border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors ${
-                        isCurrentUser ? 'bg-[#FF6A00]/5' : ''
-                      }`}
+                      className={`border-b border-white/[0.06] hover:bg-white/[0.02] transition-colors ${isCurrentUser ? 'bg-[#FF6A00]/5' : ''
+                        }`}
                     >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">

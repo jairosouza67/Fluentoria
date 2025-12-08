@@ -4,6 +4,7 @@ import StudentDashboard from './components/StudentDashboard';
 import AdminCatalog from './components/AdminCatalog';
 import Students from './components/Students';
 import Reports from './components/Reports';
+import FinancialReports from './components/FinancialReports';
 import Settings from './components/Settings';
 import Auth from './components/Auth';
 import CourseList from './components/CourseList';
@@ -153,6 +154,8 @@ const App: React.FC = () => {
           return <Reports />;
         case 'admin-settings':
           return <Settings />;
+        case 'admin-financial':
+          return <FinancialReports />;
         default:
           return <Reports />;
       }
@@ -216,7 +219,7 @@ const App: React.FC = () => {
 
       <main className="w-full min-h-screen relative z-10 pb-20 md:pb-0 md:pl-64 transition-all duration-300">
         {/* Top Header with Avatar - Mobile and Desktop */}
-        <div className="sticky top-0 z-40 px-4 md:px-8 py-4 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full z-40 px-4 md:px-8 py-4 pointer-events-none">
           <div className="max-w-7xl mx-auto flex items-center justify-end pointer-events-auto">
             {/* Title removed as per request */}
 

@@ -292,6 +292,12 @@ export interface Student {
     email: string;
     photoURL?: string;
     createdAt?: Date;
+    // Financial Data
+    planType?: 'monthly' | 'annual' | 'lifetime';
+    planStatus?: 'active' | 'expired' | 'pending';
+    planStartDate?: Date;
+    planEndDate?: Date;
+    planValue?: number;
 }
 
 export const getAllStudents = async (): Promise<Student[]> => {

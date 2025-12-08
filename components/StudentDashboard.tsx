@@ -42,22 +42,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="sticky top-0 z-30 -mx-6 -mt-6 px-6 py-6 md:-mx-8 md:-mt-8 md:px-8 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-white/[0.06] flex items-start justify-between transition-all duration-300">
+      <div className="sticky top-0 z-30 -mx-6 -mt-6 px-6 py-6 md:-mx-8 md:-mt-8 md:px-8 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-white/[0.06] flex flex-col md:flex-row md:items-center gap-6 transition-all duration-300">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             Dashboard <Sparkles className="text-primary" size={24} />
           </h1>
           <p className="text-muted-foreground mt-2">Bem-vindo de volta! Continue sua jornada de aprendizado.</p>
         </div>
-        {studentProgress && (
-          <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 shadow-card-custom">
-            <Zap className="w-6 h-6 text-primary fill-primary" />
-            <div>
-              <p className="text-xs text-muted-foreground">Nível</p>
-              <p className="text-xl font-bold text-foreground">{studentProgress.currentLevel}</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Level Progress */}

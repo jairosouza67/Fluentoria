@@ -19,6 +19,7 @@ export type Screen =
   | 'admin-catalog'
   | 'admin-students'
   | 'admin-reports'
+  | 'admin-financial'
   | 'admin-settings';
 
 export interface Module {
