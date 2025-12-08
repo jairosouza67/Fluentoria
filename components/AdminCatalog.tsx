@@ -3,7 +3,7 @@ import { Plus, ChevronDown, Edit2, Trash2, Clock, Calendar, Loader2, Eye } from 
 import { Course, getCourses, addCourse, updateCourse, deleteCourse, getDailyContacts, addDailyContact, updateDailyContact, deleteDailyContact, getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, getMusic, addMusic, updateMusic, deleteMusic, DailyContact } from '../lib/db';
 import CourseForm from './CourseForm';
 import CourseDetail from './CourseDetail';
-import { getYouTubeThumbnail } from '../lib/youtube';
+import { getYouTubeThumbnail } from '../lib/video';
 import AnimatedInput from './ui/AnimatedInput';
 
 type TabType = 'courses' | 'daily' | 'mindful' | 'music';
@@ -169,17 +169,17 @@ const AdminCatalog: React.FC = () => {
         <button
           onClick={() => setActiveTab('courses')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'courses'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
-          Courses
+          Modules
         </button>
         <button
           onClick={() => setActiveTab('daily')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'daily'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
           Daily Contact
@@ -187,8 +187,8 @@ const AdminCatalog: React.FC = () => {
         <button
           onClick={() => setActiveTab('mindful')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'mindful'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
           Mindful Flow
@@ -196,8 +196,8 @@ const AdminCatalog: React.FC = () => {
         <button
           onClick={() => setActiveTab('music')}
           className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'music'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
           Music

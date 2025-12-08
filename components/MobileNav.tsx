@@ -40,7 +40,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
             </div>
         );
     }
-    
+
     // Student navigation
     return (
         <div className="fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 flex justify-around items-center z-50 md:hidden pb-safe shadow-elevated">
@@ -52,7 +52,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
             />
             <NavItem
                 icon={<BookOpen size={20} />}
-                label="Courses"
+                label="Modules"
                 active={currentScreen === 'courses' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
             />

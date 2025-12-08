@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PlayCircle, FileText, Mic, Clock, Filter, Loader2 } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, getMusic } from '../lib/db';
-import { getYouTubeThumbnail } from '../lib/youtube';
+import { getYouTubeThumbnail } from '../lib/video';
 import AnimatedInput from './ui/AnimatedInput';
 
 interface MusicListProps {
@@ -62,62 +62,62 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse }) => 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => {
             const thumbnailUrl = course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
-            
+
             return (
-            <div
-              key={course.id}
-              onClick={() => {
-                onSelectCourse(course);
-                onNavigate('music-detail');
-              }}
-              className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
-            >
-              {/* Thumbnail */}
-              <div className={`h-40 w-full ${thumbnailUrl ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
-                {thumbnailUrl ? (
-                  <>
-                    <img 
-                      src={thumbnailUrl} 
-                      alt={course.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
-                  </>
-                ) : (
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                )}
-                <div className="absolute w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20 z-10">
-                  {course.type === 'video' && <PlayCircle size={24} fill="white" className="text-white opacity-80" />}
-                  {course.type === 'pdf' && <FileText size={24} />}
-                  {course.type === 'audio' && <Mic size={24} />}
-                </div>
+              <div
+                key={course.id}
+                onClick={() => {
+                  onSelectCourse(course);
+                  onNavigate('music-detail');
+                }}
+                className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
+              >
+                {/* Thumbnail */}
+                <div className={`h-40 w-full ${thumbnailUrl ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
+                  {thumbnailUrl ? (
+                    <>
+                      <img
+                        src={thumbnailUrl}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                  )}
+                  <div className="absolute w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20 z-10">
+                    {course.type === 'video' && <PlayCircle size={24} fill="white" className="text-white opacity-80" />}
+                    {course.type === 'pdf' && <FileText size={24} />}
+                    {course.type === 'audio' && <Mic size={24} />}
+                  </div>
 
-                {/* Progress Bar overlay */}
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-black/30 z-10">
-                  <div className="h-full bg-[#FF6A00]" style={{ width: `${course.progress}%` }}></div>
-                </div>
-              </div>
-
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs font-semibold text-[#FF6A00] uppercase tracking-wider">{course.type}</span>
-                  <div className="flex items-center gap-1 text-[#9CA3AF] text-xs">
-                    <Clock size={12} />
-                    <span>{course.duration}</span>
+                  {/* Progress Bar overlay */}
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-black/30 z-10">
+                    <div className="h-full bg-[#FF6A00]" style={{ width: `${course.progress}%` }}></div>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-[#F3F4F6] mb-1 group-hover:text-[#FF6A00] transition-colors duration-200">{course.title}</h3>
-                <p className="text-sm text-[#9CA3AF] mb-4">{course.author}</p>
+                <div className="p-5">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-semibold text-[#FF6A00] uppercase tracking-wider">{course.type}</span>
+                    <div className="flex items-center gap-1 text-[#9CA3AF] text-xs">
+                      <Clock size={12} />
+                      <span>{course.duration}</span>
+                    </div>
+                  </div>
 
-                <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200">
-                  {course.progress === 0 ? 'Play Now' : course.progress === 100 ? 'Replay' : 'Continue'}
-                </button>
+                  <h3 className="text-lg font-bold text-[#F3F4F6] mb-1 group-hover:text-[#FF6A00] transition-colors duration-200">{course.title}</h3>
+                  <p className="text-sm text-[#9CA3AF] mb-4">{course.author}</p>
+
+                  <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200">
+                    {course.progress === 0 ? 'Play Now' : course.progress === 100 ? 'Replay' : 'Continue'}
+                  </button>
+                </div>
               </div>
-            </div>
             );
           })}
         </div>

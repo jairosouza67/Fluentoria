@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
               />
               <NavItem
                 icon={<BookOpen size={20} />}
-                label="Courses"
+                label="Modules"
                 active={currentScreen === 'courses' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
               />

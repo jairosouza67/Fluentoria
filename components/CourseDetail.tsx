@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, CourseLesson, CourseModule, getStudentCompletion, markContentComplete } from '../lib/db';
-import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl } from '../lib/youtube';
+import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl } from '../lib/video';
 import CourseChat from './CourseChat';
 import MediaUpload from './MediaUpload';
 import { logActivity } from '../lib/attendance';
@@ -74,9 +74,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
   const currentDescription = activeLesson ? activeLesson.description : course?.description;
   const currentVideoUrl = activeLesson ? activeLesson.videoUrl : course?.videoUrl;
 
-  // Extract YouTube video ID if available
+  // Extract YouTube video ID if available or check for Drive URL
   const videoId = currentVideoUrl ? extractYouTubeId(currentVideoUrl) : null;
   const hasYouTubeVideo = videoId && isYouTubeUrl(currentVideoUrl || '');
+  const hasDriveVideo = isGoogleDriveUrl(currentVideoUrl || '');
+  const embedUrl = getEmbedUrl(currentVideoUrl || '');
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev =>
@@ -130,10 +132,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
         <div className="flex-1 p-6 space-y-6">
           {/* Video Player */}
           <div className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
-            {hasYouTubeVideo ? (
+            {embedUrl ? (
               <iframe
                 className="w-full h-full"
-                src={getYouTubeEmbedUrl(videoId!)}
+                src={embedUrl}
                 title={currentTitle}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

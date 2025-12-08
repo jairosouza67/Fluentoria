@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlayCircle, FileText, Mic, Clock, Filter, Loader2, ArrowLeft, CheckCircle, Download, Bookmark, Share2, Play } from 'lucide-react';
 import { DailyContact as DailyContactType, getDailyContacts, getStudentCompletion, markContentComplete } from '../lib/db';
-import { extractYouTubeId, getYouTubeEmbedUrl, isYouTubeUrl, getYouTubeThumbnail } from '../lib/youtube';
+import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, getYouTubeThumbnail } from '../lib/video';
 import MediaUpload from './MediaUpload';
 import CourseChat from './CourseChat';
 import { logActivity } from '../lib/attendance';
@@ -34,7 +34,7 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
     const initializeDaily = async () => {
       if (user && selectedDaily?.id) {
         await logActivity(user.uid, 'course_started', selectedDaily.id, selectedDaily.title);
-        
+
         // Load completion status
         const completion = await getStudentCompletion(user.uid, selectedDaily.id, 'daily');
         if (completion) {
@@ -44,7 +44,7 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
         }
       }
     };
-    
+
     initializeDaily();
   }, [user, selectedDaily?.id]);
 
@@ -57,9 +57,9 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
 
   const handleMarkComplete = async () => {
     if (!user || !selectedDaily?.id) return;
-    
+
     const newStatus = !isCompleted;
-    
+
     if (newStatus) {
       // Save completion status
       await markContentComplete(user.uid, selectedDaily.id, 'daily', true);
@@ -83,7 +83,7 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
   // Detail View
   if (selectedDaily) {
     const videoId = selectedDaily.videoUrl ? extractYouTubeId(selectedDaily.videoUrl) : null;
-    const hasYouTubeVideo = videoId && isYouTubeUrl(selectedDaily.videoUrl || '');
+    const embedUrl = getEmbedUrl(selectedDaily.videoUrl || '');
 
     return (
       <div className="max-w-container mx-auto min-h-screen bg-[#0B0B0B] flex flex-col">
@@ -96,13 +96,12 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
             <h1 className="text-lg font-semibold text-[#F3F4F6]">{selectedDaily.title}</h1>
             <p className="text-xs text-[#9CA3AF]">{selectedDaily.author} • {selectedDaily.duration}</p>
           </div>
-          <button 
+          <button
             onClick={handleMarkComplete}
-            className={`px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 ${
-              isCompleted 
-                ? 'bg-[#23D18B]/20 text-[#23D18B] border border-[#23D18B]/30' 
+            className={`px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 ${isCompleted
+                ? 'bg-[#23D18B]/20 text-[#23D18B] border border-[#23D18B]/30'
                 : 'bg-white/[0.02] text-[#9CA3AF] hover:bg-white/[0.04] border border-white/[0.06]'
-            }`}
+              }`}
           >
             <CheckCircle size={16} />
             {isCompleted ? 'Concluída' : 'Marcar Concluída'}
@@ -114,10 +113,10 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
           <div className="flex-1 p-6 space-y-6">
             {/* Video Player */}
             <div className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
-              {hasYouTubeVideo ? (
+              {embedUrl ? (
                 <iframe
                   className="w-full h-full"
-                  src={getYouTubeEmbedUrl(videoId!)}
+                  src={embedUrl}
                   title={selectedDaily.title}
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -147,18 +146,18 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
 
             <div className="flex items-center justify-between">
               <div className="flex gap-4">
-                 <button className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] text-sm font-medium transition-colors duration-200">
-                   <Download size={18} />
-                   <span>Material</span>
-                 </button>
-                 <button className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] text-sm font-medium transition-colors duration-200">
-                   <Bookmark size={18} />
-                   <span>Salvar</span>
-                 </button>
+                <button className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] text-sm font-medium transition-colors duration-200">
+                  <Download size={18} />
+                  <span>Material</span>
+                </button>
+                <button className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] text-sm font-medium transition-colors duration-200">
+                  <Bookmark size={18} />
+                  <span>Salvar</span>
+                </button>
               </div>
               <button className="flex items-center gap-2 text-stone-400 hover:text-white text-sm font-medium transition-colors">
-                 <Share2 size={18} />
-                 <span>Compartilhar</span>
+                <Share2 size={18} />
+                <span>Compartilhar</span>
               </button>
             </div>
 
@@ -173,19 +172,19 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
           {/* Sidebar Context (Tabs) */}
           <div className="w-full lg:w-96 border-l border-white/[0.06] bg-[#111111] flex flex-col">
             <div className="flex border-b border-white/[0.06] overflow-x-auto">
-              <button 
+              <button
                 onClick={() => setActiveTab('content')}
                 className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'content' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
               >
                 Content
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('media')}
                 className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'media' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
               >
                 Media
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('chat')}
                 className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'chat' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
               >
@@ -271,61 +270,61 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDailyContacts.map((daily) => {
             const thumbnailUrl = daily.videoUrl ? getYouTubeThumbnail(daily.videoUrl) : null;
-            
+
             return (
-            <div
-              key={daily.id}
-              onClick={() => {
-                if (onSelectDaily) onSelectDaily(daily);
-              }}
-              className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
-            >
-              {/* Thumbnail */}
-              <div className={`h-40 w-full ${thumbnailUrl ? 'bg-black' : `bg-gradient-to-br ${daily.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
-                {thumbnailUrl ? (
-                  <>
-                    <img 
-                      src={thumbnailUrl} 
-                      alt={daily.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
-                  </>
-                ) : (
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                )}
-                <div className="absolute w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20 z-10">
-                  {daily.type === 'video' && <PlayCircle size={24} fill="white" className="text-white opacity-80" />}
-                  {daily.type === 'pdf' && <FileText size={24} />}
-                  {daily.type === 'audio' && <Mic size={24} />}
-                </div>
+              <div
+                key={daily.id}
+                onClick={() => {
+                  if (onSelectDaily) onSelectDaily(daily);
+                }}
+                className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
+              >
+                {/* Thumbnail */}
+                <div className={`h-40 w-full ${thumbnailUrl ? 'bg-black' : `bg-gradient-to-br ${daily.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
+                  {thumbnailUrl ? (
+                    <>
+                      <img
+                        src={thumbnailUrl}
+                        alt={daily.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                  )}
+                  <div className="absolute w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20 z-10">
+                    {daily.type === 'video' && <PlayCircle size={24} fill="white" className="text-white opacity-80" />}
+                    {daily.type === 'pdf' && <FileText size={24} />}
+                    {daily.type === 'audio' && <Mic size={24} />}
+                  </div>
 
-                {/* Progress Bar overlay */}
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-black/30 z-10">
-                  <div className="h-full bg-[#FF6A00]" style={{ width: `${daily.viewed ? 100 : 0}%` }}></div>
-                </div>
-              </div>
-
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs font-semibold text-[#FF6A00] uppercase tracking-wider">{daily.type}</span>
-                  <div className="flex items-center gap-1 text-[#9CA3AF] text-xs">
-                    <Clock size={12} />
-                    <span>{daily.duration}</span>
+                  {/* Progress Bar overlay */}
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-black/30 z-10">
+                    <div className="h-full bg-[#FF6A00]" style={{ width: `${daily.viewed ? 100 : 0}%` }}></div>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-[#F3F4F6] mb-1 group-hover:text-[#FF6A00] transition-colors duration-200">{daily.title}</h3>
-                <p className="text-sm text-[#9CA3AF] mb-4">{daily.author}</p>
+                <div className="p-5">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-semibold text-[#FF6A00] uppercase tracking-wider">{daily.type}</span>
+                    <div className="flex items-center gap-1 text-[#9CA3AF] text-xs">
+                      <Clock size={12} />
+                      <span>{daily.duration}</span>
+                    </div>
+                  </div>
 
-                <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200">
-                  {daily.viewed ? 'Rever' : 'Assistir'}
-                </button>
+                  <h3 className="text-lg font-bold text-[#F3F4F6] mb-1 group-hover:text-[#FF6A00] transition-colors duration-200">{daily.title}</h3>
+                  <p className="text-sm text-[#9CA3AF] mb-4">{daily.author}</p>
+
+                  <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200">
+                    {daily.viewed ? 'Rever' : 'Assistir'}
+                  </button>
+                </div>
               </div>
-            </div>
             );
           })}
         </div>
