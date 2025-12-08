@@ -217,7 +217,7 @@ const App: React.FC = () => {
         user={user}
       />
 
-      <main className="w-full min-h-screen relative z-10 pb-20 md:pb-0 md:pl-64 transition-all duration-300">
+      <main className="w-full min-h-screen relative z-10 pb-20 md:pb-0 md:pl-64 transition-all duration-300 pt-20">
         {/* Top Header with Avatar - Mobile and Desktop */}
         <div className="absolute top-0 left-0 w-full z-40 px-4 md:px-8 py-4 pointer-events-none">
           <div className="max-w-7xl mx-auto flex items-center justify-end pointer-events-auto">
