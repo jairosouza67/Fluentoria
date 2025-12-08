@@ -23,9 +23,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
 
   const loadProgress = async () => {
     if (!user) return;
-    
+
     let progress = await getStudentProgress(user.uid);
-    
+
     if (!progress) {
       // Create initial progress if doesn't exist
       await createStudentProgress(
@@ -35,14 +35,14 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
       );
       progress = await getStudentProgress(user.uid);
     }
-    
+
     setStudentProgress(progress);
   };
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="sticky top-0 z-30 -mx-6 -mt-6 px-6 py-6 md:-mx-8 md:-mt-8 md:px-8 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-white/[0.06] flex items-start justify-between transition-all duration-300">
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             Dashboard <Sparkles className="text-primary" size={24} />
@@ -63,7 +63,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
       {/* Level Progress */}
       {studentProgress && (
         <div className="bg-card border border-border rounded-xl p-6 shadow-card-custom">
-          <LevelProgress 
+          <LevelProgress
             currentXP={studentProgress.currentXP}
             currentLevel={studentProgress.currentLevel}
             showDetails={true}
@@ -129,9 +129,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
       {user && (
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-6">Frequência e Atividades</h2>
-          <AttendanceTracker 
-            studentId={user.uid} 
-            studentName={user.displayName || user.email || 'Estudante'} 
+          <AttendanceTracker
+            studentId={user.uid}
+            studentName={user.displayName || user.email || 'Estudante'}
           />
         </div>
       )}

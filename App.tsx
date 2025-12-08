@@ -196,10 +196,13 @@ const App: React.FC = () => {
       {/* Background Overlay */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0B0B0B]/80 via-[#0B0B0B]/60 to-[#0B0B0B]/90 z-10" />
-        <img
-          src="/app-bg.png"
-          alt="Background"
-          className="w-full h-full object-cover opacity-40 mix-blend-overlay"
+        <div
+          className="absolute inset-0 opacity-40 mix-blend-overlay"
+          style={{
+            backgroundImage: 'url(/app-bg.png)',
+            backgroundRepeat: 'repeat',
+            backgroundSize: '30%'
+          }}
         />
       </div>
 
@@ -213,28 +216,9 @@ const App: React.FC = () => {
 
       <main className="w-full min-h-screen relative z-10 pb-20 md:pb-0 md:pl-64 transition-all duration-300">
         {/* Top Header with Avatar - Mobile and Desktop */}
-        <div className="sticky top-0 z-40 bg-[#0B0B0B]/95 backdrop-blur-xl border-b border-white/[0.06] px-4 md:px-8 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-[#F3F4F6]">
-                {currentScreen === 'dashboard' && 'Dashboard'}
-                {currentScreen === 'courses' && 'Cursos'}
-                {currentScreen === 'course-detail' && 'Detalhes do Curso'}
-                {currentScreen === 'daily' && 'Daily Contact'}
-                {currentScreen === 'daily-detail' && 'Daily Contact'}
-                {currentScreen === 'mindful' && 'Mindful Flow'}
-                {currentScreen === 'mindful-detail' && 'Mindful Flow'}
-                {currentScreen === 'music' && 'Músicas'}
-                {currentScreen === 'music-detail' && 'Músicas'}
-                {currentScreen === 'achievements' && 'Conquistas e Ranking'}
-                {currentScreen === 'attendance' && 'Presença'}
-                {currentScreen === 'profile' && 'Perfil'}
-                {currentScreen === 'admin-catalog' && 'Catálogo de Aulas'}
-                {currentScreen === 'admin-students' && 'Alunos'}
-                {currentScreen === 'admin-reports' && 'Dashboard'}
-                {currentScreen === 'admin-settings' && 'Configurações'}
-              </h2>
-            </div>
+        <div className="sticky top-0 z-40 px-4 md:px-8 py-4 pointer-events-none">
+          <div className="max-w-7xl mx-auto flex items-center justify-end pointer-events-auto">
+            {/* Title removed as per request */}
 
             {/* Avatar with Dropdown Menu */}
             <div className="relative" ref={profileMenuRef}>
