@@ -61,7 +61,10 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse }) => 
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => {
-            const thumbnailUrl = course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
+            // Priority: 1. coverImage, 2. YouTube thumbnail, 3. gradient
+            const coverImage = course.coverImage;
+            const thumbnailUrl = !coverImage && course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
+            const displayImage = coverImage || thumbnailUrl;
 
             return (
               <div
@@ -73,11 +76,11 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse }) => 
                 className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
               >
                 {/* Thumbnail */}
-                <div className={`h-40 w-full ${thumbnailUrl ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
-                  {thumbnailUrl ? (
+                <div className={`h-40 w-full ${displayImage ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
+                  {displayImage ? (
                     <>
                       <img
-                        src={thumbnailUrl}
+                        src={displayImage}
                         alt={course.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
