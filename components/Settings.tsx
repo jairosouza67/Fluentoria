@@ -564,15 +564,18 @@ const Settings: React.FC = () => {
                 </div>
 
                 {/* Search */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
-                  <input
-                    type="text"
-                    placeholder="Buscar aluno por nome ou email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                  />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#9CA3AF]">Buscar Aluno</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+                    <input
+                      type="text"
+                      placeholder="Buscar aluno por nome ou email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] pl-15 pr-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
+                    />
+                  </div>
                 </div>
 
                 {/* Students List */}
