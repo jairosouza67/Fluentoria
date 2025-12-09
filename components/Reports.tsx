@@ -67,34 +67,12 @@ const Reports: React.FC = () => {
         value: months[key]
       }));
 
-      // 3. Popular Courses
-      const courseCounts: Record<string, { name: string, count: number }> = {};
-      completions.forEach(c => {
-        if (c.contentType === 'course' && c.contentId) {
-          // If we don't have the title easily, use ID or generic. 
-          // Group by ID
-          const id = c.contentId;
-          if (!courseCounts[id]) {
-            courseCounts[id] = { name: c.courseName || 'Curso', count: 0 };
-          }
-          courseCounts[id].count++;
-
-          // If we get a valid name later in stream, update it (though naive)
-          if (c.contentTitle && c.contentTitle !== 'Conteúdo') {
-            courseCounts[id].name = c.contentTitle;
-          }
-        }
-      });
-
-      const popular = Object.values(courseCounts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5)
-        .map(p => ({ name: p.name, count: p.count }));
+      // Popular courses section removed
 
       setActivityStats({
         totalCompletions: total,
         activityData: chartData,
-        popularCourses: popular
+        popularCourses: []
       });
     });
 
@@ -191,9 +169,9 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Main Charts */}
-      <div className="grid gap-6 lg:grid-cols-7">
+      <div className="grid gap-6">
         {/* Activity Chart */}
-        <div className="lg:col-span-4 bg-card border-border rounded-xl shadow-card-custom p-6">
+        <div className="bg-card border-border rounded-xl shadow-card-custom p-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-foreground">Engajamento Mensal</h2>
             <p className="text-sm text-muted-foreground mt-1">Aulas concluídas nos últimos 6 meses</p>
@@ -239,40 +217,6 @@ const Reports: React.FC = () => {
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Popular Courses */}
-        <div className="lg:col-span-3 bg-card border-border rounded-xl shadow-card-custom p-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-foreground">Cursos Mais Ativos</h2>
-            <p className="text-sm text-muted-foreground mt-1">Top por conclusões</p>
-          </div>
-          <div className="space-y-4">
-            {activityStats.popularCourses.length === 0 ? (
-              <div className="text-muted-foreground text-sm italic py-4 text-center">
-                Ainda sem dados suficientes.
-              </div>
-            ) : (
-              activityStats.popularCourses.map((course, index) => (
-                <div
-                  key={index}
-                  className="p-4 bg-secondary/30 rounded-lg border border-border hover:border-primary/30 transition-colors"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground text-sm mb-1">{course.name}</h3>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Activity className="w-3 h-3" />
-                          {course.count} conclusões
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
           </div>
         </div>
       </div>
