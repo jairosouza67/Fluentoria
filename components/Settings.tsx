@@ -347,9 +347,9 @@ const Settings: React.FC = () => {
         </div>
         <button 
           onClick={handleSaveSettings}
-          className="bg-[#FF6A00] hover:bg-[#E15B00] text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition-all duration-200 shadow-[0_8px_24px_rgba(255,106,0,0.12)]"
+          className="bg-[#FF6A00] hover:bg-[#E15B00] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200"
         >
-          <Save className="w-5 h-5" />
+          <Save className="w-4 h-4" />
           Salvar Todas
         </button>
       </div>
