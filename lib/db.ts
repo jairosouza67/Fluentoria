@@ -715,3 +715,315 @@ export const subscribeToAllCompletions = (limitCount: number, callback: (complet
         console.error("Error subscribing to all completions:", error);
     });
 };
+
+// Export student data to CSV (with Asaas integration data)
+export const exportStudentData = async (): Promise<string> => {
+    try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'student'));
+        const querySnapshot = await getDocs(q);
+
+        // CSV Headers
+        const headers = ['ID', 'Name', 'Display Name', 'Email', 'Role', 'Created At', 'Last Login', 'Asaas Customer ID', 'Payment Status'];
+        let csvContent = headers.join(',') + '\n';
+
+        // Add student data
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const row = [
+                doc.id,
+                `"${data.name || ''}"`,
+                `"${data.displayName || ''}"`,
+                data.email || '',
+                data.role || 'student',
+                data.createdAt?.toDate().toLocaleDateString() || '',
+                data.lastLogin?.toDate().toLocaleDateString() || '',
+                data.asaasCustomerId || '',
+                data.paymentStatus || 'pending'
+            ];
+            csvContent += row.join(',') + '\n';
+        });
+
+        return csvContent;
+    } catch (error) {
+        console.error("Error exporting student data:", error);
+        throw error;
+    }
+};
+
+// Import student data from CSV
+export const importStudentData = async (csvData: string): Promise<{ success: number; errors: string[] }> => {
+    const results = { success: 0, errors: [] as string[] };
+
+    try {
+        // Parse CSV
+        const lines = csvData.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+            throw new Error('CSV file is empty or invalid');
+        }
+
+        // Skip header line
+        const dataLines = lines.slice(1);
+
+        for (let i = 0; i < dataLines.length; i++) {
+            try {
+                const line = dataLines[i];
+                const values = line.match(/([^,"]+|"[^"]*")+/g) || [];
+
+                if (values.length < 3) {
+                    results.errors.push(`Line ${i + 2}: Invalid format`);
+                    continue;
+                }
+
+                // Parse values
+                const [id, name, displayName, email, role, createdAt, lastLogin, asaasCustomerId, paymentStatus] = values.map(v => v.replace(/^"|"$/g, '').trim());
+
+                if (!email || !email.includes('@')) {
+                    results.errors.push(`Line ${i + 2}: Invalid email`);
+                    continue;
+                }
+
+                // Check if user already exists
+                const existingUser = query(collection(db, 'users'), where('email', '==', email));
+                const existingSnapshot = await getDocs(existingUser);
+
+                const userData: any = {
+                    name: name || displayName || 'Student',
+                    displayName: displayName || name || 'Student',
+                    email: email.toLowerCase(),
+                    role: role || 'student',
+                    createdAt: createdAt ? new Date(createdAt) : new Date(),
+                    lastLogin: lastLogin ? new Date(lastLogin) : new Date(),
+                };
+
+                if (asaasCustomerId) {
+                    userData.asaasCustomerId = asaasCustomerId;
+                }
+                if (paymentStatus) {
+                    userData.paymentStatus = paymentStatus;
+                }
+
+                if (!existingSnapshot.empty) {
+                    // Update existing user
+                    const userDoc = existingSnapshot.docs[0];
+                    await updateDoc(doc(db, 'users', userDoc.id), userData);
+                } else {
+                    // Create new user
+                    if (id) {
+                        await setDoc(doc(db, 'users', id), userData);
+                    } else {
+                        await addDoc(collection(db, 'users'), userData);
+                    }
+                }
+
+                results.success++;
+            } catch (lineError: any) {
+                results.errors.push(`Line ${i + 2}: ${lineError.message}`);
+            }
+        }
+
+        return results;
+    } catch (error: any) {
+        console.error("Error importing student data:", error);
+        throw new Error(error.message || 'Failed to import data');
+    }
+};
+
+// Sync student with Asaas
+export const syncStudentWithAsaas = async (studentId: string, studentData: any): Promise<{ success: boolean; customerId?: string; error?: string }> => {
+    try {
+        const ASAAS_API_URL = 'https://api.asaas.com/v3';
+        const ASAAS_ACCESS_TOKEN = (import.meta as any).env?.VITE_ASAAS_ACCESS_TOKEN || '';
+
+        if (!ASAAS_ACCESS_TOKEN) {
+            return { success: false, error: 'Asaas API token not configured' };
+        }
+
+        // Check if student already has Asaas customer ID
+        if (studentData.asaasCustomerId) {
+            return { success: true, customerId: studentData.asaasCustomerId };
+        }
+
+        // Create Asaas customer
+        const customerData = {
+            name: studentData.name || studentData.displayName || 'Student',
+            email: studentData.email,
+            phone: studentData.phone || '11999999999',
+            cpfCnpj: studentData.cpf || '',
+            notificationDisabled: false
+        };
+
+        const response = await fetch(`${ASAAS_API_URL}/customers`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'access_token': ASAAS_ACCESS_TOKEN
+            },
+            body: JSON.stringify(customerData)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.description || 'Failed to create Asaas customer');
+        }
+
+        const customer = await response.json();
+
+        // Update student with Asaas customer ID
+        await updateDoc(doc(db, 'users', studentId), {
+            asaasCustomerId: customer.id,
+            asaasSyncedAt: new Date()
+        });
+
+        return { success: true, customerId: customer.id };
+    } catch (error: any) {
+        console.error("Error syncing with Asaas:", error);
+        return { success: false, error: error.message };
+    }
+};
+
+// Check payment status from Asaas
+export const checkAsaasPaymentStatus = async (customerId: string): Promise<{ authorized: boolean; status: string; error?: string }> => {
+    try {
+        const ASAAS_API_URL = 'https://api.asaas.com/v3';
+        const ASAAS_ACCESS_TOKEN = (import.meta as any).env?.VITE_ASAAS_ACCESS_TOKEN || '';
+
+        if (!ASAAS_ACCESS_TOKEN) {
+            return { authorized: false, status: 'error', error: 'Asaas API token not configured' };
+        }
+
+        // Get customer payments from Asaas
+        const response = await fetch(`${ASAAS_API_URL}/payments?customer=${customerId}&status=CONFIRMED`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'access_token': ASAAS_ACCESS_TOKEN
+            }
+        });
+
+        if (!response.ok) {
+            return { authorized: false, status: 'error', error: 'Failed to fetch payment status' };
+        }
+
+        const data = await response.json();
+        const payments = data.data || [];
+
+        // Check if has active payments
+        const now = new Date();
+        const hasActivePayment = payments.some((payment: any) => {
+            const dueDate = new Date(payment.dueDate);
+            return payment.status === 'CONFIRMED' && dueDate >= now;
+        });
+
+        if (hasActivePayment) {
+            return { authorized: true, status: 'active' };
+        } else if (payments.length > 0) {
+            return { authorized: false, status: 'overdue' };
+        } else {
+            return { authorized: false, status: 'no_payment' };
+        }
+    } catch (error: any) {
+        console.error("Error checking payment status:", error);
+        return { authorized: false, status: 'error', error: error.message };
+    }
+};
+
+// Update student access authorization
+export const updateStudentAccess = async (studentId: string, authorized: boolean, manual: boolean = false): Promise<{ success: boolean; message: string }> => {
+    try {
+        const updates: any = {
+            accessAuthorized: authorized,
+            accessUpdatedAt: new Date()
+        };
+
+        if (manual) {
+            updates.manualAuthorization = true;
+            updates.manualAuthBy = 'admin';
+        } else {
+            updates.manualAuthorization = false;
+        }
+
+        await updateDoc(doc(db, 'users', studentId), updates);
+
+        return { 
+            success: true, 
+            message: authorized ? 'Acesso autorizado com sucesso' : 'Acesso desautorizado com sucesso'
+        };
+    } catch (error: any) {
+        console.error("Error updating student access:", error);
+        return { success: false, message: error.message || 'Erro ao atualizar acesso' };
+    }
+};
+
+// Sync all students with Asaas payment status
+export const syncAllStudentsWithAsaas = async (): Promise<{ success: number; failed: number; errors: string[] }> => {
+    const results = { success: 0, failed: 0, errors: [] as string[] };
+
+    try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'student'));
+        const querySnapshot = await getDocs(q);
+
+        for (const docSnap of querySnapshot.docs) {
+            try {
+                const studentData = docSnap.data();
+                
+                // Skip if manually authorized
+                if (studentData.manualAuthorization) {
+                    continue;
+                }
+
+                // Check if has Asaas customer ID
+                if (!studentData.asaasCustomerId) {
+                    results.errors.push(`${studentData.email}: Sem customer ID do Asaas`);
+                    results.failed++;
+                    continue;
+                }
+
+                // Check payment status
+                const paymentStatus = await checkAsaasPaymentStatus(studentData.asaasCustomerId);
+
+                // Update access based on payment status
+                await updateDoc(doc(db, 'users', docSnap.id), {
+                    accessAuthorized: paymentStatus.authorized,
+                    paymentStatus: paymentStatus.status,
+                    lastAsaasSync: new Date()
+                });
+
+                results.success++;
+            } catch (error: any) {
+                results.errors.push(`${docSnap.id}: ${error.message}`);
+                results.failed++;
+            }
+        }
+
+        return results;
+    } catch (error: any) {
+        console.error("Error syncing all students:", error);
+        throw new Error(error.message || 'Failed to sync students');
+    }
+};
+
+// Get students with access control info
+export const getStudentsWithAccessControl = async (): Promise<any[]> => {
+    try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'student'));
+        const querySnapshot = await getDocs(q);
+
+        const students = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            accessAuthorized: doc.data().accessAuthorized ?? false,
+            manualAuthorization: doc.data().manualAuthorization ?? false,
+            paymentStatus: doc.data().paymentStatus || 'unknown',
+            asaasCustomerId: doc.data().asaasCustomerId || null,
+            lastAsaasSync: doc.data().lastAsaasSync?.toDate() || null
+        }));
+
+        return students;
+    } catch (error) {
+        console.error("Error getting students with access control:", error);
+        return [];
+    }
+};

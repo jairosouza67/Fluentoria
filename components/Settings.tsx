@@ -29,9 +29,11 @@ import {
   ChevronRight,
   AlertCircle,
   X,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Search
 } from 'lucide-react';
-import { getAdminEmails, addAdminByEmail, removeAdmin } from '../lib/db';
+import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas } from '../lib/db';
 import { OrangeToggle } from './ui/toggle';
 
 const Settings: React.FC = () => {
@@ -53,6 +55,17 @@ const Settings: React.FC = () => {
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+
+  // Import/Export states
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Access Control states
+  const [students, setStudents] = useState<any[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [isSyncingAsaas, setIsSyncingAsaas] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // User & Role Management States
   const [studentAutoDelete, setStudentAutoDelete] = useState({ enabled: false, days: 90 });
@@ -93,6 +106,7 @@ const Settings: React.FC = () => {
   // Load admin emails on component mount
   useEffect(() => {
     loadAdminEmails();
+    loadStudentsWithAccess();
   }, []);
 
   const loadAdminEmails = async () => {
@@ -104,6 +118,18 @@ const Settings: React.FC = () => {
       console.error('Error loading admin emails:', error);
     } finally {
       setIsLoadingAdmins(false);
+    }
+  };
+
+  const loadStudentsWithAccess = async () => {
+    setIsLoadingStudents(true);
+    try {
+      const studentsData = await getStudentsWithAccessControl();
+      setStudents(studentsData);
+    } catch (error) {
+      console.error('Error loading students:', error);
+    } finally {
+      setIsLoadingStudents(false);
     }
   };
 
@@ -148,6 +174,132 @@ const Settings: React.FC = () => {
     } catch (error) {
       console.error('Error removing admin:', error);
       alert('Erro ao remover administrador');
+    }
+  };
+
+  const handleExportStudents = async () => {
+    setIsExporting(true);
+    try {
+      const csvData = await exportStudentData();
+      
+      // Create download link
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `students_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert('✅ Dados exportados com sucesso!');
+    } catch (error) {
+      console.error('Error exporting students:', error);
+      alert('❌ Erro ao exportar dados de alunos');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportStudents = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        try {
+          const csvData = e.target?.result as string;
+          const result = await importStudentData(csvData);
+          
+          let message = `✅ Importação concluída!\n\nSucesso: ${result.success} aluno(s)`;
+          
+          if (result.errors.length > 0) {
+            message += '\n\nErros (' + result.errors.length + '):\n' + result.errors.slice(0, 5).join('\n');
+            if (result.errors.length > 5) {
+              message += '\n... e mais ' + (result.errors.length - 5) + ' erro(s)';
+            }
+          }
+          
+          alert(message);
+          await loadStudentsWithAccess(); // Reload students
+        } catch (error: any) {
+          console.error('Error importing students:', error);
+          alert(`❌ Erro ao importar dados: ${error.message}`);
+        } finally {
+          setIsImporting(false);
+          // Reset file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      };
+      
+      reader.readAsText(file);
+    } catch (error) {
+      console.error('Error reading file:', error);
+      alert('❌ Erro ao ler arquivo');
+      setIsImporting(false);
+    }
+  };
+
+  const handleSyncAsaas = async () => {
+    if (!confirm('Deseja sincronizar o status de pagamento de todos os alunos com o Asaas?\n\nEsta operação pode levar alguns minutos.')) {
+      return;
+    }
+
+    setIsSyncingAsaas(true);
+    try {
+      const result = await syncAllStudentsWithAsaas();
+      
+      let message = `✅ Sincronização concluída!\n\nSucesso: ${result.success} aluno(s)`;
+      
+      if (result.failed > 0) {
+        message += `\nFalhas: ${result.failed}`;
+      }
+      
+      if (result.errors.length > 0) {
+        message += '\n\nErros:\n' + result.errors.slice(0, 5).join('\n');
+        if (result.errors.length > 5) {
+          message += `\n... e mais ${result.errors.length - 5} erro(s)`;
+        }
+      }
+      
+      alert(message);
+      await loadStudentsWithAccess(); // Reload students
+    } catch (error: any) {
+      console.error('Error syncing with Asaas:', error);
+      alert(`❌ Erro ao sincronizar com Asaas: ${error.message}`);
+    } finally {
+      setIsSyncingAsaas(false);
+    }
+  };
+
+  const handleToggleAccess = async (studentId: string, currentStatus: boolean, isManual: boolean) => {
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'autorizar' : 'desautorizar';
+    
+    if (!confirm(`Deseja ${action} o acesso deste aluno?${isManual ? ' (Controle Manual)' : ''}`)) {
+      return;
+    }
+
+    try {
+      const result = await updateStudentAccess(studentId, newStatus, true);
+      
+      if (result.success) {
+        alert(`✅ ${result.message}`);
+        await loadStudentsWithAccess(); // Reload students
+      } else {
+        alert(`❌ ${result.message}`);
+      }
+    } catch (error: any) {
+      console.error('Error toggling access:', error);
+      alert('❌ Erro ao atualizar acesso');
     }
   };
 
@@ -327,13 +479,46 @@ const Settings: React.FC = () => {
                 )}
 
                 <div className="flex gap-3">
-                  <button className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Exportar Dados de Alunos
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleImportStudents}
+                    className="hidden"
+                  />
+                  <button 
+                    onClick={handleExportStudents}
+                    disabled={isExporting}
+                    className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Exportando...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Exportar Dados de Alunos
+                      </>
+                    )}
                   </button>
-                  <button className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    Importar Alunos em Massa
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isImporting}
+                    className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Importando...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Importar Alunos em Massa
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -341,33 +526,179 @@ const Settings: React.FC = () => {
 
             {/* Access Control */}
             <SettingSection
-              title="Controle de Acesso & Permissões"
-              description="Defina permissões e políticas de segurança"
+              title="Controle de Acesso & Permissões (Asaas)"
+              description="Gerencie autorizações de acesso baseadas em pagamento"
               icon={Lock}
               expanded={expandedSections.accessControl}
               onToggle={() => toggleSection('accessControl')}
             >
               <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#9CA3AF]">Timeout de Sessão (minutos)</label>
-                  <input
-                    type="number"
-                    value={sessionTimeout}
-                    onChange={(e) => setSessionTimeout(parseInt(e.target.value))}
-                    className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                  />
-                  <p className="text-xs text-[#9CA3AF]">Usuários serão desconectados automaticamente após este período de inatividade</p>
+                {/* Sync Button */}
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#FF6A00]/10 to-transparent rounded-lg border border-[#FF6A00]/20">
+                  <div>
+                    <h4 className="text-[#F3F4F6] font-medium mb-1 flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      Sincronização Automática com Asaas
+                    </h4>
+                    <p className="text-sm text-[#9CA3AF]">
+                      Alunos com pagamento em dia serão autorizados automaticamente
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSyncAsaas}
+                    disabled={isSyncingAsaas}
+                    className="bg-[#FF6A00] hover:bg-[#E15B00] text-white px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSyncingAsaas ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sincronizando...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        Sincronizar Agora
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#9CA3AF]">Whitelist de IPs (Admin)</label>
-                  <textarea
-                    placeholder="Ex: 192.168.1.1, 10.0.0.1"
-                    rows={3}
-                    className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00] resize-none"
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+                  <input
+                    type="text"
+                    placeholder="Buscar aluno por nome ou email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                   />
-                  <p className="text-xs text-[#9CA3AF]">Apenas IPs listados poderão acessar área administrativa</p>
                 </div>
+
+                {/* Students List */}
+                <div className="space-y-3">
+                  {isLoadingStudents ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#FF6A00]" />
+                    </div>
+                  ) : students.filter(s => 
+                    !searchTerm || 
+                    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    s.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                  ).length === 0 ? (
+                    <div className="text-center py-12 text-[#9CA3AF]">
+                      {searchTerm ? 'Nenhum aluno encontrado' : 'Nenhum aluno cadastrado'}
+                    </div>
+                  ) : (
+                    students
+                      .filter(s => 
+                        !searchTerm || 
+                        s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        s.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((student) => {
+                        const getStatusInfo = (status: string) => {
+                          switch (status) {
+                            case 'active':
+                              return { color: 'text-green-500', bg: 'bg-green-500/10', label: 'Ativo' };
+                            case 'overdue':
+                              return { color: 'text-red-500', bg: 'bg-red-500/10', label: 'Atrasado' };
+                            case 'no_payment':
+                              return { color: 'text-yellow-500', bg: 'bg-yellow-500/10', label: 'Sem Pagamento' };
+                            default:
+                              return { color: 'text-[#9CA3AF]', bg: 'bg-white/[0.05]', label: 'Desconhecido' };
+                          }
+                        };
+
+                        const statusInfo = getStatusInfo(student.paymentStatus);
+
+                        return (
+                          <div
+                            key={student.id}
+                            className="bg-[#111111] border border-white/[0.06] rounded-lg p-4 hover:border-white/[0.1] transition-all"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="w-12 h-12 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                  {student.name?.charAt(0).toUpperCase() || 'A'}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="text-[#F3F4F6] font-medium">
+                                      {student.name || student.displayName || 'Sem nome'}
+                                    </h4>
+                                    {student.manualAuthorization && (
+                                      <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                                        Manual
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-[#9CA3AF]">{student.email}</p>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${statusInfo.bg} ${statusInfo.color}`}>
+                                      {statusInfo.label}
+                                    </span>
+                                    {student.asaasCustomerId && (
+                                      <span className="text-xs text-[#9CA3AF]">
+                                        ID: {student.asaasCustomerId.slice(0, 12)}...
+                                      </span>
+                                    )}
+                                    {student.lastAsaasSync && (
+                                      <span className="text-xs text-[#9CA3AF]">
+                                        Últ. Sync: {new Date(student.lastAsaasSync).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-4">
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className="text-xs text-[#9CA3AF]">
+                                    {student.accessAuthorized ? 'Autorizado' : 'Não Autorizado'}
+                                  </span>
+                                  <button
+                                    onClick={() => handleToggleAccess(student.id, student.accessAuthorized, student.manualAuthorization)}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                      student.accessAuthorized
+                                        ? 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20'
+                                        : 'bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20'
+                                    }`}
+                                  >
+                                    {student.accessAuthorized ? 'Desautorizar' : 'Autorizar'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+
+                {/* Stats Summary */}
+                {!isLoadingStudents && students.length > 0 && (
+                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/[0.06]">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-[#F3F4F6]">
+                        {students.filter(s => s.accessAuthorized).length}
+                      </p>
+                      <p className="text-xs text-[#9CA3AF]">Autorizados</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-[#F3F4F6]">
+                        {students.filter(s => s.paymentStatus === 'active').length}
+                      </p>
+                      <p className="text-xs text-[#9CA3AF]">Pagamentos Ativos</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-[#F3F4F6]">
+                        {students.filter(s => s.manualAuthorization).length}
+                      </p>
+                      <p className="text-xs text-[#9CA3AF]">Autorizações Manuais</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </SettingSection>
           </>
@@ -418,65 +749,10 @@ const Settings: React.FC = () => {
                     />
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between p-4 bg-[#111111] rounded-lg border border-white/[0.06]">
-                  <div>
-                    <h4 className="text-[#F3F4F6] font-medium mb-1">Auto-publicação</h4>
-                    <p className="text-sm text-[#9CA3AF]">Publicar cursos automaticamente ao criar</p>
-                  </div>
-                  <OrangeToggle
-                    checked={courseDefaults.autoPublish}
-                    onChange={(e) => setCourseDefaults({...courseDefaults, autoPublish: e.target.checked})}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-[#111111] rounded-lg border border-white/[0.06]">
-                  <div>
-                    <h4 className="text-[#F3F4F6] font-medium mb-1">Certificados Habilitados</h4>
-                    <p className="text-sm text-[#9CA3AF]">Gerar certificados ao concluir cursos</p>
-                  </div>
-                  <OrangeToggle
-                    checked={courseDefaults.certificateEnabled}
-                    onChange={(e) => setCourseDefaults({...courseDefaults, certificateEnabled: e.target.checked})}
-                  />
-                </div>
               </div>
             </SettingSection>
 
-            {/* Content Library */}
-            <SettingSection
-              title="Gerenciamento da Biblioteca de Conteúdo"
-              description="Configure políticas de conteúdo e rotação"
-              icon={Calendar}
-              expanded={expandedSections.contentLibrary}
-              onToggle={() => toggleSection('contentLibrary')}
-            >
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#9CA3AF]">Frequência do Daily Contact</label>
-                  <select 
-                    value={dailyContactFrequency}
-                    onChange={(e) => setDailyContactFrequency(e.target.value)}
-                    className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                  >
-                    <option value="daily">Diário</option>
-                    <option value="weekly">Semanal</option>
-                    <option value="biweekly">Quinzenal</option>
-                  </select>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#9CA3AF]">Expiração de Conteúdo (dias)</label>
-                  <input
-                    type="number"
-                    value={contentExpiration}
-                    onChange={(e) => setContentExpiration(parseInt(e.target.value))}
-                    className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                  />
-                  <p className="text-xs text-[#9CA3AF]">Conteúdos antigos serão arquivados automaticamente</p>
-                </div>
-              </div>
-            </SettingSection>
           </>
         )}
 
@@ -585,55 +861,6 @@ const Settings: React.FC = () => {
                   <Plus className="w-4 h-4" />
                   Adicionar Nova Conquista
                 </button>
-              </div>
-            </SettingSection>
-
-            {/* Streaks & Attendance */}
-            <SettingSection
-              title="Streaks & Presença"
-              description="Configure regras de streaks e presença"
-              icon={Target}
-              expanded={expandedSections.streaks}
-              onToggle={() => toggleSection('streaks')}
-            >
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#9CA3AF]">Período de Graça (horas)</label>
-                    <input
-                      type="number"
-                      value={streakRules.gracePeriod}
-                      onChange={(e) => setStreakRules({...streakRules, gracePeriod: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                    />
-                    <p className="text-xs text-[#9CA3AF]">Tempo extra para manter o streak</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#9CA3AF]">Multiplicador de Bônus</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={streakRules.bonusMultiplier}
-                      onChange={(e) => setStreakRules({...streakRules, bonusMultiplier: parseFloat(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                    />
-                    <p className="text-xs text-[#9CA3AF]">XP extra para streaks longos</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[#9CA3AF]">Fuso Horário</label>
-                    <select 
-                      value={streakRules.timezone}
-                      onChange={(e) => setStreakRules({...streakRules, timezone: e.target.value})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                    >
-                      <option value="America/Sao_Paulo">São Paulo (BRT)</option>
-                      <option value="America/New_York">New York (EST)</option>
-                      <option value="Europe/London">London (GMT)</option>
-                    </select>
-                  </div>
-                </div>
               </div>
             </SettingSection>
           </>
