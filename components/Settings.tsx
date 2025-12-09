@@ -27,8 +27,12 @@ import {
   Zap,
   ChevronDown,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  X,
+  Loader2
 } from 'lucide-react';
+import { getAdminEmails, addAdminByEmail, removeAdmin } from '../lib/db';
+import { OrangeToggle } from './ui/toggle';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -43,12 +47,15 @@ const Settings: React.FC = () => {
     streaks: false,
   });
 
+  // Admin management states
+  const [adminEmails, setAdminEmails] = useState<string[]>([]);
+  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+
   // User & Role Management States
-  const [adminUsers, setAdminUsers] = useState([
-    { id: '1', name: 'Jairo Souza', email: 'jairosouza67@gmail.com', role: 'Super Admin', active: true },
-  ]);
   const [studentAutoDelete, setStudentAutoDelete] = useState({ enabled: false, days: 90 });
-  const [autoArchiveCourses, setAutoArchiveCourses] = useState(true);
   const [sessionTimeout, setSessionTimeout] = useState(30);
 
   // Course Management States
@@ -83,6 +90,67 @@ const Settings: React.FC = () => {
     bonusMultiplier: 1.5,
   });
 
+  // Load admin emails on component mount
+  useEffect(() => {
+    loadAdminEmails();
+  }, []);
+
+  const loadAdminEmails = async () => {
+    setIsLoadingAdmins(true);
+    try {
+      const emails = await getAdminEmails();
+      setAdminEmails(emails);
+    } catch (error) {
+      console.error('Error loading admin emails:', error);
+    } finally {
+      setIsLoadingAdmins(false);
+    }
+  };
+
+  const handleAddAdmin = async () => {
+    if (!newAdminEmail.trim()) {
+      alert('Por favor, insira um email válido');
+      return;
+    }
+
+    setIsAddingAdmin(true);
+    try {
+      const result = await addAdminByEmail(newAdminEmail);
+      if (result.success) {
+        alert(result.message);
+        setNewAdminEmail('');
+        setShowAddAdminModal(false);
+        await loadAdminEmails(); // Reload the list
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Error adding admin:', error);
+      alert('Erro ao adicionar administrador');
+    } finally {
+      setIsAddingAdmin(false);
+    }
+  };
+
+  const handleRemoveAdmin = async (email: string) => {
+    if (!confirm(`Tem certeza que deseja remover ${email} dos administradores?`)) {
+      return;
+    }
+
+    try {
+      const result = await removeAdmin(email);
+      if (result.success) {
+        alert(result.message);
+        await loadAdminEmails(); // Reload the list
+      } else {
+        alert(result.message);
+      }
+    } catch (error) {
+      console.error('Error removing admin:', error);
+      alert('Erro ao remover administrador');
+    }
+  };
+
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
@@ -106,6 +174,19 @@ const Settings: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Add Admin Modal */}
+      <AddAdminModal
+        isOpen={showAddAdminModal}
+        onClose={() => {
+          setShowAddAdminModal(false);
+          setNewAdminEmail('');
+        }}
+        onAdd={handleAddAdmin}
+        email={newAdminEmail}
+        setEmail={setNewAdminEmail}
+        isLoading={isAddingAdmin}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -154,40 +235,61 @@ const Settings: React.FC = () => {
             >
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="text-sm text-[#9CA3AF]">Total de Admins: {adminUsers.length}</p>
-                  <button className="bg-[#FF6A00]/10 border border-[#FF6A00]/20 text-[#FF6A00] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#FF6A00]/20 transition-all">
+                  <p className="text-sm text-[#9CA3AF]">
+                    {isLoadingAdmins ? 'Carregando...' : `Total de Admins: ${adminEmails.length}`}
+                  </p>
+                  <button 
+                    onClick={() => setShowAddAdminModal(true)}
+                    className="bg-[#FF6A00]/10 border border-[#FF6A00]/20 text-[#FF6A00] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#FF6A00]/20 transition-all"
+                  >
                     <Plus className="w-4 h-4" />
                     Adicionar Admin
                   </button>
                 </div>
                 
                 <div className="space-y-3">
-                  {adminUsers.map((admin) => (
-                    <div key={admin.id} className="bg-[#111111] border border-white/[0.06] rounded-lg p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold">
-                          {admin.name.charAt(0)}
-                        </div>
-                        <div>
-                          <h4 className="text-[#F3F4F6] font-medium">{admin.name}</h4>
-                          <p className="text-xs text-[#9CA3AF]">{admin.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <select 
-                          className="bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:border-[#FF6A00]"
-                          value={admin.role}
-                        >
-                          <option value="Super Admin">Super Admin</option>
-                          <option value="Content Admin">Content Admin</option>
-                          <option value="Analytics Admin">Analytics Admin</option>
-                        </select>
-                        <button className="text-[#9CA3AF] hover:text-[#FF6A00] transition-colors">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      </div>
+                  {isLoadingAdmins ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-[#FF6A00]" />
                     </div>
-                  ))}
+                  ) : adminEmails.length === 0 ? (
+                    <p className="text-center text-[#9CA3AF] py-8">Nenhum administrador cadastrado</p>
+                  ) : (
+                    adminEmails.map((email, index) => {
+                      const isPrimary = email === 'jairosouza67@gmail.com';
+                      return (
+                        <div key={index} className="bg-[#111111] border border-white/[0.06] rounded-lg p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold">
+                              {email.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h4 className="text-[#F3F4F6] font-medium flex items-center gap-2">
+                                {email}
+                                {isPrimary && (
+                                  <span className="text-[10px] bg-[#FF6A00]/20 text-[#FF6A00] px-2 py-0.5 rounded-full">
+                                    Principal
+                                  </span>
+                                )}
+                              </h4>
+                              <p className="text-xs text-[#9CA3AF]">Administrador</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            {!isPrimary && (
+                              <button 
+                                onClick={() => handleRemoveAdmin(email)}
+                                className="text-[#9CA3AF] hover:text-red-500 transition-colors"
+                                title="Remover administrador"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </SettingSection>
@@ -206,15 +308,10 @@ const Settings: React.FC = () => {
                     <h4 className="text-[#F3F4F6] font-medium mb-1">Auto-excluir contas inativas</h4>
                     <p className="text-sm text-[#9CA3AF]">Excluir automaticamente contas após período de inatividade</p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={studentAutoDelete.enabled}
-                      onChange={(e) => setStudentAutoDelete({...studentAutoDelete, enabled: e.target.checked})}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-[#1C1917] rounded-full peer peer-checked:bg-[#FF6A00] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                  </label>
+                  <OrangeToggle
+                    checked={studentAutoDelete.enabled}
+                    onChange={(e) => setStudentAutoDelete({...studentAutoDelete, enabled: e.target.checked})}
+                  />
                 </div>
 
                 {studentAutoDelete.enabled && (
@@ -228,22 +325,6 @@ const Settings: React.FC = () => {
                     />
                   </div>
                 )}
-
-                <div className="flex items-center justify-between p-4 bg-[#111111] rounded-lg border border-white/[0.06]">
-                  <div>
-                    <h4 className="text-[#F3F4F6] font-medium mb-1">Auto-arquivar cursos concluídos</h4>
-                    <p className="text-sm text-[#9CA3AF]">Arquivar cursos automaticamente após conclusão</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={autoArchiveCourses}
-                      onChange={(e) => setAutoArchiveCourses(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-[#1C1917] rounded-full peer peer-checked:bg-[#FF6A00] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                  </label>
-                </div>
 
                 <div className="flex gap-3">
                   <button className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2">
@@ -343,15 +424,10 @@ const Settings: React.FC = () => {
                     <h4 className="text-[#F3F4F6] font-medium mb-1">Auto-publicação</h4>
                     <p className="text-sm text-[#9CA3AF]">Publicar cursos automaticamente ao criar</p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={courseDefaults.autoPublish}
-                      onChange={(e) => setCourseDefaults({...courseDefaults, autoPublish: e.target.checked})}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-[#1C1917] rounded-full peer peer-checked:bg-[#FF6A00] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                  </label>
+                  <OrangeToggle
+                    checked={courseDefaults.autoPublish}
+                    onChange={(e) => setCourseDefaults({...courseDefaults, autoPublish: e.target.checked})}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-[#111111] rounded-lg border border-white/[0.06]">
@@ -359,15 +435,10 @@ const Settings: React.FC = () => {
                     <h4 className="text-[#F3F4F6] font-medium mb-1">Certificados Habilitados</h4>
                     <p className="text-sm text-[#9CA3AF]">Gerar certificados ao concluir cursos</p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={courseDefaults.certificateEnabled}
-                      onChange={(e) => setCourseDefaults({...courseDefaults, certificateEnabled: e.target.checked})}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-[#1C1917] rounded-full peer peer-checked:bg-[#FF6A00] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                  </label>
+                  <OrangeToggle
+                    checked={courseDefaults.certificateEnabled}
+                    onChange={(e) => setCourseDefaults({...courseDefaults, certificateEnabled: e.target.checked})}
+                  />
                 </div>
               </div>
             </SettingSection>
@@ -504,14 +575,9 @@ const Settings: React.FC = () => {
                           <p className="text-sm text-[#9CA3AF]">{achievement.condition} • {achievement.xp} XP</p>
                         </div>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={achievement.enabled}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-[#1C1917] rounded-full peer peer-checked:bg-[#FF6A00] peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                      </label>
+                      <OrangeToggle
+                        checked={achievement.enabled}
+                      />
                     </div>
                   </div>
                 ))}
@@ -575,6 +641,94 @@ const Settings: React.FC = () => {
       </div>
 
 
+    </div>
+  );
+};
+
+// Add Admin Modal Component
+interface AddAdminModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: () => void;
+  email: string;
+  setEmail: (email: string) => void;
+  isLoading: boolean;
+}
+
+const AddAdminModal: React.FC<AddAdminModalProps> = ({ isOpen, onClose, onAdd, email, setEmail, isLoading }) => {
+  if (!isOpen) return null;
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLoading) {
+      onAdd();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-[#111111] border border-white/[0.06] rounded-xl w-full max-w-md shadow-elevated">
+        <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
+          <div>
+            <h2 className="text-xl font-bold text-[#F3F4F6]">Adicionar Administrador</h2>
+            <p className="text-sm text-[#9CA3AF] mt-1">Insira o email do novo administrador</p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="text-[#9CA3AF] hover:text-[#F3F4F6] transition-colors"
+            disabled={isLoading}
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#9CA3AF]">
+              Email do Administrador
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="exemplo@email.com"
+              className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg focus:outline-none focus:border-[#FF6A00] transition-colors"
+              disabled={isLoading}
+              autoFocus
+            />
+            <p className="text-xs text-[#9CA3AF]">
+              O usuário receberá permissões de administrador ao fazer login
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all font-medium"
+              disabled={isLoading}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={onAdd}
+              disabled={isLoading || !email.trim()}
+              className="flex-1 bg-[#FF6A00] hover:bg-[#E15B00] text-white px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Adicionando...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5" />
+                  Adicionar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

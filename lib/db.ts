@@ -466,7 +466,11 @@ export const getUserRole = async (uid: string): Promise<'admin' | 'student'> => 
 // Force update user role (for admin setup)
 export const forceUpdateUserRole = async (uid: string, email: string): Promise<void> => {
     try {
-        const role = email === 'jairosouza67@gmail.com' ? 'admin' : 'student';
+        // Check if email is in admin list
+        const adminEmails = await getAdminEmails();
+        const isAdmin = adminEmails.includes(email.toLowerCase());
+        const role = isAdmin ? 'admin' : 'student';
+        
         const userRef = doc(db, 'users', uid);
         const userSnap = await getDoc(userRef);
 
@@ -494,6 +498,117 @@ export const forceUpdateUserRole = async (uid: string, email: string): Promise<v
         }
     } catch (error) {
         console.error("Error force updating user role:", error);
+    }
+};
+
+// Add a new admin by email
+export const addAdminByEmail = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+        const normalizedEmail = email.toLowerCase().trim();
+        
+        // Check if email is valid
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(normalizedEmail)) {
+            return { success: false, message: 'Email inválido' };
+        }
+
+        // Check if user already exists
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', normalizedEmail));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // User exists, update their role to admin
+            const userDoc = querySnapshot.docs[0];
+            await updateDoc(doc(db, 'users', userDoc.id), {
+                role: 'admin',
+                updatedAt: new Date()
+            });
+            return { success: true, message: 'Usuário promovido a administrador com sucesso!' };
+        } else {
+            // User doesn't exist yet, create a placeholder admin entry
+            // They will be fully created when they first log in
+            await addDoc(collection(db, 'adminEmails'), {
+                email: normalizedEmail,
+                addedAt: new Date(),
+                status: 'pending'
+            });
+            return { success: true, message: 'Email adicionado. O usuário será admin ao fazer login.' };
+        }
+    } catch (error) {
+        console.error("Error adding admin:", error);
+        return { success: false, message: 'Erro ao adicionar administrador' };
+    }
+};
+
+// Get all admin emails (both existing users and pending)
+export const getAdminEmails = async (): Promise<string[]> => {
+    try {
+        const adminEmails: string[] = ['jairosouza67@gmail.com']; // Always include primary admin
+        
+        // Get existing admin users
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'admin'));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+            const email = doc.data().email;
+            if (email && !adminEmails.includes(email)) {
+                adminEmails.push(email);
+            }
+        });
+
+        // Get pending admin emails
+        const pendingRef = collection(db, 'adminEmails');
+        const pendingSnapshot = await getDocs(pendingRef);
+        pendingSnapshot.forEach((doc) => {
+            const email = doc.data().email;
+            if (email && !adminEmails.includes(email)) {
+                adminEmails.push(email);
+            }
+        });
+
+        return adminEmails;
+    } catch (error) {
+        console.error("Error getting admin emails:", error);
+        return ['jairosouza67@gmail.com'];
+    }
+};
+
+// Remove admin privileges
+export const removeAdmin = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+        const normalizedEmail = email.toLowerCase().trim();
+        
+        // Don't allow removing primary admin
+        if (normalizedEmail === 'jairosouza67@gmail.com') {
+            return { success: false, message: 'Não é possível remover o administrador principal' };
+        }
+
+        // Remove from users collection
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', normalizedEmail));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            await updateDoc(doc(db, 'users', userDoc.id), {
+                role: 'student',
+                updatedAt: new Date()
+            });
+        }
+
+        // Remove from pending admin emails
+        const pendingRef = collection(db, 'adminEmails');
+        const pendingQuery = query(pendingRef, where('email', '==', normalizedEmail));
+        const pendingSnapshot = await getDocs(pendingQuery);
+        
+        const deletePromises = pendingSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+
+        return { success: true, message: 'Administrador removido com sucesso' };
+    } catch (error) {
+        console.error("Error removing admin:", error);
+        return { success: false, message: 'Erro ao remover administrador' };
     }
 };
 

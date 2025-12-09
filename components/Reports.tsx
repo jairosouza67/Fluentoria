@@ -20,7 +20,6 @@ import { subscribeToStudents, subscribeToCourses, subscribeToAllCompletions, sub
 
 const Reports: React.FC = () => {
   const [totalStudents, setTotalStudents] = useState(0);
-  const [totalCourses, setTotalCourses] = useState(0);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [activityStats, setActivityStats] = useState<{
     totalCompletions: number;
@@ -31,9 +30,6 @@ const Reports: React.FC = () => {
   useEffect(() => {
     // Subscribe to real-time data
     const unsubscribeStudents = subscribeToStudents(setTotalStudents);
-
-    // We only need the count for courses here
-    const unsubscribeCourses = subscribeToCourses((count) => setTotalCourses(count));
 
     // Recent activity list (just last 5)
     const unsubscribeActivityList = subscribeToRecentCompletions(5, setRecentActivity);
@@ -78,7 +74,6 @@ const Reports: React.FC = () => {
 
     return () => {
       unsubscribeStudents();
-      unsubscribeCourses();
       unsubscribeActivityList();
       unsubscribeAggregates();
     };
@@ -102,34 +97,66 @@ const Reports: React.FC = () => {
     return Math.floor(seconds) + " s";
   };
 
+  // Calculate additional metrics for better insights
+  const calculateMetrics = () => {
+    const now = new Date();
+
+    // Get completions from activityData (last 6 months)
+    const recentCompletions = activityStats.activityData.reduce((sum, month) => sum + (month.value || 0), 0);
+    
+    // Average per month (last 6 months)
+    const avgPerMonth = activityStats.activityData.length > 0 
+      ? Math.round(recentCompletions / activityStats.activityData.length)
+      : 0;
+    
+    // Average per student
+    const avgPerStudent = totalStudents > 0 
+      ? (activityStats.totalCompletions / totalStudents).toFixed(1)
+      : '0';
+
+    // Engagement rate: count unique students who completed at least one lesson
+    // Using recentActivity as proxy for active students (students with recent completions)
+    const uniqueActiveStudents = new Set(
+      recentActivity.map(activity => activity.studentId)
+    ).size;
+    
+    const engagementRate = totalStudents > 0 
+      ? Math.round((uniqueActiveStudents / totalStudents) * 100)
+      : 0;
+
+    return { avgPerMonth, avgPerStudent, engagementRate, uniqueActiveStudents };
+  };
+
+  const metrics = calculateMetrics();
+
   const stats = [
     {
-      title: 'Aulas Concluídas',
+      title: 'Conclusões (Total)',
       value: activityStats.totalCompletions.toString(),
-      change: 'Total registrado',
+      change: `Média: ${metrics.avgPerStudent} por aluno`,
       icon: Activity,
       trend: 'up'
     },
     {
-      title: 'Alunos Ativos',
-      value: totalStudents.toString(),
-      change: 'Base total',
-      icon: Users,
-      trend: 'up'
-    },
-    {
-      title: 'Cursos Disponíveis',
-      value: totalCourses.toString(),
-      change: 'Catálogo',
+      title: 'Conclusões/Mês',
+      value: metrics.avgPerMonth.toString(),
+      change: 'Média últimos 6 meses',
       icon: TrendingUp,
       trend: 'up'
     },
     {
-      title: 'Tempo de Visualização',
-      value: '---',
-      change: 'Em breve',
-      icon: Clock,
-      trend: 'neutral'
+      title: 'Alunos Cadastrados',
+      value: totalStudents.toString(),
+      change: 'Base total da plataforma',
+      icon: Users,
+      trend: 'up'
+    },
+    {
+      title: 'Taxa de Engajamento',
+      value: `${metrics.engagementRate}%`,
+      change: `${metrics.uniqueActiveStudents} alunos ativos`,
+      icon: PlayCircle,
+      trend: metrics.engagementRate > 50 ? 'up' : 'neutral'
     }
   ];
 
