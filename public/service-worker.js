@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Fluentoria Service Worker - Offline Support
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE = `fluentoria-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `fluentoria-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
@@ -12,6 +12,8 @@ const STATIC_ASSETS = [
   '/index.html',
   '/offline.html',
   '/logo.png',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
   '/app-bg.png',
   '/instructor-photo.png',
   '/overlay-chef.png',
