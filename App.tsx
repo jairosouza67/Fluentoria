@@ -93,6 +93,33 @@ const App: React.FC = () => {
     };
   }, [showProfileMenu]);
 
+  // Handle PWA shortcuts
+  useEffect(() => {
+    if (!user) return; // Only handle shortcuts for logged-in users
+
+    const params = new URLSearchParams(window.location.search);
+    const shortcut = params.get('shortcut');
+
+    if (shortcut) {
+      console.log('[PWA Shortcut] Detected shortcut:', shortcut);
+      
+      // Map shortcut to screen
+      const shortcutMap: Record<string, Screen> = {
+        'dashboard': 'dashboard',
+        'courses': 'courses',
+        'daily': 'daily',
+        'achievements': 'achievements'
+      };
+
+      const targetScreen = shortcutMap[shortcut];
+      if (targetScreen) {
+        setCurrentScreen(targetScreen);
+        // Clean URL without reloading
+        window.history.replaceState({}, '', '/');
+      }
+    }
+  }, [user]);
+
   // Navegação simples baseada em estado
   const navigateTo = (screen: Screen) => {
     setCurrentScreen(screen);

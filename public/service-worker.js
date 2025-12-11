@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Fluentoria Service Worker - Offline Support
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `fluentoria-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `fluentoria-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';

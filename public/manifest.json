@@ -61,6 +61,63 @@
       "label": "Full Desktop Experience"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "Acesso rápido ao painel principal",
+      "url": "/?shortcut=dashboard",
+      "icons": [
+        {
+          "src": "/shortcuts/dashboard.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Cursos",
+      "short_name": "Courses",
+      "description": "Ver todos os módulos de aprendizado",
+      "url": "/?shortcut=courses",
+      "icons": [
+        {
+          "src": "/shortcuts/courses.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Daily Contact",
+      "short_name": "Daily",
+      "description": "Atividade diária de aprendizado",
+      "url": "/?shortcut=daily",
+      "icons": [
+        {
+          "src": "/shortcuts/daily.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Conquistas",
+      "short_name": "Achievements",
+      "description": "Ver progresso e conquistas",
+      "url": "/?shortcut=achievements",
+      "icons": [
+        {
+          "src": "/shortcuts/achievements.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#12100e",
