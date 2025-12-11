@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fluentoria - Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #12100e;
+      color: #e8e6e3;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .offline-container {
+      text-align: center;
+      max-width: 500px;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .offline-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 16px;
+      color: #fbbf24;
+    }
+
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+
+    .retry-button {
+      background: #fbbf24;
+      color: #12100e;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .retry-button:hover {
+      background: #f59e0b;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+    }
+
+    .retry-button:active {
+      transform: translateY(0);
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 20px;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 480px) {
+      .offline-container {
+        padding: 30px 20px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .offline-icon {
+        font-size: 60px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon">📡</div>
+    <h1>Você está offline</h1>
+    <p>
+      Parece que você perdeu sua conexão com a internet. 
+      Verifique sua conexão e tente novamente.
+    </p>
+    <p style="font-size: 14px; opacity: 0.7;">
+      Algumas funcionalidades podem estar limitadas até que você se reconecte.
+    </p>
+    <button class="retry-button" onclick="window.location.reload()">
+      Tentar Novamente
+    </button>
+  </div>
+
+  <script>
+    // Auto-retry when connection is restored
+    window.addEventListener('online', () => {
+      console.log('Connection restored. Reloading...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    });
+
+    // Check connection status
+    if (navigator.onLine) {
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>
