@@ -61,6 +61,10 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                 setContentMode('single');
                 setContentType('video');
             }
+        } else {
+            // New content: start with module/gallery type by default
+            setContentType('module');
+            setContentMode('modules');
         }
     }, [course]);
 
@@ -398,79 +402,42 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-[#111111] border border-white/[0.06] rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-elevated">
                 <div className="flex items-center justify-between p-6 border-b border-white/[0.06] sticky top-0 bg-[#111111] z-10">
-                    <h2 className="text-xl font-bold text-[#F3F4F6]">
-                        {course ? 'Editar Conteúdo' : contentType ? (contentType === 'module' ? 'Novo Curso' : 'Novo Vídeo') : 'Criar Novo Conteúdo'}
-                    </h2>
-                    <button onClick={onCancel} className="text-[#9CA3AF] hover:text-[#F3F4F6] transition-colors duration-200">
-                        <X size={24} />
-                    </button>
-                </div>
-
-                {/* Content Type Selection Screen */}
-                {!contentType && !course && (
-                    <div className="p-8">
-                        <div className="text-center mb-8">
-                            <h3 className="text-2xl font-bold text-[#F3F4F6] mb-2">Escolha o tipo de conteúdo</h3>
-                            <p className="text-[#9CA3AF]">Selecione como deseja estruturar seu conteúdo</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-                            {/* Module Option */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setContentType('module');
-                                    setContentMode('modules');
-                                }}
-                                className="group relative bg-gradient-to-br from-[#FF6A00]/20 to-transparent border-2 border-[#FF6A00]/30 hover:border-[#FF6A00] rounded-2xl p-8 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(255,106,0,0.3)]"
-                            >
-                                <div className="flex flex-col items-center text-center space-y-4">
-                                    <div className="w-20 h-20 rounded-full bg-[#FF6A00]/20 flex items-center justify-center group-hover:bg-[#FF6A00]/30 transition-colors">
-                                        <Layers size={40} className="text-[#FF6A00]" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-xl font-bold text-[#F3F4F6] mb-2">Criar Curso</h4>
-                                        <p className="text-sm text-[#9CA3AF]">Organize conteúdo em galerias e módulos com múltiplas aulas</p>
-                                    </div>
-                                    <div className="text-xs text-[#9CA3AF] space-y-1">
-                                        <p>✓ Estrutura organizada</p>
-                                        <p>✓ Galerias {'>'} Módulos {'>'} Aulas</p>
-                                        <p>✓ Ideal para cursos completos</p>
-                                    </div>
-                                </div>
-                            </button>
-
-                            {/* Single Video Option */}
+                    <div className="flex-1">
+                        <h2 className="text-xl font-bold text-[#F3F4F6]">
+                            {course ? 'Editar Conteúdo' : contentType === 'video' ? 'Novo Vídeo Solto' : 'Novo Curso'}
+                        </h2>
+                        {!course && contentType === 'module' && (
                             <button
                                 type="button"
                                 onClick={() => {
                                     setContentType('video');
                                     setContentMode('single');
                                 }}
-                                className="group relative bg-gradient-to-br from-blue-500/20 to-transparent border-2 border-blue-500/30 hover:border-blue-500 rounded-2xl p-8 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)]"
+                                className="text-xs text-[#9CA3AF] hover:text-[#FF6A00] mt-1 transition-colors"
                             >
-                                <div className="flex flex-col items-center text-center space-y-4">
-                                    <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                                        <Film size={40} className="text-blue-500" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-xl font-bold text-[#F3F4F6] mb-2">Vídeo Solto</h4>
-                                        <p className="text-sm text-[#9CA3AF]">Conteúdo único e independente</p>
-                                    </div>
-                                    <div className="text-xs text-[#9CA3AF] space-y-1">
-                                        <p>✓ Rápido de criar</p>
-                                        <p>✓ Uma única aula</p>
-                                        <p>✓ Ideal para conteúdo pontual</p>
-                                    </div>
-                                </div>
+                                ou criar vídeo solto
                             </button>
-                        </div>
+                        )}
+                        {!course && contentType === 'video' && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setContentType('module');
+                                    setContentMode('modules');
+                                }}
+                                className="text-xs text-[#9CA3AF] hover:text-[#FF6A00] mt-1 transition-colors"
+                            >
+                                ou criar curso com galerias
+                            </button>
+                        )}
                     </div>
-                )}
+                    <button onClick={onCancel} className="text-[#9CA3AF] hover:text-[#F3F4F6] transition-colors duration-200">
+                        <X size={24} />
+                    </button>
+                </div>
 
-                {/* Form Content - Only shows after type selection */}
-                {(contentType || course) && (
-                    <form onSubmit={handleSubmit} className="p-6 space-y-8">
+                {/* Form Content - Always shows (removed selection screen) */}
+                <form onSubmit={handleSubmit} className="p-6 space-y-8">
                     {/* MODULE TYPE - Simplified fields */}
                     {contentType === 'module' && (
                         <>
@@ -723,6 +690,18 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                                                         </div>
                                                                     </div>
                                                                 </div>
+
+                                                                {/* Module Description */}
+                                                                <div>
+                                                                    <label className="text-xs text-[#9CA3AF] mb-1 block">Descrição do Módulo</label>
+                                                                    <textarea
+                                                                        value={module.description || ''}
+                                                                        onChange={(e) => updateModuleInGallery(gallery.id, module.id, { description: e.target.value })}
+                                                                        className="input-pluma w-full text-sm resize-none"
+                                                                        placeholder="Descrição do módulo (opcional)"
+                                                                        rows={2}
+                                                                    />
+                                                                </div>
                                                             </div>
 
                                                             {/* Lessons List */}
@@ -945,7 +924,6 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                         </button>
                     </div>
                 </form>
-                )}
             </div>
         </div>
     );
