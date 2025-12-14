@@ -58,7 +58,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
             />
             <NavItem
                 icon={<BookOpen size={20} />}
-                label="Modules"
+                label="Cursos"
                 active={currentScreen === 'courses' || currentScreen === 'module-selection' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
             />

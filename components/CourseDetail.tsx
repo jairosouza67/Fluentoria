@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, CourseLesson, CourseModule, getStudentCompletion, markContentComplete } from '../lib/db';
+import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl } from '../lib/video';
 import CourseChat from './CourseChat';
 import MediaUpload from './MediaUpload';
@@ -19,12 +19,25 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [activeTab, setActiveTab] = useState<'content' | 'media' | 'chat'>('content');
   const [activeLesson, setActiveLesson] = useState<CourseLesson | null>(null);
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
+  const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const user = auth.currentUser;
 
   useEffect(() => {
-    // If a specific module was selected, use its first lesson
-    if (selectedModule && selectedModule.lessons && selectedModule.lessons.length > 0) {
+    // Handle new gallery structure
+    if (course?.galleries && course.galleries.length > 0) {
+      const firstGallery = course.galleries[0];
+      if (firstGallery.modules && firstGallery.modules.length > 0) {
+        const firstModule = firstGallery.modules[0];
+        if (firstModule.lessons && firstModule.lessons.length > 0) {
+          setActiveLesson(firstModule.lessons[0]);
+          setExpandedGalleries([firstGallery.id]);
+          setExpandedModules([firstModule.id]);
+        }
+      }
+    }
+    // Handle old module structure or selected module
+    else if (selectedModule && selectedModule.lessons && selectedModule.lessons.length > 0) {
       setActiveLesson(selectedModule.lessons[0]);
       setExpandedModules([selectedModule.id]);
     } else if (course?.modules && course.modules.length > 0 && !activeLesson) {
@@ -90,6 +103,14 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
       prev.includes(moduleId)
         ? prev.filter(id => id !== moduleId)
         : [...prev, moduleId]
+    );
+  };
+
+  const toggleGallery = (galleryId: string) => {
+    setExpandedGalleries(prev =>
+      prev.includes(galleryId)
+        ? prev.filter(id => id !== galleryId)
+        : [...prev, galleryId]
     );
   };
 
@@ -228,7 +249,82 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-[#9CA3AF] uppercase tracking-wider mb-4">Conteúdo do Curso</h3>
 
-                {course.modules && course.modules.length > 0 ? (
+                {/* New Gallery Structure */}
+                {course.galleries && course.galleries.length > 0 ? (
+                  <div className="space-y-3">
+                    {course.galleries.map(gallery => (
+                      <div key={gallery.id} className="border-2 border-[#FF6A00]/20 rounded-xl overflow-hidden bg-[#111111]">
+                        {/* Gallery Header */}
+                        <button
+                          onClick={() => toggleGallery(gallery.id)}
+                          className="w-full flex items-center justify-between p-4 hover:bg-[#FF6A00]/5 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <ImageIcon size={14} className="text-[#FF6A00]" />
+                            <span className="font-semibold text-[#FF6A00] text-sm text-left">{gallery.title}</span>
+                          </div>
+                          {expandedGalleries.includes(gallery.id) ? (
+                            <ChevronDown size={16} className="text-[#FF6A00]" />
+                          ) : (
+                            <ChevronRight size={16} className="text-[#FF6A00]" />
+                          )}
+                        </button>
+
+                        {/* Gallery Modules */}
+                        {expandedGalleries.includes(gallery.id) && (
+                          <div className="border-t border-[#FF6A00]/10 bg-black/20 p-2 space-y-2">
+                            {gallery.modules.map(module => (
+                              <div key={module.id} className="border border-white/[0.06] rounded-lg overflow-hidden bg-[#0a0a0a]">
+                                <button
+                                  onClick={() => toggleModule(module.id)}
+                                  className="w-full flex items-center justify-between p-3 hover:bg-white/[0.02] transition-colors"
+                                >
+                                  <span className="font-medium text-[#F3F4F6] text-sm text-left">{module.title}</span>
+                                  {expandedModules.includes(module.id) ? (
+                                    <ChevronDown size={14} className="text-[#9CA3AF]" />
+                                  ) : (
+                                    <ChevronRight size={14} className="text-[#9CA3AF]" />
+                                  )}
+                                </button>
+
+                                {expandedModules.includes(module.id) && (
+                                  <div className="border-t border-white/[0.06] bg-black/30">
+                                    {module.lessons.map(lesson => {
+                                      const isActive = activeLesson?.id === lesson.id;
+                                      return (
+                                        <button
+                                          key={lesson.id}
+                                          onClick={() => setActiveLesson(lesson)}
+                                          className={`w-full flex items-center gap-2 p-2 pl-3 transition-all duration-200 border-l-2 ${isActive
+                                            ? 'bg-[#FF6A00]/10 border-[#FF6A00]'
+                                            : 'hover:bg-white/[0.02] border-transparent'
+                                            }`}
+                                        >
+                                          <div className={`mt-0.5 ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
+                                            {lesson.type === 'video' && <PlayCircle size={14} />}
+                                            {lesson.type === 'audio' && <Mic size={14} />}
+                                            {lesson.type === 'pdf' && <FileText size={14} />}
+                                          </div>
+                                          <div className="text-left flex-1">
+                                            <h4 className={`text-xs font-medium ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
+                                              {lesson.title}
+                                            </h4>
+                                            <span className="text-xs text-[#9CA3AF]/60">{lesson.duration}</span>
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : course.modules && course.modules.length > 0 ? (
+                  // Old Module Structure (Backward Compatibility)
                   <div className="space-y-2">
                     {course.modules.map(module => (
                       <div key={module.id} className="border border-white/[0.06] rounded-xl overflow-hidden bg-[#111111]">
@@ -277,6 +373,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                     ))}
                   </div>
                 ) : (
+                  // Single Video
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.04] border border-white/[0.06]">
                     <div className="mt-1">
                       <Play size={16} className="text-[#FF6A00]" fill="currentColor" />

@@ -17,6 +17,14 @@ export interface CourseModule {
     lessons: CourseLesson[];
 }
 
+export interface CourseGallery {
+    id: string;
+    title: string;
+    coverImage?: string;
+    description?: string;
+    modules: CourseModule[];
+}
+
 export interface Course {
     id?: string;
     title: string;
@@ -28,7 +36,8 @@ export interface Course {
     thumbnail: string;
     description?: string;
     videoUrl?: string;
-    modules?: CourseModule[];
+    modules?: CourseModule[]; // Backward compatibility for old data
+    galleries?: CourseGallery[]; // New structure
     coverImage?: string;
 }
 

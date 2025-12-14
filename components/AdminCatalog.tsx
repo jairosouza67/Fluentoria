@@ -162,7 +162,7 @@ const AdminCatalog: React.FC = () => {
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
-          Modules
+          Curso
         </button>
         {/* Daily Contact disabled */}
         {/*
