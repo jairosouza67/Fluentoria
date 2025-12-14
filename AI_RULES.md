@@ -92,7 +92,7 @@
 
 ### Content Management
 - **USE** the existing CRUD operations in `lib/db.ts`
-- **FOLLOW** the patterns for courses, daily contacts, mindful flows, and music
+- <!-- **FOLLOW** the patterns for courses, daily contacts, mindful flows, and music (Daily Contact disabled) -->
 - **NEVER** create duplicate content management systems
 
 ### Testing & Debugging

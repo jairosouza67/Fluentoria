@@ -31,6 +31,8 @@ export interface Course {
     coverImage?: string;
 }
 
+// Daily Contact disabled
+/*
 export interface DailyContact {
     id?: string;
     title: string;
@@ -43,9 +45,10 @@ export interface DailyContact {
     videoUrl?: string;
     viewed?: boolean;
 }
+*/
 
 const COURSES_COLLECTION = 'courses';
-const DAILY_CONTACTS_COLLECTION = 'daily_contacts';
+// const DAILY_CONTACTS_COLLECTION = 'daily_contacts'; // Daily Contact disabled
 const MINDFUL_FLOW_COLLECTION = 'mindful_flow';
 const MUSIC_COLLECTION = 'music';
 const STUDENT_COMPLETIONS_COLLECTION = 'student_completions';
@@ -182,6 +185,8 @@ export const deleteMusic = async (id: string): Promise<boolean> => {
 };
 
 // Daily Contacts Functions
+// Daily Contact disabled
+/*
 export const getDailyContacts = async (): Promise<DailyContact[]> => {
     try {
         const q = query(collection(db, DAILY_CONTACTS_COLLECTION), orderBy('date', 'desc'));
@@ -224,12 +229,13 @@ export const deleteDailyContact = async (id: string): Promise<boolean> => {
         return false;
     }
 };
+*/
 
 // Student Completion Tracking
 export interface StudentCompletion {
     studentId: string;
     contentId: string;
-    contentType: 'course' | 'daily' | 'mindful' | 'music';
+    contentType: 'course' | 'mindful' | 'music';
     completed: boolean;
     completedAt?: Date;
 }
@@ -237,7 +243,7 @@ export interface StudentCompletion {
 export const getStudentCompletion = async (
     studentId: string,
     contentId: string,
-    contentType: 'course' | 'daily' | 'mindful' | 'music'
+    contentType: 'course' | 'mindful' | 'music'
 ): Promise<StudentCompletion | null> => {
     try {
         const completionId = `${studentId}_${contentType}_${contentId}`;
@@ -262,7 +268,7 @@ export const getStudentCompletion = async (
 export const markContentComplete = async (
     studentId: string,
     contentId: string,
-    contentType: 'course' | 'daily' | 'mindful' | 'music',
+    contentType: 'course' | 'mindful' | 'music',
     completed: boolean
 ): Promise<boolean> => {
     try {

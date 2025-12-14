@@ -40,8 +40,9 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ studentId, studen
       case 'course_completed':
       case 'lesson_completed':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'daily_contact':
-        return <CheckCircle className="w-4 h-4 text-blue-500" />;
+      // Daily Contact disabled
+      // case 'daily_contact':
+      //   return <CheckCircle className="w-4 h-4 text-blue-500" />;
       case 'mindful_flow':
         return <CheckCircle className="w-4 h-4 text-purple-500" />;
       default:
@@ -55,8 +56,9 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ studentId, studen
         return 'Aula Concluída';
       case 'lesson_completed':
         return 'Lição Concluída';
-      case 'daily_contact':
-        return 'Daily Contact';
+      // Daily Contact disabled
+      // case 'daily_contact':
+      //   return 'Daily Contact';
       case 'mindful_flow':
         return 'Mindful Flow';
       case 'course_started':
@@ -110,6 +112,8 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ studentId, studen
           <p className="text-2xl font-bold text-foreground">{stats.completedCourses}</p>
         </div>
 
+        {/* Daily Contact disabled */}
+        {/*
         <div className="bg-card border border-border rounded-xl p-4 shadow-card-custom">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Daily Contact</span>
@@ -117,6 +121,7 @@ const AttendanceTracker: React.FC<AttendanceTrackerProps> = ({ studentId, studen
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.dailyContacts}</p>
         </div>
+        */}
 
         <div className="bg-card border border-border rounded-xl p-4 shadow-card-custom">
           <div className="flex items-center justify-between mb-2">

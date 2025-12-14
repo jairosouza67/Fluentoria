@@ -6,8 +6,8 @@ export type Screen =
   | 'dashboard'
   | 'courses'
   | 'course-detail'
-  | 'daily'
-  | 'daily-detail'
+  // | 'daily' // Daily Contact disabled
+  // | 'daily-detail' // Daily Contact disabled
   | 'mindful'
   | 'mindful-detail'
   | 'music'

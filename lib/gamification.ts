@@ -9,7 +9,7 @@ const ACHIEVEMENTS_COLLECTION = 'achievements';
 const XP_PER_LEVEL = 500;
 export const XP_REWARDS = {
   course_completed: 100,
-  daily_contact: 20,
+  // daily_contact: 20, // Daily Contact disabled
   mindful_flow: 15,
   lesson_completed: 50,
   media_upload: 10,

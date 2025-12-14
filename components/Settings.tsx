@@ -80,13 +80,14 @@ const Settings: React.FC = () => {
     maxMediaSize: 100,
     allowedFormats: ['video', 'audio', 'pdf'],
   });
-  const [dailyContactFrequency, setDailyContactFrequency] = useState('daily');
+  // Daily Contact disabled
+  // const [dailyContactFrequency, setDailyContactFrequency] = useState('daily');
   const [contentExpiration, setContentExpiration] = useState(365);
 
   // Gamification States
   const [xpValues, setXpValues] = useState({
     courseCompletion: 100,
-    dailyContact: 10,
+    // dailyContact: 10, // Daily Contact disabled
     mindfulFlow: 15,
     mediaUpload: 5,
     perfectAttendance: 50,
@@ -340,14 +341,14 @@ const Settings: React.FC = () => {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-[#F3F4F6]">Configurações do Sistema</h1>
           <p className="text-[#9CA3AF] mt-2">Gerencie configurações administrativas e preferências da plataforma</p>
         </div>
         <button 
           onClick={handleSaveSettings}
-          className="bg-[#FF6A00] hover:bg-[#E15B00] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-200"
+          className="w-full md:w-auto bg-[#FF6A00] hover:bg-[#E15B00] text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center md:justify-start gap-2 transition-all duration-200"
         >
           <Save className="w-4 h-4" />
           Salvar Todas
@@ -355,12 +356,12 @@ const Settings: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-white/[0.06] overflow-x-auto">
+      <div className="flex flex-wrap gap-2 border-b border-white/[0.06]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-200 border-b-2 whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium transition-all duration-200 border-b-2 ${
               activeTab === tab.id
                 ? 'border-[#FF6A00] text-[#FF6A00]'
                 : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'
@@ -681,7 +682,7 @@ const Settings: React.FC = () => {
 
                 {/* Stats Summary */}
                 {!isLoadingStudents && students.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/[0.06]">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/[0.06]">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-[#F3F4F6]">
                         {students.filter(s => s.accessAuthorized).length}
@@ -783,6 +784,8 @@ const Settings: React.FC = () => {
                   </div>
 
                   <div className="space-y-2">
+                    {/* Daily Contact disabled */}
+                    {/*
                     <label className="text-sm font-medium text-[#9CA3AF]">XP por Daily Contact</label>
                     <input
                       type="number"
@@ -790,6 +793,7 @@ const Settings: React.FC = () => {
                       onChange={(e) => setXpValues({...xpValues, dailyContact: parseInt(e.target.value)})}
                       className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
+                    */}
                   </div>
 
                   <div className="space-y-2">

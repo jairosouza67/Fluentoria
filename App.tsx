@@ -9,7 +9,7 @@ import Settings from './components/Settings';
 import Auth from './components/Auth';
 import CourseList from './components/CourseList';
 import CourseDetail from './components/CourseDetail';
-import DailyContact from './components/DailyContact';
+// import DailyContact from './components/DailyContact';
 import MindfulFlowList from './components/MindfulFlowList';
 import MusicList from './components/MusicList';
 import Profile from './components/Profile';
@@ -23,7 +23,7 @@ import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
 import { Course, getUserRole, forceUpdateUserRole } from './lib/db';
-import { DailyContact as DailyContactType } from './lib/db';
+// import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('student');
@@ -31,7 +31,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [selectedDaily, setSelectedDaily] = useState<DailyContactType | null>(null);
+  // const [selectedDaily, setSelectedDaily] = useState<DailyContactType | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'student'>('student');
   const [roleLoaded, setRoleLoaded] = useState(false);
@@ -107,7 +107,7 @@ const App: React.FC = () => {
       const shortcutMap: Record<string, Screen> = {
         'dashboard': 'dashboard',
         'courses': 'courses',
-        'daily': 'daily',
+        // 'daily': 'daily', // Daily Contact disabled
         'achievements': 'achievements'
       };
 
@@ -196,10 +196,11 @@ const App: React.FC = () => {
         return <CourseList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
       case 'course-detail':
         return <CourseDetail onBack={() => navigateTo('courses')} course={selectedCourse} />;
-      case 'daily':
-        return <DailyContact onSelectDaily={(daily) => { setSelectedDaily(daily); navigateTo('daily-detail'); }} selectedDaily={null} />;
-      case 'daily-detail':
-        return <DailyContact onBack={() => { setSelectedDaily(null); navigateTo('daily'); }} selectedDaily={selectedDaily} />;
+      // Daily Contact disabled
+      // case 'daily':
+      //   return <DailyContact onSelectDaily={(daily) => { setSelectedDaily(daily); navigateTo('daily-detail'); }} selectedDaily={null} />;
+      // case 'daily-detail':
+      //   return <DailyContact onBack={() => { setSelectedDaily(null); navigateTo('daily'); }} selectedDaily={selectedDaily} />;
       case 'mindful':
         return <MindfulFlowList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
       case 'mindful-detail':

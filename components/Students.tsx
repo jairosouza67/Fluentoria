@@ -132,7 +132,7 @@ const Students: React.FC = () => {
         </div>
         <button 
           onClick={() => setShowAddModal(true)}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-md font-medium flex items-center gap-2 shadow-sm hover:-translate-y-0.5 transition-all duration-200"
+          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-md font-medium flex items-center justify-center md:justify-start gap-2 shadow-sm hover:-translate-y-0.5 transition-all duration-200"
         >
           <UserPlus className="w-4 h-4" />
           Adicionar Aluno
@@ -176,10 +176,10 @@ const Students: React.FC = () => {
           <table className="w-full">
             <thead className="bg-secondary/50 border-b border-border">
               <tr>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Aluno</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Email</th>
-                <th className="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Cadastro</th>
-                <th className="text-right py-4 px-6 text-sm font-semibold text-muted-foreground">Ações</th>
+                <th className="text-left py-4 px-4 md:px-6 text-sm font-semibold text-muted-foreground">Aluno</th>
+                <th className="hidden md:table-cell text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Email</th>
+                <th className="hidden md:table-cell text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Cadastro</th>
+                <th className="hidden md:table-cell text-right py-4 px-6 text-sm font-semibold text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -204,7 +204,7 @@ const Students: React.FC = () => {
                       index === filteredStudents.length - 1 ? 'border-b-0' : ''
                     }`}
                   >
-                    <td className="py-4 px-6">
+                    <td className="py-4 px-4 md:px-6">
                       <div className="flex items-center gap-3">
                         {student.photoURL ? (
                           <img src={student.photoURL} alt={student.name} className="w-10 h-10 rounded-full" />
@@ -215,22 +215,25 @@ const Students: React.FC = () => {
                         )}
                         <div>
                           <div className="font-medium text-foreground">{student.name}</div>
+                          <div className="md:hidden text-xs text-muted-foreground mt-0.5 truncate max-w-[220px]">
+                            {student.email}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="hidden md:table-cell py-4 px-6">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Mail className="w-3 h-3" />
                         {student.email}
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="hidden md:table-cell py-4 px-6">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="w-4 h-4" />
                         {student.createdAt ? student.createdAt.toLocaleDateString('pt-BR') : 'N/A'}
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-right">
+                    <td className="hidden md:table-cell py-4 px-6 text-right">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -254,8 +257,8 @@ const Students: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="p-6 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-4">
+            <div className="p-4 md:p-6 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0">
                 {selectedStudent.photoURL ? (
                   <img src={selectedStudent.photoURL} alt={selectedStudent.name} className="w-12 h-12 rounded-full" />
                 ) : (
@@ -263,9 +266,9 @@ const Students: React.FC = () => {
                     {selectedStudent.name.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground">{selectedStudent.name}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedStudent.email}</p>
+                <div className="min-w-0">
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground truncate">{selectedStudent.name}</h2>
+                  <p className="text-sm text-muted-foreground truncate">{selectedStudent.email}</p>
                 </div>
               </div>
               <button
@@ -277,7 +280,7 @@ const Students: React.FC = () => {
             </div>
 
             {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
               {loadingMedia ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>

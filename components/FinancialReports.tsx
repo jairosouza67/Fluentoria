@@ -168,8 +168,8 @@ const FinancialReports: React.FC = () => {
                     </h1>
                     <p className="text-[#9CA3AF] mt-2">Gerencie assinaturas e previsões de receita.</p>
                 </div>
-                <div className="flex gap-3">
-                    <button className="bg-[#111111] border border-white/[0.06] text-[#F3F4F6] px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/[0.05] transition-colors flex items-center gap-2">
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                    <button className="w-full sm:w-auto bg-[#111111] border border-white/[0.06] text-[#F3F4F6] px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/[0.05] transition-colors flex items-center justify-center sm:justify-start gap-2">
                         <Download size={16} />
                         Exportar CSV
                     </button>
@@ -235,7 +235,7 @@ const FinancialReports: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex gap-2 pb-2 overflow-x-auto">
+            <div className="flex flex-wrap gap-2 pb-2">
                 {(['all', 'active', 'expiring', 'expired'] as const).map((f) => (
                     <button
                         key={f}
@@ -253,18 +253,95 @@ const FinancialReports: React.FC = () => {
                 ))}
             </div>
 
+            {/* Mobile List (no horizontal scroll) */}
+            <div className="space-y-3 md:hidden">
+                {filteredStudents.map((student: any) => (
+                    <div
+                        key={student.id}
+                        className={`bg-[#111111] border rounded-xl p-4 ${student.isExpiring
+                                ? 'border-yellow-500/20'
+                                : student.computedStatus === 'expired'
+                                    ? 'border-red-500/20'
+                                    : 'border-white/[0.06]'
+                            }`}
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-full bg-[#FF6A00]/10 flex items-center justify-center text-[#FF6A00] text-xs font-bold shrink-0">
+                                        {student.name?.charAt(0)}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="font-medium text-[#F3F4F6] truncate">{student.name}</div>
+                                        <div className="text-xs text-[#9CA3AF] truncate">{student.email}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => handleEditClick(student)}
+                                className="text-[#FF6A00] hover:text-[#FF6A00]/80 p-2 rounded-lg hover:bg-[#FF6A00]/10 transition-colors shrink-0"
+                                title="Editar Plano"
+                            >
+                                <CreditCard size={18} />
+                            </button>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <div className="text-xs text-[#9CA3AF]">Plano</div>
+                                <div className="text-[#F3F4F6] capitalize">{student.planType || '-'}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-[#9CA3AF]">Valor</div>
+                                <div className="text-[#F3F4F6]">{student.planValue ? `R$ ${student.planValue}` : '-'}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-[#9CA3AF]">Status</div>
+                                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border mt-1 ${student.computedStatus === 'active' && !student.isExpiring
+                                        ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                                        : student.isExpiring
+                                            ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                            : student.computedStatus === 'expired'
+                                                ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                                                : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                                    }`}
+                                >
+                                    {student.isExpiring
+                                        ? 'Vencendo'
+                                        : student.computedStatus === 'active'
+                                            ? 'Ativo'
+                                            : student.computedStatus === 'expired'
+                                                ? 'Expirado'
+                                                : 'Pendente'}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-[#9CA3AF]">Vencimento</div>
+                                <div className="flex items-center gap-2 text-sm text-[#9CA3AF] mt-1">
+                                    <Calendar size={14} />
+                                    <span className="text-[#F3F4F6]">
+                                        {student.planEndDate ? new Date(student.planEndDate).toLocaleDateString() : '-'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             {/* Table */}
-            <div className="bg-[#111111] border border-white/[0.06] rounded-xl shadow-card-custom overflow-hidden">
+            <div className="hidden md:block bg-[#111111] border border-white/[0.06] rounded-xl shadow-card-custom overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-white/[0.02] border-b border-white/[0.06]">
                             <tr>
-                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF]">Aluno</th>
-                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF]">Plano</th>
-                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF]">Valor</th>
-                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF]">Status</th>
-                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF]">Vencimento</th>
-                                <th className="text-right py-4 px-6 text-sm font-semibold text-[#9CA3AF]">Ações</th>
+                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF] whitespace-nowrap">Aluno</th>
+                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF] whitespace-nowrap">Plano</th>
+                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF] whitespace-nowrap">Valor</th>
+                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF] whitespace-nowrap">Status</th>
+                                <th className="text-left py-4 px-6 text-sm font-semibold text-[#9CA3AF] whitespace-nowrap">Vencimento</th>
+                                <th className="text-right py-4 px-6 text-sm font-semibold text-[#9CA3AF] whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody>

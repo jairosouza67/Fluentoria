@@ -1,3 +1,8 @@
+// Daily Contact disabled
+//
+// The original implementation is preserved below as a block comment so it can
+// be restored later without re-creating the feature.
+/*
 import React, { useState, useEffect } from 'react';
 import { PlayCircle, FileText, Mic, Clock, Filter, Loader2, ArrowLeft, CheckCircle, Download, Bookmark, Share2, Play } from 'lucide-react';
 import { DailyContact as DailyContactType, getDailyContacts, getStudentCompletion, markContentComplete } from '../lib/db';
@@ -334,3 +339,6 @@ const DailyContact: React.FC<DailyContactProps> = ({ onSelectDaily, selectedDail
 };
 
 export default DailyContact;
+*/
+
+export {};

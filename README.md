@@ -54,11 +54,13 @@ Fluentoria is a comprehensive Learning Management System (LMS) designed specific
 - Course chat for student-instructor interaction
 - Media submission (audio/video recordings for practice)
 
+<!-- Daily Contact disabled
 #### 3. **Daily Contact**
 - Daily engagement activities to maintain learning consistency
 - Unique completion tracking per day
 - Interactive exercises designed for daily practice
 - Motivational content delivery
+-->
 
 #### 4. **Mindful Flow**
 - Relaxation and stress-relief focused learning sessions
@@ -85,7 +87,7 @@ Fluentoria is a comprehensive Learning Management System (LMS) designed specific
 - Achievement types:
   - 🏆 First course completion
   - 📈 Course streak (consecutive course completions)
-  - 💪 Daily contact consistency
+  <!-- - 💪 Daily contact consistency (Daily Contact disabled) -->
   - ⏱️ Study hours milestone
   - 🎤 Media upload milestone
 
@@ -188,7 +190,7 @@ Fluentoria/
 │   ├── CourseDetail.tsx          # Course view with content
 │   ├── CourseChat.tsx            # Course discussion
 │   ├── CourseForm.tsx            # Course creation/editing
-│   ├── DailyContact.tsx          # Daily activities
+<!-- │   ├── DailyContact.tsx          # Daily activities (Daily Contact disabled) -->
 │   ├── MindfulFlowList.tsx       # Mindful flow content
 │   ├── MusicList.tsx             # Music learning
 │   ├── MediaUpload.tsx           # File upload handler
@@ -247,7 +249,7 @@ Fluentoria/
 ### Role-Based Access Control
 ```typescript
 // Student Role
-- Access to courses, daily activities, music, mindful flow
+// - Access to courses, daily activities, music, mindful flow (Daily activities disabled)
 - Can view own profile and achievements
 - Can view leaderboard (read-only)
 - Can upload media to courses

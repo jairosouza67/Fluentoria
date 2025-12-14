@@ -53,12 +53,15 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
                 active={currentScreen === 'courses' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
               />
+              {/* Daily Contact disabled */}
+              {/*
               <NavItem
                 icon={<Edit3 size={20} />}
                 label="Daily Contact"
                 active={currentScreen === 'daily'}
                 onClick={() => onNavigate('daily')}
               />
+              */}
               <NavItem
                 icon={<Activity size={20} />}
                 label="Mindful Flow"

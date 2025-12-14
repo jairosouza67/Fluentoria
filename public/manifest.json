@@ -89,19 +89,6 @@
       ]
     },
     {
-      "name": "Daily Contact",
-      "short_name": "Daily",
-      "description": "Atividade diária de aprendizado",
-      "url": "/?shortcut=daily",
-      "icons": [
-        {
-          "src": "/shortcuts/daily.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
       "name": "Conquistas",
       "short_name": "Achievements",
       "description": "Ver progresso e conquistas",
@@ -109,6 +96,21 @@
       "icons": [
         {
           "src": "/shortcuts/achievements.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "disabled_shortcuts": [
+    {
+      "name": "Daily Contact",
+      "short_name": "Daily",
+      "description": "Atividade diária de aprendizado (DESABILITADO)",
+      "url": "/?shortcut=daily",
+      "icons": [
+        {
+          "src": "/shortcuts/daily.png",
           "sizes": "96x96",
           "type": "image/png"
         }

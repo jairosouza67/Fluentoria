@@ -11,7 +11,7 @@ const outputDir = join(__dirname, 'public', 'shortcuts');
 const shortcuts = [
   { name: 'dashboard', color: '#FF6A00' }, // Orange - Home
   { name: 'courses', color: '#3B82F6' },   // Blue - Learning
-  { name: 'daily', color: '#10B981' },     // Green - Daily activity
+  // { name: 'daily', color: '#10B981' },     // Green - Daily activity (DISABLED)
   { name: 'achievements', color: '#F59E0B' } // Amber - Trophy
 ];
 

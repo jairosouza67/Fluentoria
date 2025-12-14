@@ -12,7 +12,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
     // Admin navigation
     if (viewMode === 'admin') {
         return (
-            <div className="fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 flex justify-around items-center z-50 md:hidden pb-safe shadow-elevated">
+            <div className="fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 grid grid-cols-5 items-center z-50 md:hidden pb-safe shadow-elevated">
                 <NavItem
                     icon={<LayoutDashboard size={20} />}
                     label="Dashboard"
@@ -30,6 +30,12 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
                     label="Students"
                     active={currentScreen === 'admin-students'}
                     onClick={() => onNavigate('admin-students')}
+                />
+                <NavItem
+                    icon={<Activity size={20} />}
+                    label="Fin"
+                    active={currentScreen === 'admin-financial'}
+                    onClick={() => onNavigate('admin-financial')}
                 />
                 <NavItem
                     icon={<Settings size={20} />}
@@ -56,12 +62,15 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
                 active={currentScreen === 'courses' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
             />
+            {/* Daily Contact disabled */}
+            {/*
             <NavItem
                 icon={<Edit3 size={20} />}
                 label="Daily"
                 active={currentScreen === 'daily'}
                 onClick={() => onNavigate('daily')}
             />
+            */}
             <NavItem
                 icon={<Activity size={20} />}
                 label="Flow"
@@ -95,8 +104,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => {
     return (
         <button
             onClick={onClick}
-            className={`flex flex-col items-center gap-0.5 transition-all duration-200 ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}
-                }`}
+            className={`flex flex-col items-center gap-0.5 transition-all duration-200 ${active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
         >
             <div className={`p-1.5 rounded-lg transition-all duration-200 ${active ? 'bg-primary/10 scale-110' : ''}`}>
                 {icon}

@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ChevronDown, Edit2, Trash2, Clock, Calendar, Loader2, Eye } from 'lucide-react';
-import { Course, getCourses, addCourse, updateCourse, deleteCourse, getDailyContacts, addDailyContact, updateDailyContact, deleteDailyContact, getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, getMusic, addMusic, updateMusic, deleteMusic, DailyContact } from '../lib/db';
+import { Course, getCourses, addCourse, updateCourse, deleteCourse, getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, getMusic, addMusic, updateMusic, deleteMusic } from '../lib/db';
+// Daily Contact disabled
+// import { getDailyContacts, addDailyContact, updateDailyContact, deleteDailyContact, DailyContact } from '../lib/db';
 import CourseForm from './CourseForm';
 import CourseDetail from './CourseDetail';
 import { getYouTubeThumbnail } from '../lib/video';
 import AnimatedInput from './ui/AnimatedInput';
 
-type TabType = 'courses' | 'daily' | 'mindful' | 'music';
+type TabType =
+  | 'courses'
+  // | 'daily' // Daily Contact disabled
+  | 'mindful'
+  | 'music';
 
 const AdminCatalog: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('courses');
   const [courses, setCourses] = useState<Course[]>([]);
-  const [dailyContacts, setDailyContacts] = useState<DailyContact[]>([]);
+  // const [dailyContacts, setDailyContacts] = useState<DailyContact[]>([]);
   const [mindfulFlows, setMindfulFlows] = useState<Course[]>([]);
   const [musicList, setMusicList] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,12 +33,13 @@ const AdminCatalog: React.FC = () => {
     setLoading(false);
   };
 
-  const fetchDailyContacts = async () => {
-    setLoading(true);
-    const data = await getDailyContacts();
-    setDailyContacts(data);
-    setLoading(false);
-  };
+  // Daily Contact disabled
+  // const fetchDailyContacts = async () => {
+  //   setLoading(true);
+  //   const data = await getDailyContacts();
+  //   setDailyContacts(data);
+  //   setLoading(false);
+  // };
 
   const fetchMindfulFlows = async () => {
     setLoading(true);
@@ -51,8 +58,6 @@ const AdminCatalog: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'courses') {
       fetchCourses();
-    } else if (activeTab === 'daily') {
-      fetchDailyContacts();
     } else if (activeTab === 'mindful') {
       fetchMindfulFlows();
     } else if (activeTab === 'music') {
@@ -68,19 +73,6 @@ const AdminCatalog: React.FC = () => {
         await addCourse(course);
       }
       await fetchCourses();
-    } else if (activeTab === 'daily') {
-      // Convert Course to DailyContact
-      const dailyContact: DailyContact = {
-        ...course,
-        date: course.launchDate || new Date().toISOString().split('T')[0],
-        viewed: false
-      };
-      if (editingCourse && editingCourse.id) {
-        await updateDailyContact(editingCourse.id, dailyContact);
-      } else {
-        await addDailyContact(dailyContact);
-      }
-      await fetchDailyContacts();
     } else if (activeTab === 'mindful') {
       if (editingCourse && editingCourse.id) {
         await updateMindfulFlow(editingCourse.id, course);
@@ -105,9 +97,6 @@ const AdminCatalog: React.FC = () => {
       if (activeTab === 'courses') {
         await deleteCourse(id);
         await fetchCourses();
-      } else if (activeTab === 'daily') {
-        await deleteDailyContact(id);
-        await fetchDailyContacts();
       } else if (activeTab === 'mindful') {
         await deleteMindfulFlow(id);
         await fetchMindfulFlows();
@@ -129,7 +118,7 @@ const AdminCatalog: React.FC = () => {
 
   const getCurrentList = () => {
     if (activeTab === 'courses') return courses;
-    if (activeTab === 'daily') return dailyContacts;
+    // if (activeTab === 'daily') return dailyContacts; // Daily Contact disabled
     if (activeTab === 'mindful') return mindfulFlows;
     if (activeTab === 'music') return musicList;
     return [];
@@ -146,7 +135,7 @@ const AdminCatalog: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             {activeTab === 'courses' && 'Minhas Aulas'}
-            {activeTab === 'daily' && 'Daily Contact'}
+            {/* {activeTab === 'daily' && 'Daily Contact'} */}
             {activeTab === 'mindful' && 'Mindful Flow'}
             {activeTab === 'music' && 'Músicas'}
           </h1>
@@ -157,7 +146,7 @@ const AdminCatalog: React.FC = () => {
             setEditingCourse(null);
             setIsFormOpen(true);
           }}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-md font-medium flex items-center gap-2 shadow-sm hover:-translate-y-0.5 transition-all duration-200"
+          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-md font-medium flex items-center justify-center md:justify-start gap-2 shadow-sm hover:-translate-y-0.5 transition-all duration-200"
         >
           <Plus className="w-4 h-4" />
           Criar Novo Conteúdo
@@ -165,28 +154,31 @@ const AdminCatalog: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-border">
+      <div className="flex flex-wrap gap-2 border-b border-border">
         <button
           onClick={() => setActiveTab('courses')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'courses'
+          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'courses'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
           Modules
         </button>
+        {/* Daily Contact disabled */}
+        {/*
         <button
           onClick={() => setActiveTab('daily')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'daily'
+          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'daily'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
           Daily Contact
         </button>
+        */}
         <button
           onClick={() => setActiveTab('mindful')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'mindful'
+          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'mindful'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
@@ -195,7 +187,7 @@ const AdminCatalog: React.FC = () => {
         </button>
         <button
           onClick={() => setActiveTab('music')}
-          className={`px-4 py-2 font-medium transition-colors border-b-2 ${activeTab === 'music'
+          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'music'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
@@ -205,8 +197,8 @@ const AdminCatalog: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <div className="flex-1 max-w-md">
+      <div className="flex flex-col md:flex-row md:items-center items-stretch gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+        <div className="flex-1 max-w-md w-full">
           <AnimatedInput
             type="search"
             placeholder="Buscar conteúdo..."
@@ -215,7 +207,7 @@ const AdminCatalog: React.FC = () => {
             icon="search"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button className="flex items-center gap-2 bg-transparent text-muted-foreground hover:text-foreground px-4 py-2.5 rounded-lg transition-colors">
             Data de Lançamento <ChevronDown size={16} />
           </button>

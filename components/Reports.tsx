@@ -168,7 +168,7 @@ const Reports: React.FC = () => {
           <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
           <p className="text-muted-foreground mt-2">Visão geral do engajamento em tempo real.</p>
         </div>
-        <button className="bg-secondary/50 border border-border text-foreground px-5 py-3 rounded-md font-medium flex items-center gap-2 hover:bg-secondary/70 transition-all duration-200">
+        <button className="w-full md:w-auto bg-secondary/50 border border-border text-foreground px-5 py-3 rounded-md font-medium flex items-center justify-center md:justify-start gap-2 hover:bg-secondary/70 transition-all duration-200">
           <Download className="w-4 h-4" />
           Exportar Dados
         </button>
