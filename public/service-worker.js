@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Fluentoria Service Worker - Offline Support
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `fluentoria-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `fluentoria-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
@@ -10,6 +10,7 @@ const OFFLINE_PAGE = '/offline.html';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/index.css',
   '/offline.html',
   '/logo.png',
   '/icon-192x192.png',
@@ -24,15 +25,24 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
+    (async () => {
+      const cache = await caches.open(STATIC_CACHE);
       console.log('[Service Worker] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => {
+
+      // Cache assets individually so a missing file doesn't break SW install.
+      await Promise.allSettled(
+        STATIC_ASSETS.map(async (asset) => {
+          try {
+            await cache.add(asset);
+          } catch (error) {
+            console.warn('[Service Worker] Failed to cache:', asset, error);
+          }
+        })
+      );
+
       console.log('[Service Worker] Skip waiting');
-      return self.skipWaiting();
-    }).catch((error) => {
-      console.error('[Service Worker] Cache failed:', error);
-    })
+      await self.skipWaiting();
+    })()
   );
 });
 
@@ -43,7 +53,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keyList) => {
       return Promise.all(
         keyList.map((key) => {
-          if (key !== STATIC_CACHE && key !== DYNAMIC_CACHE) {
+          if (key.startsWith('fluentoria-') && key !== STATIC_CACHE && key !== DYNAMIC_CACHE) {
             console.log('[Service Worker] Deleting old cache:', key);
             return caches.delete(key);
           }
@@ -61,8 +71,21 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Only handle GET; let POST/PUT/etc hit the network.
+  if (request.method !== 'GET') {
+    return;
+  }
+
   // Skip chrome extensions and non-http(s) requests
   if (!request.url.startsWith('http')) {
+    return;
+  }
+
+  const isSameOrigin = url.origin === self.location.origin;
+
+  // Navigation: app-shell fallback for SPA
+  if (request.mode === 'navigate') {
+    event.respondWith(navigateWithAppShell(request));
     return;
   }
 
@@ -79,18 +102,13 @@ self.addEventListener('fetch', (event) => {
 
   // Cache-first for static assets
   if (
-    request.destination === 'style' ||
-    request.destination === 'script' ||
-    request.destination === 'image' ||
-    request.destination === 'font'
+    isSameOrigin &&
+    (request.destination === 'style' ||
+      request.destination === 'script' ||
+      request.destination === 'image' ||
+      request.destination === 'font')
   ) {
     event.respondWith(cacheFirst(request));
-    return;
-  }
-
-  // Network-first with offline fallback for navigation
-  if (request.mode === 'navigate') {
-    event.respondWith(networkFirstWithFallback(request));
     return;
   }
 
@@ -144,17 +162,17 @@ async function networkFirst(request) {
   }
 }
 
-// Network-first with offline fallback page
-async function networkFirstWithFallback(request) {
+// Navigation handler: network-first, then cached app shell, then offline page.
+async function navigateWithAppShell(request) {
   try {
-    const networkResponse = await fetch(request);
-    return networkResponse;
+    // Prefer live HTML so users get updates when online.
+    return await fetch(request);
   } catch (error) {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
+    // App shell (SPA) fallback
+    const appShell = await caches.match('/index.html');
+    if (appShell) {
+      return appShell;
     }
-    // Return offline page
     const offlinePage = await caches.match(OFFLINE_PAGE);
     if (offlinePage) {
       return offlinePage;
