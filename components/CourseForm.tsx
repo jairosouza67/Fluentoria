@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film, Upload } from 'lucide-react';
+import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film, Upload, Image as ImageIcon } from 'lucide-react';
 import { Course, CourseModule, CourseLesson } from '../lib/db';
 import { uploadCourseCover } from '../lib/media';
+import { getYouTubeThumbnail } from '../lib/video';
 
 interface CourseFormProps {
     course?: Course | null;
@@ -82,6 +83,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         const newModule: CourseModule = {
             id: Math.random().toString(36).substr(2, 9),
             title: 'Novo Módulo',
+            coverImage: '',
             lessons: []
         };
         setFormData(prev => ({
@@ -155,6 +157,20 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                         : m
                 )
             }));
+        }
+    };
+
+    const handleModuleCoverUpload = async (moduleId: string, file: File) => {
+        setUploadingCover(true);
+        try {
+            const url = await uploadCourseCover(file);
+            if (url) {
+                updateModule(moduleId, { coverImage: url });
+            }
+        } catch (error) {
+            console.error("Error uploading module cover:", error);
+        } finally {
+            setUploadingCover(false);
         }
     };
 
@@ -358,32 +374,65 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                 <div className="space-y-4">
                                     {formData.modules?.map((module, index) => (
                                         <div key={module.id} className="border border-white/[0.06] rounded-xl overflow-hidden bg-[#0a0a0a]">
-                                            {/* Module Header */}
-                                            <div className="flex items-center gap-3 p-4 bg-white/[0.02]">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleModule(module.id)}
-                                                    className="text-[#9CA3AF] hover:text-[#F3F4F6]"
-                                                >
-                                                    {expandedModules.includes(module.id) ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                                                </button>
-                                                <div className="flex-1">
-                                                    <input
-                                                        type="text"
-                                                        value={module.title}
-                                                        onChange={(e) => updateModule(module.id, { title: e.target.value })}
-                                                        className="bg-transparent border-none text-[#F3F4F6] font-medium focus:ring-0 w-full placeholder-[#9CA3AF]/50"
-                                                        placeholder="Nome do Módulo (Ex: Introdução)"
-                                                    />
+                                            {/* Module Header - Simplified */}
+                                            <div className="p-4 bg-white/[0.02] space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleModule(module.id)}
+                                                        className="text-[#9CA3AF] hover:text-[#F3F4F6]"
+                                                    >
+                                                        {expandedModules.includes(module.id) ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                                    </button>
+                                                    <div className="flex-1">
+                                                        <input
+                                                            type="text"
+                                                            value={module.title}
+                                                            onChange={(e) => updateModule(module.id, { title: e.target.value })}
+                                                            className="bg-transparent border-none text-[#F3F4F6] font-medium focus:ring-0 w-full placeholder-[#9CA3AF]/50"
+                                                            placeholder="Nome do Módulo"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => deleteModule(module.id)}
+                                                        className="text-[#9CA3AF] hover:text-red-500 transition-colors p-2"
+                                                        title="Excluir Módulo"
+                                                    >
+                                                        <Trash size={18} />
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => deleteModule(module.id)}
-                                                    className="text-[#9CA3AF] hover:text-red-500 transition-colors p-2"
-                                                    title="Excluir Módulo"
-                                                >
-                                                    <Trash size={18} />
-                                                </button>
+
+                                                {/* Module Cover Image */}
+                                                <div className="flex items-center gap-4">
+                                                    {module.coverImage && (
+                                                        <div className="w-24 h-24 rounded-lg overflow-hidden border border-white/[0.06] flex-shrink-0">
+                                                            <img src={module.coverImage} alt={module.title} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <label className="text-xs text-[#9CA3AF] mb-1 block">Imagem de Capa do Módulo</label>
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                value={module.coverImage || ''}
+                                                                onChange={(e) => updateModule(module.id, { coverImage: e.target.value })}
+                                                                className="input-pluma flex-1 text-sm"
+                                                                placeholder="URL da imagem ou fazer upload"
+                                                            />
+                                                            <label className="btn-secondary-pluma cursor-pointer px-3 flex items-center gap-2 text-sm">
+                                                                <Upload size={16} />
+                                                                Upload
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    className="hidden"
+                                                                    onChange={(e) => e.target.files?.[0] && handleModuleCoverUpload(module.id, e.target.files[0])}
+                                                                />
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Lessons List */}
@@ -394,61 +443,61 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                                             <p className="text-xs text-[#9CA3AF]/50 text-center py-2">Este módulo ainda não tem aulas.</p>
                                                         )}
 
-                                                        {module.lessons.map((lesson) => (
+                                                        {module.lessons.map((lesson) => {
+                                                            const thumbnailUrl = lesson.videoUrl ? getYouTubeThumbnail(lesson.videoUrl) : null;
+                                                            
+                                                            return (
                                                             <div key={lesson.id} className="p-4 rounded-lg border border-white/[0.06] bg-white/[0.02] space-y-3">
+                                                                {/* Lesson Header */}
                                                                 <div className="flex gap-4">
-                                                                    <div className="flex-1 space-y-1">
+                                                                    {/* Thumbnail Preview */}
+                                                                    {thumbnailUrl && (
+                                                                        <div className="w-32 h-20 rounded-lg overflow-hidden border border-white/[0.06] flex-shrink-0 bg-black">
+                                                                            <img src={thumbnailUrl} alt={lesson.title} className="w-full h-full object-cover" />
+                                                                        </div>
+                                                                    )}
+                                                                    
+                                                                    <div className="flex-1 space-y-3">
+                                                                        {/* Title */}
                                                                         <input
                                                                             type="text"
                                                                             value={lesson.title}
                                                                             onChange={(e) => updateLesson(module.id, lesson.id, { title: e.target.value })}
-                                                                            className="input-pluma w-full text-sm"
-                                                                            placeholder="Título da Aula"
+                                                                            className="input-pluma w-full text-sm font-medium"
+                                                                            placeholder="Nome da Aula"
                                                                         />
-                                                                    </div>
-                                                                    <div className="w-24 space-y-1">
+                                                                        
+                                                                        {/* Video URL */}
                                                                         <input
                                                                             type="text"
-                                                                            value={lesson.duration}
-                                                                            onChange={(e) => updateLesson(module.id, lesson.id, { duration: e.target.value })}
-                                                                            className="input-pluma w-full text-sm text-center"
-                                                                            placeholder="00:00"
+                                                                            value={lesson.videoUrl || ''}
+                                                                            onChange={(e) => updateLesson(module.id, lesson.id, { videoUrl: e.target.value })}
+                                                                            className="input-pluma w-full text-sm font-mono text-[#9CA3AF]"
+                                                                            placeholder="Link do Vídeo (YouTube, MP4, etc...)"
                                                                         />
                                                                     </div>
-                                                                    <div className="w-32 space-y-1">
-                                                                        <select
-                                                                            value={lesson.type}
-                                                                            onChange={(e) => updateLesson(module.id, lesson.id, { type: e.target.value as any })}
-                                                                            className="input-pluma w-full text-sm"
-                                                                        >
-                                                                            <option value="video">Vídeo</option>
-                                                                            <option value="audio">Áudio</option>
-                                                                            <option value="pdf">PDF</option>
-                                                                        </select>
-                                                                    </div>
+                                                                    
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => deleteLesson(module.id, lesson.id)}
-                                                                        className="text-[#9CA3AF] hover:text-red-500 transition-colors p-2 self-start mt-0.5"
+                                                                        className="text-[#9CA3AF] hover:text-red-500 transition-colors p-2 self-start"
                                                                         title="Excluir Aula"
                                                                     >
                                                                         <Trash size={16} />
                                                                     </button>
                                                                 </div>
 
-                                                                <div className="flex gap-4">
-                                                                    <div className="flex-1">
-                                                                        <input
-                                                                            type="text"
-                                                                            value={lesson.videoUrl || ''}
-                                                                            onChange={(e) => updateLesson(module.id, lesson.id, { videoUrl: e.target.value })}
-                                                                            className="input-pluma w-full text-sm font-mono text-[#9CA3AF]"
-                                                                            placeholder="URL do Conteúdo (YouTube, MP4, PDF...)"
-                                                                        />
-                                                                    </div>
-                                                                </div>
+                                                                {/* Description */}
+                                                                <textarea
+                                                                    value={lesson.description || ''}
+                                                                    onChange={(e) => updateLesson(module.id, lesson.id, { description: e.target.value })}
+                                                                    className="input-pluma w-full text-sm resize-none"
+                                                                    placeholder="Descrição da aula (opcional)"
+                                                                    rows={2}
+                                                                />
                                                             </div>
-                                                        ))}
+                                                            );
+                                                        })}
 
                                                         <button
                                                             type="button"

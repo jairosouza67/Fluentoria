@@ -12,9 +12,10 @@ import { auth } from '../lib/firebase';
 interface CourseDetailProps {
   onBack: () => void;
   course: Course | null;
+  selectedModule?: CourseModule | null;
 }
 
-const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
+const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedModule }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'media' | 'chat'>('content');
   const [activeLesson, setActiveLesson] = useState<CourseLesson | null>(null);
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
@@ -22,15 +23,19 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course }) => {
   const user = auth.currentUser;
 
   useEffect(() => {
-    if (course?.modules && course.modules.length > 0 && !activeLesson) {
-      // Default to first lesson of first module
+    // If a specific module was selected, use its first lesson
+    if (selectedModule && selectedModule.lessons && selectedModule.lessons.length > 0) {
+      setActiveLesson(selectedModule.lessons[0]);
+      setExpandedModules([selectedModule.id]);
+    } else if (course?.modules && course.modules.length > 0 && !activeLesson) {
+      // Default to first lesson of first module if no specific module selected
       const firstModule = course.modules[0];
       if (firstModule.lessons.length > 0) {
         setActiveLesson(firstModule.lessons[0]);
         setExpandedModules([firstModule.id]);
       }
     }
-  }, [course]);
+  }, [course, selectedModule]);
 
   useEffect(() => {
     // Log course started activity and load completion status

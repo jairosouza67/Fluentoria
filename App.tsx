@@ -9,6 +9,7 @@ import Settings from './components/Settings';
 import Auth from './components/Auth';
 import CourseList from './components/CourseList';
 import CourseDetail from './components/CourseDetail';
+import ModuleSelection from './components/ModuleSelection';
 // import DailyContact from './components/DailyContact';
 import MindfulFlowList from './components/MindfulFlowList';
 import MusicList from './components/MusicList';
@@ -22,7 +23,7 @@ import { Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-rea
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
-import { Course, getUserRole, forceUpdateUserRole } from './lib/db';
+import { Course, CourseModule, getUserRole, forceUpdateUserRole } from './lib/db';
 // import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null);
   // const [selectedDaily, setSelectedDaily] = useState<DailyContactType | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'student'>('student');
@@ -193,22 +195,52 @@ const App: React.FC = () => {
       case 'dashboard':
         return <StudentDashboard onNavigate={navigateTo} />;
       case 'courses':
-        return <CourseList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
+        return <CourseList onNavigate={navigateTo} onSelectCourse={(course) => {
+          setSelectedCourse(course);
+          navigateTo('module-selection');
+        }} />;
+      case 'module-selection':
+        return <ModuleSelection 
+          onBack={() => navigateTo('courses')} 
+          course={selectedCourse}
+          onSelectModule={(module) => {
+            setSelectedModule(module);
+            navigateTo('course-detail');
+          }}
+        />;
       case 'course-detail':
-        return <CourseDetail onBack={() => navigateTo('courses')} course={selectedCourse} />;
+        return <CourseDetail 
+          onBack={() => navigateTo('module-selection')} 
+          course={selectedCourse}
+          selectedModule={selectedModule}
+        />;
       // Daily Contact disabled
       // case 'daily':
       //   return <DailyContact onSelectDaily={(daily) => { setSelectedDaily(daily); navigateTo('daily-detail'); }} selectedDaily={null} />;
       // case 'daily-detail':
       //   return <DailyContact onBack={() => { setSelectedDaily(null); navigateTo('daily'); }} selectedDaily={selectedDaily} />;
       case 'mindful':
-        return <MindfulFlowList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
+        return <MindfulFlowList onNavigate={navigateTo} onSelectCourse={(course) => {
+          setSelectedCourse(course);
+          navigateTo('mindful-detail');
+        }} />;
       case 'mindful-detail':
-        return <CourseDetail onBack={() => navigateTo('mindful')} course={selectedCourse} />;
+        return <CourseDetail 
+          onBack={() => navigateTo('mindful')} 
+          course={selectedCourse}
+          selectedModule={null}
+        />;
       case 'music':
-        return <MusicList onNavigate={navigateTo} onSelectCourse={setSelectedCourse} />;
+        return <MusicList onNavigate={navigateTo} onSelectCourse={(course) => {
+          setSelectedCourse(course);
+          navigateTo('music-detail');
+        }} />;
       case 'music-detail':
-        return <CourseDetail onBack={() => navigateTo('music')} course={selectedCourse} />;
+        return <CourseDetail 
+          onBack={() => navigateTo('music')} 
+          course={selectedCourse}
+          selectedModule={null}
+        />;
       case 'profile':
         return <Profile />;
       case 'achievements':
