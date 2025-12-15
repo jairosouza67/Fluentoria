@@ -67,11 +67,34 @@ const AdminCatalog: React.FC = () => {
   }, [activeTab]);
 
   const handleSaveCourse = async (course: Course) => {
-    if (activeTab === 'courses') {
+    if (activeTab === 'courses' || activeTab === 'gallery') {
       if (editingCourse && editingCourse.id) {
+        // Editing existing course
         await updateCourse(editingCourse.id, course);
       } else {
-        await addCourse(course);
+        // Creating new content with galleries
+        if (course.galleries && course.galleries.length > 0) {
+          // Check if there's already a main container course
+          const existingCourses = await getCourses();
+          const mainCourse = existingCourses.find(c => 
+            c.galleries && c.galleries.length > 0 && c.title === course.title
+          );
+
+          if (mainCourse && mainCourse.id) {
+            // Add galleries to existing course
+            const updatedGalleries = [...(mainCourse.galleries || []), ...course.galleries];
+            await updateCourse(mainCourse.id, {
+              ...mainCourse,
+              galleries: updatedGalleries
+            });
+          } else {
+            // Create new course with galleries
+            await addCourse(course);
+          }
+        } else {
+          // Regular course creation
+          await addCourse(course);
+        }
       }
       await fetchCourses();
     } else if (activeTab === 'mindful') {
@@ -338,7 +361,7 @@ const AdminCatalog: React.FC = () => {
                     onClick={() => handleViewCourse(course)}
                     className="border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary px-4 py-2 rounded-lg text-sm font-medium border transition-all"
                   >
-                    Acessar
+                    {activeTab === 'courses' ? 'Acessar Galeria' : activeTab === 'gallery' ? 'Ver Galerias' : 'Acessar'}
                   </button>
                 </div>
               </div>

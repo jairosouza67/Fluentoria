@@ -79,6 +79,13 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                 // Clear old modules array if using galleries
                 if (dataToSave.galleries && dataToSave.galleries.length > 0) {
                     dataToSave.modules = [];
+                    // Auto-fill title and author for gallery container if not editing
+                    if (!course && !dataToSave.title) {
+                        dataToSave.title = 'Minhas Galerias'; // Fixed container name
+                    }
+                    if (!course && !dataToSave.author) {
+                        dataToSave.author = 'Instrutor';
+                    }
                 }
             } else {
                 dataToSave.modules = []; // Clear modules if in single mode
@@ -404,7 +411,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                 <div className="flex items-center justify-between p-6 border-b border-white/[0.06] sticky top-0 bg-[#111111] z-10">
                     <div className="flex-1">
                         <h2 className="text-xl font-bold text-[#F3F4F6]">
-                            {course ? 'Editar Conteúdo' : contentType === 'video' ? 'Novo Vídeo Solto' : 'Novo Curso'}
+                            {course ? 'Editar Conteúdo' : contentType === 'video' ? 'Novo Vídeo Solto' : 'Criar Galerias'}
                         </h2>
                         {!course && contentType === 'module' && (
                             <button
@@ -427,7 +434,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                 }}
                                 className="text-xs text-[#9CA3AF] hover:text-[#FF6A00] mt-1 transition-colors"
                             >
-                                ou criar curso com galerias
+                                ou criar galerias
                             </button>
                         )}
                     </div>
@@ -441,84 +448,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                     {/* MODULE TYPE - Simplified fields */}
                     {contentType === 'module' && (
                         <>
-                            {/* Basic Module Info */}
-                            <div className="space-y-6">
-                                <h3 className="text-sm font-semibold text-[#FF6A00] uppercase tracking-wider">Informações do Curso</h3>
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-[#9CA3AF]">Título do Curso *</label>
-                                        <input
-                                            type="text"
-                                            value={formData.title}
-                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                            className="input-pluma w-full"
-                                            required
-                                            placeholder="Ex: Curso Completo de Inglês"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-[#9CA3AF]">Autor *</label>
-                                        <input
-                                            type="text"
-                                            value={formData.author}
-                                            onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                                            className="input-pluma w-full"
-                                            required
-                                            placeholder="Nome do instrutor"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-[#9CA3AF]">Capa do Curso</label>
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                value={formData.coverImage || ''}
-                                                onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                                                className="input-pluma flex-1 text-sm"
-                                                placeholder="URL da imagem ou fazer upload"
-                                            />
-                                            <label className="btn-secondary-pluma cursor-pointer px-4 flex items-center gap-2">
-                                                {uploadingCover ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-                                                Upload
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    className="hidden"
-                                                    onChange={handleCoverUpload}
-                                                />
-                                            </label>
-                                        </div>
-                                        {formData.coverImage && (
-                                            <div className="mt-2 relative w-40 h-24 rounded-lg overflow-hidden border border-white/[0.1]">
-                                                <img src={formData.coverImage} alt="Preview" className="w-full h-full object-cover" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormData({ ...formData, coverImage: '' })}
-                                                    className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white hover:bg-red-500/80 transition-colors"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-[#9CA3AF]">Descrição</label>
-                                        <textarea
-                                            value={formData.description || ''}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                            className="input-pluma w-full h-20 resize-none text-sm"
-                                            placeholder="Breve descrição do curso"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="h-px bg-white/[0.06]" />
-
-                            {/* Galleries Section */}
+                            {/* Galleries Section - Direct creation */}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-semibold text-[#FF6A00] uppercase tracking-wider">Galerias, Módulos e Aulas</h3>
