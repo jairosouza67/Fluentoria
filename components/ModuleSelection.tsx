@@ -5,11 +5,12 @@ import { Course, CourseModule, CourseGallery } from '../lib/db';
 interface ModuleSelectionProps {
   onBack: () => void;
   course: Course | null;
+  gallery?: CourseGallery | null;
   onSelectModule: (module: CourseModule) => void;
 }
 
-const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, onSelectModule }) => {
-  const [selectedGallery, setSelectedGallery] = useState<CourseGallery | null>(null);
+const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, gallery, onSelectModule }) => {
+  const [selectedGallery, setSelectedGallery] = useState<CourseGallery | null>(gallery || null);
 
   if (!course) {
     return (

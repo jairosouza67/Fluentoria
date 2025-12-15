@@ -5,6 +5,7 @@ export type Screen =
   | 'auth'
   | 'dashboard'
   | 'courses'
+  | 'gallery'
   | 'module-selection'
   | 'course-detail'
   // | 'daily' // Daily Contact disabled

@@ -8,6 +8,7 @@ import FinancialReports from './components/FinancialReports';
 import Settings from './components/Settings';
 import Auth from './components/Auth';
 import CourseList from './components/CourseList';
+import GalleryList from './components/GalleryList';
 import CourseDetail from './components/CourseDetail';
 import ModuleSelection from './components/ModuleSelection';
 // import DailyContact from './components/DailyContact';
@@ -23,7 +24,7 @@ import { Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-rea
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
-import { Course, CourseModule, getUserRole, forceUpdateUserRole } from './lib/db';
+import { Course, CourseModule, CourseGallery, getUserRole, forceUpdateUserRole } from './lib/db';
 // import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
@@ -32,6 +33,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedGallery, setSelectedGallery] = useState<CourseGallery | null>(null);
   const [selectedModule, setSelectedModule] = useState<CourseModule | null>(null);
   // const [selectedDaily, setSelectedDaily] = useState<DailyContactType | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -197,12 +199,22 @@ const App: React.FC = () => {
       case 'courses':
         return <CourseList onNavigate={navigateTo} onSelectCourse={(course) => {
           setSelectedCourse(course);
-          navigateTo('module-selection');
+          navigateTo('gallery');
         }} />;
+      case 'gallery':
+        return <GalleryList 
+          onNavigate={navigateTo}
+          onSelectGallery={(gallery, course) => {
+            setSelectedGallery(gallery);
+            setSelectedCourse(course);
+            navigateTo('module-selection');
+          }}
+        />;
       case 'module-selection':
         return <ModuleSelection 
-          onBack={() => navigateTo('courses')} 
+          onBack={() => navigateTo('gallery')} 
           course={selectedCourse}
+          gallery={selectedGallery}
           onSelectModule={(module) => {
             setSelectedModule(module);
             navigateTo('course-detail');

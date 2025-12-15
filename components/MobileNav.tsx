@@ -59,7 +59,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
             <NavItem
                 icon={<BookOpen size={20} />}
                 label="Cursos"
-                active={currentScreen === 'courses' || currentScreen === 'module-selection' || currentScreen === 'course-detail'}
+                active={currentScreen === 'courses' || currentScreen === 'gallery' || currentScreen === 'module-selection' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
             />
             {/* Daily Contact disabled */}
