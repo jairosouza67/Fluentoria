@@ -321,7 +321,7 @@ const Settings: React.FC = () => {
 
   const tabs = [
     { id: 'users', label: 'Usuários & Permissões', icon: Users },
-    { id: 'courses', label: 'Cursos & Conteúdo', icon: BookOpen },
+    { id: 'courses', label: 'Aulas & Conteúdo', icon: BookOpen },
     { id: 'gamification', label: 'Gamificação', icon: Trophy },
   ];
 
@@ -713,7 +713,7 @@ const Settings: React.FC = () => {
           <>
             {/* Course Defaults */}
             <SettingSection
-              title="Configurações Padrão de Cursos"
+              title="Configurações Padrão de Aulas"
               description="Defina configurações padrão para novos cursos"
               icon={BookOpen}
               expanded={expandedSections.courseDefaults}

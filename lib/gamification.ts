@@ -322,7 +322,7 @@ export const getDefaultAchievements = (): Achievement[] => {
     },
     {
       id: 'course_master',
-      title: 'Mestre dos Cursos',
+      title: 'Mestre das Aulas',
       description: 'Complete 10 aulas',
       icon: '🏆',
       xpReward: 200,

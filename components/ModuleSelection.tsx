@@ -43,7 +43,7 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
             className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] mb-6 transition-colors"
           >
             <ArrowLeft size={20} />
-            <span className="text-sm font-medium">Voltar aos Cursos</span>
+            <span className="text-sm font-medium">Voltar às Aulas</span>
           </button>
 
           <div className="flex items-start gap-6">
@@ -168,7 +168,7 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
           className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] mb-6 transition-colors"
         >
           <ArrowLeft size={20} />
-          <span className="text-sm font-medium">{selectedGallery ? 'Voltar às Galerias' : 'Voltar aos Cursos'}</span>
+          <span className="text-sm font-medium">{selectedGallery ? 'Voltar às Galerias' : 'Voltar às Aulas'}</span>
         </button>
 
         <div className="flex items-start gap-6">

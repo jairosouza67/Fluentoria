@@ -160,7 +160,7 @@ const AdminCatalog: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             {activeTab === 'courses' && 'Minhas Aulas'}
-            {activeTab === 'gallery' && 'Galeria de Cursos'}
+            {activeTab === 'gallery' && 'Galeria de Aulas'}
             {/* {activeTab === 'daily' && 'Daily Contact'} */}
             {activeTab === 'mindful' && 'Mindful Flow'}
             {activeTab === 'music' && 'Músicas'}
@@ -188,7 +188,7 @@ const AdminCatalog: React.FC = () => {
             : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
         >
-          Curso
+          Aulas
         </button>
         <button
           onClick={() => {

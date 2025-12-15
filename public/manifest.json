@@ -76,7 +76,7 @@
       ]
     },
     {
-      "name": "Cursos",
+      "name": "Aulas",
       "short_name": "Courses",
       "description": "Ver todos os módulos de aprendizado",
       "url": "/?shortcut=courses",

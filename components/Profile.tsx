@@ -220,7 +220,7 @@ const Profile: React.FC = () => {
               </div>
               <div>
                 <p className="text-lg font-bold text-white">{stats.completedCourses}</p>
-                <p className="text-xs text-stone-500">Cursos Completos</p>
+                <p className="text-xs text-stone-500">Aulas Completos</p>
               </div>
             </div>
 

@@ -43,7 +43,7 @@ const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery }
     <div className="p-8 max-w-container mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-[44px] leading-[1.05] font-bold text-[#F3F4F6]">Galeria de Cursos</h1>
+          <h1 className="text-[44px] leading-[1.05] font-bold text-[#F3F4F6]">Galeria de Aulas</h1>
           <p className="text-[#9CA3AF] mt-1">Explore as galerias disponíveis e escolha seus módulos.</p>
         </div>
 

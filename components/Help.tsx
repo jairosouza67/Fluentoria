@@ -28,7 +28,7 @@ const Help: React.FC = () => {
       ],
     },
     {
-      title: 'Gerenciamento de Cursos',
+      title: 'Gerenciamento de Aulas',
       icon: Video,
       questions: [
         'Como organizar módulos e aulas?',
