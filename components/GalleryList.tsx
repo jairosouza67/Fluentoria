@@ -97,15 +97,17 @@ const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery }
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                     </>
                   ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] opacity-20" />
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-br from-orange-900 to-stone-900" />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                      {/* Gallery Icon - only shown when no cover image */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20">
+                          <ImageIcon size={32} className="text-white" />
+                        </div>
+                      </div>
+                    </>
                   )}
-                  
-                  {/* Gallery Icon */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20">
-                      <ImageIcon size={32} className="text-white" />
-                    </div>
-                  </div>
                 </div>
 
                 {/* Content */}
@@ -138,7 +140,7 @@ const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery }
                   </div>
 
                   <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200 flex items-center justify-center gap-2">
-                    Explorar Galeria
+                    Acessar Galeria
                     <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>

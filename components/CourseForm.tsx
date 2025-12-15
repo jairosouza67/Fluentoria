@@ -448,6 +448,56 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                     {/* MODULE TYPE - Simplified fields */}
                     {contentType === 'module' && (
                         <>
+                            {/* Course Main Info */}
+                            <div className="space-y-6">
+                                <h3 className="text-sm font-semibold text-[#FF6A00] uppercase tracking-wider">Informações do Curso</h3>
+                                
+                                {/* Course Title */}
+                                <div>
+                                    <label className="text-xs text-[#9CA3AF] mb-1 block">Nome do Curso</label>
+                                    <input
+                                        type="text"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                        className="input-pluma w-full"
+                                        placeholder="Ex: Curso de Inglês Avançado"
+                                        required
+                                    />
+                                </div>
+
+                                {/* Course Cover Image */}
+                                <div className="flex items-start gap-4">
+                                    {formData.coverImage && (
+                                        <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/[0.06] flex-shrink-0">
+                                            <img src={formData.coverImage} alt={formData.title} className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <label className="text-xs text-[#9CA3AF] mb-1 block">Imagem de Capa do Curso (Pasta Principal)</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={formData.coverImage || ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, coverImage: e.target.value }))}
+                                                className="input-pluma flex-1 text-sm"
+                                                placeholder="URL da imagem ou fazer upload"
+                                            />
+                                            <label className="btn-secondary-pluma cursor-pointer px-3 flex items-center gap-2 text-sm">
+                                                <Upload size={16} />
+                                                Upload
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={handleCoverUpload}
+                                                />
+                                            </label>
+                                        </div>
+                                        <p className="text-xs text-[#9CA3AF]/50 mt-1">Esta imagem será exibida como capa principal do curso na listagem</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Galleries Section - Direct creation */}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
