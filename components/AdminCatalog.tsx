@@ -180,7 +180,7 @@ const AdminCatalog: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-border">
+      <div className="flex flex-wrap justify-center md:justify-start gap-2 border-b border-border">
         <button
           onClick={() => setActiveTab('courses')}
           className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'courses'
