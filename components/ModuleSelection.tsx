@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, PlayCircle, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { Course, CourseModule, CourseGallery } from '../lib/db';
 
@@ -11,6 +11,11 @@ interface ModuleSelectionProps {
 
 const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, gallery, onSelectModule }) => {
   const [selectedGallery, setSelectedGallery] = useState<CourseGallery | null>(gallery || null);
+
+  // Update selectedGallery when gallery prop changes
+  useEffect(() => {
+    setSelectedGallery(gallery || null);
+  }, [gallery]);
 
   if (!course) {
     return (
@@ -164,7 +169,7 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => selectedGallery ? setSelectedGallery(null) : onBack()}
+          onClick={onBack}
           className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] mb-6 transition-colors"
         >
           <ArrowLeft size={20} />
