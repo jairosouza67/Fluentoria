@@ -31,7 +31,7 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
   );
 
   return (
-    <div className="p-8 max-w-container mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="p-8 max-w-container lg:max-w-[1320px] mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-[44px] leading-[1.05] font-bold text-[#F3F4F6]">Minhas Aulas</h1>
@@ -61,7 +61,7 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
       ) : (
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Courses - Left side */}
-          <div className="w-full lg:w-[420px] lg:flex-none grid grid-cols-1 gap-6">
+          <div className="w-full lg:w-[360px] lg:flex-none grid grid-cols-1 gap-6">
             {filteredCourses.map((course) => {
               // Priority: 1. coverImage, 2. YouTube thumbnail, 3. gradient
               const coverImage = course.coverImage;
@@ -129,7 +129,7 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
 
           {/* Welcome Section - Right side */}
           <div className="min-w-0 flex-1">
-            <div className="sticky top-8 bg-gradient-to-br from-[#FF6A00]/10 via-[#1A1A1A] to-[#0B0B0B] border border-[#FF6A00]/20 rounded-xl p-8 shadow-elevated">
+            <div className="sticky top-8 max-h-[calc(100vh-4rem)] overflow-y-auto bg-gradient-to-br from-[#FF6A00]/10 via-[#1A1A1A] to-[#0B0B0B] border border-[#FF6A00]/20 rounded-xl p-8 shadow-elevated">
               {/* Header */}
               <div className="mb-6">
                 <h2 className="text-3xl font-bold text-[#F3F4F6] mb-2">
