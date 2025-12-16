@@ -191,6 +191,25 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
       // Create customer first
       const customerId = await createAsaasCustomer();
 
+      // Store customer ID in user profile
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          await fetch('/api/update-user-customer-id', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.uid,
+              customerId: customerId
+            })
+          });
+        }
+      } catch (error) {
+        console.error('Error storing customer ID:', error);
+      }
+
       // Then create payment
       const payment = await createAsaasPayment(customerId);
 
