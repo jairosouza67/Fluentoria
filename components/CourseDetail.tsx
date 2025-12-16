@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
+import { formatFileSize } from '../lib/media';
 import CourseChat from './CourseChat';
 import MediaUpload from './MediaUpload';
 import { logActivity } from '../lib/attendance';
@@ -277,6 +278,47 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               {currentDescription || 'Descrição não disponível.'}
             </p>
           </div>
+
+          {/* Support Materials Section */}
+          {activeLesson?.supportMaterials && activeLesson.supportMaterials.length > 0 && (
+            <div className="mt-6 p-6 bg-[#111111] border border-white/[0.06] rounded-xl">
+              <h3 className="text-lg font-semibold text-[#F3F4F6] mb-4 flex items-center gap-2">
+                <Paperclip size={20} className="text-[#FF6A00]" />
+                Materiais de Apoio
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {activeLesson.supportMaterials.map((material) => {
+                  const icon = material.type === 'pdf' ? <FileText size={18} /> :
+                             material.type === 'image' ? <ImageIcon size={18} /> :
+                             <Mic size={18} />;
+                  
+                  return (
+                    <a
+                      key={material.id}
+                      href={material.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="flex items-center gap-3 p-4 bg-white/[0.02] border border-white/[0.06] rounded-lg hover:bg-white/[0.04] hover:border-[#FF6A00]/50 transition-all duration-200 group"
+                    >
+                      <div className="text-[#FF6A00] group-hover:scale-110 transition-transform">
+                        {icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#F3F4F6] truncate group-hover:text-[#FF6A00] transition-colors">
+                          {material.name}
+                        </p>
+                        {material.size && (
+                          <p className="text-xs text-[#9CA3AF]">{formatFileSize(material.size)}</p>
+                        )}
+                      </div>
+                      <Download size={16} className="text-[#9CA3AF] group-hover:text-[#FF6A00] transition-colors" />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar Context (Tabs) */}

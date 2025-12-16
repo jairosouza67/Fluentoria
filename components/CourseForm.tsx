@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film, Upload, Image as ImageIcon, Clock } from 'lucide-react';
-import { Course, CourseModule, CourseLesson, CourseGallery } from '../lib/db';
-import { uploadCourseCover } from '../lib/media';
+import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film, Upload, Image as ImageIcon, Clock, Paperclip, File } from 'lucide-react';
+import { Course, CourseModule, CourseLesson, CourseGallery, SupportMaterial } from '../lib/db';
+import { uploadCourseCover, uploadSupportMaterial, formatFileSize } from '../lib/media';
 import { getYouTubeThumbnail, formatDuration } from '../lib/video';
 
 interface CourseFormProps {
@@ -35,6 +35,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
     const [contentType, setContentType] = useState<ContentType>(null);
     const [coverType, setCoverType] = useState<'link' | 'upload'>('link');
     const [uploadingCover, setUploadingCover] = useState(false);
+    const [uploadingMaterial, setUploadingMaterial] = useState<{[key: string]: boolean}>({});
 
     useEffect(() => {
         if (course) {
@@ -424,6 +425,103 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         }
     };
 
+    const handleSupportMaterialUpload = async (
+        file: File,
+        galleryId: string,
+        moduleId: string,
+        lessonId: string
+    ) => {
+        const uploadKey = `${galleryId}-${moduleId}-${lessonId}`;
+        setUploadingMaterial(prev => ({ ...prev, [uploadKey]: true }));
+        
+        try {
+            const courseId = formData.id || 'temp';
+            const url = await uploadSupportMaterial(file, courseId, lessonId);
+            
+            if (url) {
+                // Determine file type
+                let materialType: 'pdf' | 'image' | 'audio' = 'pdf';
+                if (file.type.startsWith('image/')) materialType = 'image';
+                else if (file.type.startsWith('audio/')) materialType = 'audio';
+                
+                const newMaterial: SupportMaterial = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    name: file.name,
+                    url: url,
+                    type: materialType,
+                    size: file.size,
+                    uploadedAt: new Date().toISOString()
+                };
+                
+                // Update lesson with new material
+                setFormData(prev => ({
+                    ...prev,
+                    galleries: prev.galleries?.map(g =>
+                        g.id === galleryId
+                            ? {
+                                ...g,
+                                modules: g.modules.map(m =>
+                                    m.id === moduleId
+                                        ? {
+                                            ...m,
+                                            lessons: m.lessons.map(l =>
+                                                l.id === lessonId
+                                                    ? {
+                                                        ...l,
+                                                        supportMaterials: [...(l.supportMaterials || []), newMaterial]
+                                                    }
+                                                    : l
+                                            )
+                                        }
+                                        : m
+                                )
+                            }
+                            : g
+                    )
+                }));
+            }
+        } catch (error) {
+            console.error('Error uploading support material:', error);
+        } finally {
+            setUploadingMaterial(prev => ({ ...prev, [uploadKey]: false }));
+        }
+    };
+
+    const removeSupportMaterial = (
+        galleryId: string,
+        moduleId: string,
+        lessonId: string,
+        materialId: string
+    ) => {
+        if (!confirm('Remover este material de apoio?')) return;
+        
+        setFormData(prev => ({
+            ...prev,
+            galleries: prev.galleries?.map(g =>
+                g.id === galleryId
+                    ? {
+                        ...g,
+                        modules: g.modules.map(m =>
+                            m.id === moduleId
+                                ? {
+                                    ...m,
+                                    lessons: m.lessons.map(l =>
+                                        l.id === lessonId
+                                            ? {
+                                                ...l,
+                                                supportMaterials: l.supportMaterials?.filter(mat => mat.id !== materialId)
+                                            }
+                                            : l
+                                    )
+                                }
+                                : m
+                        )
+                    }
+                    : g
+            )
+        }));
+    };
+
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-[#111111] border border-white/[0.06] rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-elevated">
@@ -785,6 +883,75 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                                                                     placeholder="Descrição da aula (opcional)"
                                                                                     rows={2}
                                                                                 />
+
+                                                                                {/* Support Materials Section */}
+                                                                                <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                                                                                    <div className="flex items-center justify-between mb-3">
+                                                                                        <label className="text-xs font-medium text-[#9CA3AF] flex items-center gap-2">
+                                                                                            <Paperclip size={14} />
+                                                                                            Materiais de Apoio
+                                                                                        </label>
+                                                                                        <label className="btn-secondary-pluma cursor-pointer px-3 py-1.5 flex items-center gap-2 text-xs">
+                                                                                            {uploadingMaterial[`${gallery.id}-${module.id}-${lesson.id}`] ? (
+                                                                                                <Loader2 className="animate-spin" size={14} />
+                                                                                            ) : (
+                                                                                                <Plus size={14} />
+                                                                                            )}
+                                                                                            Adicionar
+                                                                                            <input
+                                                                                                type="file"
+                                                                                                accept=".pdf,image/*,audio/*"
+                                                                                                className="hidden"
+                                                                                                onChange={(e) => {
+                                                                                                    if (e.target.files?.[0]) {
+                                                                                                        handleSupportMaterialUpload(
+                                                                                                            e.target.files[0],
+                                                                                                            gallery.id,
+                                                                                                            module.id,
+                                                                                                            lesson.id
+                                                                                                        );
+                                                                                                        e.target.value = '';
+                                                                                                    }
+                                                                                                }}
+                                                                                            />
+                                                                                        </label>
+                                                                                    </div>
+
+                                                                                    {/* Materials List */}
+                                                                                    {lesson.supportMaterials && lesson.supportMaterials.length > 0 ? (
+                                                                                        <div className="space-y-2">
+                                                                                            {lesson.supportMaterials.map((material) => {
+                                                                                                const icon = material.type === 'pdf' ? <FileText size={14} /> :
+                                                                                                           material.type === 'image' ? <ImageIcon size={14} /> :
+                                                                                                           <Mic size={14} />;
+                                                                                                
+                                                                                                return (
+                                                                                                    <div
+                                                                                                        key={material.id}
+                                                                                                        className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.02] border border-white/[0.06] text-xs"
+                                                                                                    >
+                                                                                                        <div className="text-[#FF6A00]">{icon}</div>
+                                                                                                        <div className="flex-1 min-w-0">
+                                                                                                            <p className="text-[#F3F4F6] truncate font-medium">{material.name}</p>
+                                                                                                            {material.size && (
+                                                                                                                <p className="text-[#9CA3AF] text-xs">{formatFileSize(material.size)}</p>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            onClick={() => removeSupportMaterial(gallery.id, module.id, lesson.id, material.id)}
+                                                                                                            className="text-[#9CA3AF] hover:text-red-500 transition-colors p-1"
+                                                                                                        >
+                                                                                                            <X size={14} />
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            })}
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <p className="text-xs text-[#9CA3AF]/50 text-center py-2">Nenhum material anexado</p>
+                                                                                    )}
+                                                                                </div>
                                                                             </div>
                                                                             );
                                                                         })}

@@ -294,3 +294,75 @@ export const formatFileSize = (bytes: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
+
+/**
+ * Upload support material for lessons (PDFs, images, audio)
+ */
+export const uploadSupportMaterial = async (
+  file: File,
+  courseId: string,
+  lessonId: string,
+  onProgress?: (progress: number) => void
+): Promise<string | null> => {
+  try {
+    // Validate file
+    if (!file) {
+      alert('Nenhum arquivo selecionado');
+      return null;
+    }
+
+    // Check file type
+    const fileType = file.type;
+    const isValidType = 
+      fileType.startsWith('image/') || 
+      fileType.startsWith('audio/') || 
+      fileType === 'application/pdf';
+    
+    if (!isValidType) {
+      alert('Tipo de arquivo não permitido. Use PDF, imagem ou áudio.');
+      return null;
+    }
+
+    // Check file size (max 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      alert('Arquivo muito grande. Tamanho máximo: 50MB');
+      return null;
+    }
+
+    // Create storage reference
+    const storagePath = `support-materials/${courseId}/${lessonId}/${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, storagePath);
+
+    // Upload file
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (onProgress) onProgress(progress);
+        },
+        (error) => {
+          console.error('Upload error:', error);
+          alert('Erro ao fazer upload do arquivo');
+          reject(error);
+        },
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolve(downloadURL);
+          } catch (error) {
+            console.error('Error getting download URL:', error);
+            reject(error);
+          }
+        }
+      );
+    });
+  } catch (error) {
+    console.error('Upload support material error:', error);
+    alert('Erro ao fazer upload do material de apoio');
+    return null;
+  }
+};

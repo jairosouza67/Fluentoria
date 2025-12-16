@@ -8,6 +8,16 @@ export interface CourseLesson {
     videoUrl?: string;
     type: 'video' | 'audio' | 'pdf';
     description?: string;
+    supportMaterials?: SupportMaterial[];
+}
+
+export interface SupportMaterial {
+    id: string;
+    name: string;
+    url: string;
+    type: 'pdf' | 'image' | 'audio';
+    size?: number;
+    uploadedAt?: string;
 }
 
 export interface CourseModule {
