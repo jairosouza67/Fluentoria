@@ -303,12 +303,21 @@ const App: React.FC = () => {
               >
                 <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white/10 group-hover:ring-[#FF6A00] transition-all duration-200 shadow-lg">
                   {user?.photoURL ? (
-                    <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[#FF6A00] to-[#E15B00] flex items-center justify-center text-white text-sm font-bold">
-                      {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </div>
-                  )}
+                    <img 
+                      src={user.photoURL} 
+                      alt="User" 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        // Hide image on error to show fallback
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+                  {/* Fallback initial - always rendered but behind image */}
+                  <div className={`absolute inset-0 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] flex items-center justify-center text-white text-sm font-bold ${user?.photoURL ? 'z-[-1]' : ''}`}>
+                    {user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </div>
                 </div>
               </button>
 

@@ -449,9 +449,11 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<vo
                 console.log('Created new user with role:', role);
             }
         } else {
-            // Update last login
+            // Update last login and photo URL (in case it changed)
             await updateDoc(userRef, {
                 lastLogin: new Date(),
+                ...(userData.photoURL && { photoURL: userData.photoURL }),
+                ...(userData.displayName && { displayName: userData.displayName }),
             });
         }
     } catch (error) {

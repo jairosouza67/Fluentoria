@@ -182,6 +182,7 @@ const Profile: React.FC = () => {
                 src={userPhoto}
                 alt="Profile" 
                 className="w-full h-full rounded-full border-4 border-stone-800 object-cover"
+                referrerPolicy="no-referrer"
               />
               <button 
                 onClick={handlePhotoChange}
