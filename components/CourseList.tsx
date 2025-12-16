@@ -59,9 +59,9 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
           <Loader2 className="animate-spin text-[#FF6A00]" size={40} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Courses Grid - Left side (2 columns on large screens) */}
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Courses - Left side */}
+          <div className="w-full lg:w-[420px] lg:flex-none grid grid-cols-1 gap-6">
             {filteredCourses.map((course) => {
               // Priority: 1. coverImage, 2. YouTube thumbnail, 3. gradient
               const coverImage = course.coverImage;
@@ -127,8 +127,8 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
             })}
           </div>
 
-          {/* Welcome Section - Right side (1 column on large screens) */}
-          <div className="lg:col-span-1">
+          {/* Welcome Section - Right side */}
+          <div className="min-w-0 flex-1">
             <div className="sticky top-8 bg-gradient-to-br from-[#FF6A00]/10 via-[#1A1A1A] to-[#0B0B0B] border border-[#FF6A00]/20 rounded-xl p-8 shadow-elevated">
               {/* Header */}
               <div className="mb-6">
