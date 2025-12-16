@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete } from '../lib/db';
-import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl } from '../lib/video';
+import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
 import CourseChat from './CourseChat';
 import MediaUpload from './MediaUpload';
 import { logActivity } from '../lib/attendance';
@@ -21,6 +21,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [lessonDurations, setLessonDurations] = useState<{[key: string]: string}>({});
+  const videoRef = useRef<HTMLVideoElement>(null);
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -66,6 +68,61 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
 
     initializeCourse();
   }, [user, course?.id]);
+
+  // Capture video duration when video loads
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    if (videoElement && activeLesson?.id) {
+      const handleLoadedMetadata = () => {
+        const duration = formatDuration(videoElement.duration);
+        if (duration && duration !== '00:00') {
+          setLessonDurations(prev => ({
+            ...prev,
+            [activeLesson.id]: duration
+          }));
+        }
+      };
+      
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => {
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      };
+    }
+  }, [activeLesson?.id, activeLesson?.videoUrl]);
+
+  // Try to capture duration for direct video URLs
+  useEffect(() => {
+    if (activeLesson?.videoUrl && activeLesson.id) {
+      const videoUrl = activeLesson.videoUrl;
+      
+      // Skip YouTube and Drive URLs as they use iframes
+      if (isYouTubeUrl(videoUrl) || isGoogleDriveUrl(videoUrl)) {
+        return;
+      }
+      
+      // Try to load direct video URLs (MP4, etc)
+      if (videoUrl.match(/\.(mp4|webm|ogg)$/i)) {
+        const video = document.createElement('video');
+        video.src = videoUrl;
+        video.preload = 'metadata';
+        
+        video.onloadedmetadata = () => {
+          const duration = formatDuration(video.duration);
+          if (duration && duration !== '00:00') {
+            setLessonDurations(prev => ({
+              ...prev,
+              [activeLesson.id]: duration
+            }));
+          }
+          video.remove();
+        };
+        
+        video.onerror = () => {
+          video.remove();
+        };
+      }
+    }
+  }, [activeLesson?.id, activeLesson?.videoUrl]);
 
   const handleMarkComplete = async () => {
     if (!user || !course?.id) return;
@@ -170,6 +227,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
             ) : course.videoUrl ? (
               <div className="w-full h-full flex items-center justify-center">
                 <video
+                  ref={videoRef}
                   className="w-full h-full"
                   controls
                   src={course.videoUrl}
@@ -291,6 +349,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                                   <div className="border-t border-white/[0.06] bg-black/30">
                                     {module.lessons.map(lesson => {
                                       const isActive = activeLesson?.id === lesson.id;
+                                      const displayDuration = lessonDurations[lesson.id] || lesson.duration || '00:00';
                                       return (
                                         <button
                                           key={lesson.id}
@@ -309,7 +368,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                                             <h4 className={`text-xs font-medium ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
                                               {lesson.title}
                                             </h4>
-                                            <span className="text-xs text-[#9CA3AF]/60">{lesson.duration}</span>
+                                            {displayDuration !== '00:00' && (
+                                              <span className="text-xs text-[#9CA3AF]/60">{displayDuration}</span>
+                                            )}
                                           </div>
                                         </button>
                                       );
@@ -344,6 +405,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                           <div className="border-t border-white/[0.06] bg-black/20">
                             {module.lessons.map(lesson => {
                               const isActive = activeLesson?.id === lesson.id;
+                              const displayDuration = lessonDurations[lesson.id] || lesson.duration || '00:00';
                               return (
                                 <button
                                   key={lesson.id}
@@ -362,7 +424,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                                     <h4 className={`text-sm font-medium ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF] group-hover:text-[#F3F4F6]'}`}>
                                       {lesson.title}
                                     </h4>
-                                    <span className="text-xs text-[#9CA3AF]/60">{lesson.duration}</span>
+                                    {displayDuration !== '00:00' && (
+                                      <span className="text-xs text-[#9CA3AF]/60">{displayDuration}</span>
+                                    )}
                                   </div>
                                 </button>
                               );

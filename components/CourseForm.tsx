@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Save, Loader2, Plus, Trash, ChevronDown, ChevronRight, Video, Mic, FileText, Layers, Film, Upload, Image as ImageIcon, Clock } from 'lucide-react';
 import { Course, CourseModule, CourseLesson, CourseGallery } from '../lib/db';
 import { uploadCourseCover } from '../lib/media';
-import { getYouTubeThumbnail } from '../lib/video';
+import { getYouTubeThumbnail, formatDuration } from '../lib/video';
 
 interface CourseFormProps {
     course?: Course | null;
@@ -389,6 +389,25 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         }
     };
 
+    const capturVideoDuration = (videoUrl: string, galleryId: string, moduleId: string, lessonId: string) => {
+        if (!videoUrl) return;
+
+        const video = document.createElement('video');
+        video.src = videoUrl;
+        video.preload = 'metadata';
+        
+        video.onloadedmetadata = () => {
+            const duration = formatDuration(video.duration);
+            updateLessonInGallery(galleryId, moduleId, lessonId, { duration });
+            video.remove();
+        };
+        
+        video.onerror = () => {
+            console.error('Error loading video metadata');
+            video.remove();
+        };
+    };
+
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setUploadingCover(true);
@@ -724,6 +743,28 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                                                                             className="input-pluma w-full text-sm font-mono text-[#9CA3AF]"
                                                                                             placeholder="Link do Vídeo (YouTube, MP4, etc...)"
                                                                                         />
+                                                                                        
+                                                                                        {/* Duration Field */}
+                                                                                        <div className="flex gap-2">
+                                                                                            <input
+                                                                                                type="text"
+                                                                                                value={lesson.duration || '00:00'}
+                                                                                                onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { duration: e.target.value })}
+                                                                                                className="input-pluma w-32 text-sm"
+                                                                                                placeholder="00:00"
+                                                                                            />
+                                                                                            {lesson.videoUrl && !lesson.videoUrl.includes('youtube') && (
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => capturVideoDuration(lesson.videoUrl || '', gallery.id, module.id, lesson.id)}
+                                                                                                    className="btn-secondary-pluma px-3 flex items-center gap-2 text-xs"
+                                                                                                    title="Capturar duração do vídeo"
+                                                                                                >
+                                                                                                    <Clock size={14} />
+                                                                                                    Capturar
+                                                                                                </button>
+                                                                                            )}
+                                                                                        </div>
                                                                                     </div>
                                                                                     
                                                                                     <button
