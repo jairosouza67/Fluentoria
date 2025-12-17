@@ -455,8 +455,11 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<vo
                     createdAt: new Date(),
                     lastLogin: new Date(),
                     role: role,
+                    // New users are NOT authorized by default (unless admin)
+                    accessAuthorized: role === 'admin' ? true : false,
+                    paymentStatus: role === 'admin' ? 'admin' : 'pending',
                 });
-                console.log('Created new user with role:', role);
+                console.log('Created new user with role:', role, 'accessAuthorized:', role === 'admin');
             }
         } else {
             // Update last login and photo URL (in case it changed)
@@ -489,6 +492,37 @@ export const getUserRole = async (uid: string): Promise<'admin' | 'student'> => 
     } catch (error) {
         console.error("Error getting user role:", error);
         return 'student';
+    }
+};
+
+// Check if user has access authorization
+export const checkUserAccess = async (uid: string): Promise<{ authorized: boolean; role: string; paymentStatus?: string }> => {
+    try {
+        const userRef = doc(db, 'users', uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const role = userData.role || 'student';
+            
+            // Admins always have access
+            if (role === 'admin') {
+                return { authorized: true, role: 'admin' };
+            }
+            
+            // Students need accessAuthorized to be true
+            const authorized = userData.accessAuthorized === true;
+            const paymentStatus = userData.paymentStatus || 'pending';
+            
+            console.log('Access check for user:', uid, 'authorized:', authorized, 'paymentStatus:', paymentStatus);
+            return { authorized, role: 'student', paymentStatus };
+        }
+
+        console.log('User document not found, denying access');
+        return { authorized: false, role: 'student' };
+    } catch (error) {
+        console.error("Error checking user access:", error);
+        return { authorized: false, role: 'student' };
     }
 };
 

@@ -24,7 +24,7 @@ import { Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-rea
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
-import { Course, CourseModule, CourseGallery, getUserRole, forceUpdateUserRole } from './lib/db';
+import { Course, CourseModule, CourseGallery, getUserRole, forceUpdateUserRole, checkUserAccess } from './lib/db';
 // import { DailyContact as DailyContactType } from './lib/db';
 
 const App: React.FC = () => {
@@ -39,6 +39,9 @@ const App: React.FC = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'student'>('student');
   const [roleLoaded, setRoleLoaded] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +61,13 @@ const App: React.FC = () => {
           setUserRole(role);
           setRoleLoaded(true);
           console.log('User role loaded:', role, 'for user:', currentUser.email);
+          
+          // Check user access authorization
+          const accessInfo = await checkUserAccess(currentUser.uid);
+          setHasAccess(accessInfo.authorized);
+          setPaymentStatus(accessInfo.paymentStatus || 'pending');
+          setAccessChecked(true);
+          console.log('Access check result:', accessInfo);
         }
 
         setUser(currentUser);
@@ -71,6 +81,9 @@ const App: React.FC = () => {
         setUser(null);
         setUserRole('student');
         setRoleLoaded(false);
+        setHasAccess(false);
+        setAccessChecked(false);
+        setPaymentStatus('pending');
         setViewMode('student');
         setCurrentScreen('auth');
       }
@@ -171,6 +184,78 @@ const App: React.FC = () => {
 
   if (!user || currentScreen === 'auth') {
     return <Auth onLogin={handleLogin} />;
+  }
+
+  // Block access for unauthorized users (unless admin)
+  if (accessChecked && !hasAccess && userRole !== 'admin') {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-[-10%] left-[-5%] w-[35%] h-[35%] bg-[#FF6A00]/15 rounded-full blur-[120px] animate-float" />
+            <div className="absolute bottom-[-10%] right-[-5%] w-[35%] h-[35%] bg-[#E15B00]/15 rounded-full blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
+          </div>
+
+          <div className="relative bg-[#0B0B0B]/70 backdrop-blur-3xl rounded-3xl p-8 border border-white/[0.2] shadow-2xl">
+            {/* Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#FF6A00]/20 to-[#E15B00]/20 flex items-center justify-center border border-[#FF6A00]/30">
+                <svg className="w-10 h-10 text-[#FF6A00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-center text-[#F3F4F6] mb-3">
+              Acesso Pendente
+            </h2>
+
+            {/* Message */}
+            <p className="text-center text-[#9CA3AF] mb-6 leading-relaxed">
+              Sua conta foi criada com sucesso, mas o acesso ao conteúdo está pendente de autorização.
+            </p>
+
+            {/* Status */}
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[#9CA3AF]">Status:</span>
+                <span className="text-sm font-medium text-orange-400 capitalize">{paymentStatus}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#9CA3AF]">Email:</span>
+                <span className="text-sm font-medium text-[#F3F4F6]">{user?.email}</span>
+              </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-gradient-to-r from-[#FF6A00]/10 to-transparent border border-[#FF6A00]/20 rounded-xl p-4 mb-6">
+              <h3 className="text-sm font-semibold text-[#FF6A00] mb-2">Como obter acesso?</h3>
+              <ul className="space-y-2 text-sm text-[#9CA3AF]">
+                <li className="flex items-start gap-2">
+                  <span className="text-[#FF6A00] mt-0.5">•</span>
+                  <span>Realize o pagamento através do Asaas</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-[#FF6A00] mt-0.5">•</span>
+                  <span>Aguarde a aprovação manual do administrador</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="w-full bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] text-[#F3F4F6] py-3 rounded-xl transition-all font-medium flex items-center justify-center gap-2"
+            >
+              <LogOutIcon className="w-5 h-5" />
+              Sair
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const renderScreen = () => {
