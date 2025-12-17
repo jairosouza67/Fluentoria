@@ -325,6 +325,12 @@ export interface Student {
     planStartDate?: Date;
     planEndDate?: Date;
     planValue?: number;
+    // Asaas Integration Data
+    asaasCustomerId?: string;
+    paymentStatus?: 'active' | 'overdue' | 'pending' | 'no_payment' | 'admin';
+    lastAsaasSync?: Date;
+    accessAuthorized?: boolean;
+    manualAuthorization?: boolean;
 }
 
 export const getAllStudents = async (): Promise<Student[]> => {
@@ -333,16 +339,46 @@ export const getAllStudents = async (): Promise<Student[]> => {
 
         const students = querySnapshot.docs.map(doc => {
             const data = doc.data();
+            
+            // Auto-sync planStatus with paymentStatus if needed
+            let planStatus = data.planStatus;
+            const paymentStatus = data.paymentStatus;
+            
+            // Log for debugging
+            console.log(`Student ${data.email}: paymentStatus=${paymentStatus}, planStatus=${planStatus}`);
+            
+            if (paymentStatus && paymentStatus !== 'admin') {
+                // Sync planStatus based on paymentStatus
+                if (paymentStatus === 'active') {
+                    planStatus = 'active';
+                } else if (paymentStatus === 'overdue' || paymentStatus === 'no_payment') {
+                    planStatus = 'pending';
+                }
+            }
+            
             return {
                 id: doc.id,
                 name: data.name || data.displayName || 'Unknown',
                 email: data.email || '',
                 photoURL: data.photoURL,
                 createdAt: data.createdAt?.toDate(),
+                // Financial Data
+                planType: data.planType,
+                planStatus: planStatus,
+                planStartDate: data.planStartDate?.toDate(),
+                planEndDate: data.planEndDate?.toDate(),
+                planValue: data.planValue,
+                // Asaas Data
+                asaasCustomerId: data.asaasCustomerId,
+                paymentStatus: paymentStatus,
+                lastAsaasSync: data.lastAsaasSync?.toDate(),
+                accessAuthorized: data.accessAuthorized,
+                manualAuthorization: data.manualAuthorization,
             } as Student;
         });
 
         console.log('📂 DB - getAllStudents: Found', students.length, 'users in database');
+        console.log('📂 DB - Students with Asaas data:', students.filter(s => s.asaasCustomerId).length);
 
         // Sort by name (client-side to avoid index requirement)
         students.sort((a, b) => a.name.localeCompare(b.name));
@@ -1046,10 +1082,19 @@ export const syncAllStudentsWithAsaas = async (): Promise<{ success: number; fai
                 // Check payment status
                 const paymentStatus = await checkAsaasPaymentStatus(studentData.asaasCustomerId);
 
+                // Determine planStatus based on paymentStatus
+                let planStatus = 'pending';
+                if (paymentStatus.status === 'active') {
+                    planStatus = 'active';
+                } else if (paymentStatus.status === 'overdue') {
+                    planStatus = 'pending';
+                }
+
                 // Update access based on payment status
                 await updateDoc(doc(db, 'users', docSnap.id), {
                     accessAuthorized: paymentStatus.authorized,
                     paymentStatus: paymentStatus.status,
+                    planStatus: planStatus, // Sync planStatus with paymentStatus
                     lastAsaasSync: new Date()
                 });
 

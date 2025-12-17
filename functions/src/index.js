@@ -74,29 +74,24 @@ exports.asaasWebhook = functions.https.onRequest(async (req, res) => {
           accessAuthorized: true,
           asaasCustomerId: customerData.id,
           paymentStatus: 'active',
-          planType: 'lifetime', // Adjust based on your plan
-          planStartDate: admin.firestore.FieldValue.serverTimestamp(),
-          planValue: paymentData.value || 0
+          planStatus: 'active', // Sync planStatus with paymentStatus
+          lastAsaasSync: admin.firestore.FieldValue.serverTimestamp()
         });
-
-        console.log('New user created with ID:', newUserRef.id);
+        console.log('New user created with Asaas payment:', newUserRef.id);
       } else {
         // Update existing user
         const userDoc = snapshot.docs[0];
         await userDoc.ref.update({
           accessAuthorized: true,
+          asaasCustomerId: customerData.id,
           paymentStatus: 'active',
-          asaasCustomerId: customerData.id || userDoc.data().asaasCustomerId,
-          planType: 'lifetime', // Adjust based on your plan
-          planStartDate: admin.firestore.FieldValue.serverTimestamp(),
-          planValue: paymentData.value || userDoc.data().planValue || 0,
+          planStatus: 'active', // Sync planStatus with paymentStatus
           lastAsaasSync: admin.firestore.FieldValue.serverTimestamp()
         });
-
-        console.log('User updated with ID:', userDoc.id);
+        console.log('User access activated:', userDoc.id);
       }
 
-      res.status(200).send('Payment confirmed and user activated');
+      res.status(200).send('Payment processed successfully');
       return;
     }
 
@@ -116,6 +111,7 @@ exports.asaasWebhook = functions.https.onRequest(async (req, res) => {
             await userDoc.ref.update({
               accessAuthorized: false,
               paymentStatus: 'overdue',
+              planStatus: 'pending', // Sync planStatus with paymentStatus
               lastAsaasSync: admin.firestore.FieldValue.serverTimestamp()
             });
 

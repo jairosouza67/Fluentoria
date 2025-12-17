@@ -9,13 +9,15 @@ import {
     Download,
     Filter,
     CreditCard,
-    X
+    X,
+    RefreshCw
 } from 'lucide-react';
 import { getAllStudents, Student, updateStudent } from '../lib/db';
 
 const FinancialReports: React.FC = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [filter, setFilter] = useState<'all' | 'active' | 'expired' | 'expiring'>('all');
     const [stats, setStats] = useState({
         totalRevenue: 0,
@@ -33,10 +35,22 @@ const FinancialReports: React.FC = () => {
 
     useEffect(() => {
         loadData();
+        
+        // Auto-refresh every 30 seconds
+        const interval = setInterval(() => {
+            loadData();
+        }, 30000);
+        
+        return () => clearInterval(interval);
     }, []);
 
-    const loadData = async () => {
-        setLoading(true);
+    const loadData = async (showRefreshing = false) => {
+        if (showRefreshing) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
+        
         const allStudents = await getAllStudents();
 
         // Calculate stats
@@ -46,38 +60,52 @@ const FinancialReports: React.FC = () => {
         let expiredCount = 0;
 
         const infoStudents = allStudents.map(s => {
-            // Logic to determine status if dates exist
-            let status = s.planStatus || 'pending';
+            // Use paymentStatus as primary source, fallback to planStatus
+            let status = s.paymentStatus || s.planStatus || 'pending';
+            
+            // Normalize status for display
+            let computedStatus = 'pending';
+            if (status === 'active') {
+                computedStatus = 'active';
+            } else if (status === 'overdue') {
+                computedStatus = 'expired';
+            } else if (status === 'admin') {
+                computedStatus = 'active'; // Admin always active
+            } else {
+                computedStatus = 'pending';
+            }
+            
             const endDate = s.planEndDate ? new Date(s.planEndDate) : null;
             const today = new Date();
-
             let isExpiring = false;
 
-            if (endDate) {
+            // Check expiration based on planEndDate
+            if (endDate && computedStatus === 'active') {
                 const diffTime = endDate.getTime() - today.getTime();
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                 if (diffDays < 0) {
-                    status = 'expired';
+                    computedStatus = 'expired';
                     expiredCount++;
                 } else if (diffDays <= 7) {
                     isExpiring = true;
                     expiring++;
-                    status = 'active'; // Still active but expiring
                     active++;
                 } else {
-                    if (status === 'active') active++;
+                    active++;
                 }
-            } else {
-                // If no date but marked active for some reason
-                if (status === 'active') active++;
+            } else if (computedStatus === 'active') {
+                // Active but no end date (e.g., Asaas subscription)
+                active++;
+            } else if (computedStatus === 'expired') {
+                expiredCount++;
             }
 
             if (s.planValue) revenue += s.planValue;
 
             return {
                 ...s,
-                computedStatus: status,
+                computedStatus,
                 isExpiring
             };
         });
@@ -91,6 +119,7 @@ const FinancialReports: React.FC = () => {
 
         setStudents(infoStudents);
         setLoading(false);
+        setRefreshing(false);
     };
 
     const handleEditClick = (student: Student) => {
@@ -131,7 +160,7 @@ const FinancialReports: React.FC = () => {
 
             alert('Plano atualizado com sucesso!');
             setEditingStudent(null);
-            loadData(); // Reload
+            await loadData(true); // Reload with refresh indicator
         } catch (e) {
             console.error(e);
             alert('Erro ao salvar.');
@@ -169,6 +198,14 @@ const FinancialReports: React.FC = () => {
                     <p className="text-[#9CA3AF] mt-2">Gerencie assinaturas e previsões de receita.</p>
                 </div>
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                    <button 
+                        onClick={() => loadData(true)}
+                        disabled={refreshing}
+                        className="w-full sm:w-auto bg-[#FF6A00] hover:bg-[#E15B00] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center sm:justify-start gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+                        {refreshing ? 'Atualizando...' : 'Atualizar'}
+                    </button>
                     <button className="w-full sm:w-auto bg-[#111111] border border-white/[0.06] text-[#F3F4F6] px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/[0.05] transition-colors flex items-center justify-center sm:justify-start gap-2">
                         <Download size={16} />
                         Exportar CSV
@@ -325,6 +362,14 @@ const FinancialReports: React.FC = () => {
                                     </span>
                                 </div>
                             </div>
+                            {student.asaasCustomerId && (
+                                <div className="col-span-2">
+                                    <div className="text-xs text-[#9CA3AF]">Asaas ID</div>
+                                    <div className="text-[#F3F4F6] text-xs font-mono truncate">
+                                        {student.asaasCustomerId}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ))}
