@@ -931,50 +931,41 @@ export const importStudentData = async (csvData: string): Promise<{ success: num
 // Sync student with Asaas
 export const syncStudentWithAsaas = async (studentId: string, studentData: any): Promise<{ success: boolean; customerId?: string; error?: string }> => {
     try {
-        const ASAAS_API_URL = 'https://api.asaas.com/v3';
-        const ASAAS_ACCESS_TOKEN = (import.meta as any).env?.VITE_ASAAS_ACCESS_TOKEN || '';
-
-        if (!ASAAS_ACCESS_TOKEN) {
-            return { success: false, error: 'Asaas API token not configured' };
-        }
-
         // Check if student already has Asaas customer ID
         if (studentData.asaasCustomerId) {
             return { success: true, customerId: studentData.asaasCustomerId };
         }
 
-        // Create Asaas customer
-        const customerData = {
-            name: studentData.name || studentData.displayName || 'Student',
-            email: studentData.email,
-            phone: studentData.phone || '11999999999',
-            cpfCnpj: studentData.cpf || '',
-            notificationDisabled: false
-        };
-
-        const response = await fetch(`${ASAAS_API_URL}/customers`, {
+        // Call Netlify Function to create customer
+        const response = await fetch('/.netlify/functions/create-asaas-customer', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'access_token': ASAAS_ACCESS_TOKEN
             },
-            body: JSON.stringify(customerData)
+            body: JSON.stringify({
+                name: studentData.name || studentData.displayName || 'Student',
+                email: studentData.email,
+                cpfCnpj: studentData.cpf || '',
+                phone: studentData.phone || '',
+                mobilePhone: studentData.mobilePhone || '',
+            }),
         });
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.description || 'Failed to create Asaas customer');
+            throw new Error(error.error || 'Failed to create Asaas customer');
         }
 
-        const customer = await response.json();
+        const data = await response.json();
+        const customerId = data.customerId;
 
         // Update student with Asaas customer ID
         await updateDoc(doc(db, 'users', studentId), {
-            asaasCustomerId: customer.id,
+            asaasCustomerId: customerId,
             asaasSyncedAt: new Date()
         });
 
-        return { success: true, customerId: customer.id };
+        return { success: true, customerId };
     } catch (error: any) {
         console.error("Error syncing with Asaas:", error);
         return { success: false, error: error.message };
@@ -984,43 +975,26 @@ export const syncStudentWithAsaas = async (studentId: string, studentData: any):
 // Check payment status from Asaas
 export const checkAsaasPaymentStatus = async (customerId: string): Promise<{ authorized: boolean; status: string; error?: string }> => {
     try {
-        const ASAAS_API_URL = 'https://api.asaas.com/v3';
-        const ASAAS_ACCESS_TOKEN = (import.meta as any).env?.VITE_ASAAS_ACCESS_TOKEN || '';
-
-        if (!ASAAS_ACCESS_TOKEN) {
-            return { authorized: false, status: 'error', error: 'Asaas API token not configured' };
-        }
-
-        // Get customer payments from Asaas
-        const response = await fetch(`${ASAAS_API_URL}/payments?customer=${customerId}&status=CONFIRMED`, {
-            method: 'GET',
+        // Call Netlify Function to check payment status
+        const response = await fetch('/.netlify/functions/check-payment-status', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'access_token': ASAAS_ACCESS_TOKEN
-            }
+            },
+            body: JSON.stringify({ customerId }),
         });
 
         if (!response.ok) {
-            return { authorized: false, status: 'error', error: 'Failed to fetch payment status' };
+            const error = await response.json();
+            return { authorized: false, status: 'error', error: error.error || 'Failed to fetch payment status' };
         }
 
         const data = await response.json();
-        const payments = data.data || [];
-
-        // Check if has active payments
-        const now = new Date();
-        const hasActivePayment = payments.some((payment: any) => {
-            const dueDate = new Date(payment.dueDate);
-            return payment.status === 'CONFIRMED' && dueDate >= now;
-        });
-
-        if (hasActivePayment) {
-            return { authorized: true, status: 'active' };
-        } else if (payments.length > 0) {
-            return { authorized: false, status: 'overdue' };
-        } else {
-            return { authorized: false, status: 'no_payment' };
-        }
+        
+        return {
+            authorized: data.authorized,
+            status: data.status,
+        };
     } catch (error: any) {
         console.error("Error checking payment status:", error);
         return { authorized: false, status: 'error', error: error.message };
