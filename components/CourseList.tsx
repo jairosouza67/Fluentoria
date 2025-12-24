@@ -59,10 +59,11 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
           <Loader2 className="animate-spin text-[#FF6A00]" size={40} />
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-start gap-6">
           {/* Courses - Left side */}
-          <div className="w-full lg:w-[360px] lg:flex-none grid grid-cols-1 gap-6">
-            {filteredCourses.map((course) => {
+          <div className="w-full lg:w-[360px] lg:flex-none lg:sticky lg:top-8 lg:self-start">
+            <div className="grid grid-cols-1 gap-6">
+              {filteredCourses.map((course) => {
               // Priority: 1. coverImage, 2. YouTube thumbnail, 3. gradient
               const coverImage = course.coverImage;
               const thumbnailUrl = !coverImage && course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
@@ -124,7 +125,8 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                   </div>
                 </div>
               );
-            })}
+              })}
+            </div>
           </div>
 
           {/* Welcome Section - Right side */}
