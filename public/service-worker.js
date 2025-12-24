@@ -6,6 +6,14 @@ const STATIC_CACHE = `fluentoria-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `fluentoria-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
 
+// Known static CDNs used by the app (importmap + fonts).
+// These requests are safe to cache as opaque responses.
+const STATIC_CDN_HOSTS = [
+  'aistudiocdn.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com'
+];
+
 // Static assets to cache on install
 const STATIC_ASSETS = [
   '/',
@@ -83,6 +91,10 @@ self.addEventListener('fetch', (event) => {
 
   const isSameOrigin = url.origin === self.location.origin;
 
+  const isStaticCdn = STATIC_CDN_HOSTS.some(
+    (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
+  );
+
   // Navigation: app-shell fallback for SPA
   if (request.mode === 'navigate') {
     event.respondWith(navigateWithAppShell(request));
@@ -100,9 +112,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Cache-first for static assets (same-origin bundles + known CDNs like importmap/Google Fonts).
   if (
-    isSameOrigin &&
+    (isSameOrigin || isStaticCdn) &&
     (request.destination === 'style' ||
       request.destination === 'script' ||
       request.destination === 'image' ||
@@ -133,7 +145,7 @@ async function cacheFirst(request) {
 
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse && networkResponse.status === 200) {
+    if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
@@ -148,7 +160,7 @@ async function cacheFirst(request) {
 async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse && networkResponse.status === 200) {
+    if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
