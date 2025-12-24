@@ -20,42 +20,42 @@
   "screenshots": [
     {
       "src": "/screenshots/mobile-dashboard.png",
-      "sizes": "375x667",
+      "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Student Dashboard - Interactive English Learning"
     },
     {
       "src": "/screenshots/mobile-courses.png",
-      "sizes": "414x896",
+      "sizes": "828x1792",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Browse English Courses"
     },
     {
       "src": "/screenshots/mobile-gamification.png",
-      "sizes": "375x667",
+      "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Achievements and Progress Tracking"
     },
     {
       "src": "/screenshots/tablet-dashboard.png",
-      "sizes": "768x1024",
+      "sizes": "1536x2048",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Learning Platform - Tablet View"
     },
     {
       "src": "/screenshots/desktop-dashboard.png",
-      "sizes": "1280x720",
+      "sizes": "2560x1440",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Complete Learning Management System"
     },
     {
       "src": "/screenshots/desktop-full.png",
-      "sizes": "1920x1080",
+      "sizes": "3840x2160",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Full Desktop Experience"
