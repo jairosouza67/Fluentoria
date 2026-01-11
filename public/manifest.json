@@ -1,20 +1,33 @@
 {
   "short_name": "Fluentoria",
   "name": "Thiago Serpa - Fluentoria de Inglês",
-  "id": "/",
+  "lang": "pt-BR",
   "description": "Plataforma interativa de aprendizado de inglês com cursos estruturados, gamificação, atividades diárias e acompanhamento de progresso em tempo real.",
+  "categories": ["education"],
   "icons": [
     {
       "src": "/icon-192x192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512x512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
@@ -102,25 +115,11 @@
       ]
     }
   ],
-  "disabled_shortcuts": [
-    {
-      "name": "Daily Contact",
-      "short_name": "Daily",
-      "description": "Atividade diária de aprendizado (DESABILITADO)",
-      "url": "/?shortcut=daily",
-      "icons": [
-        {
-          "src": "/shortcuts/daily.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    }
-  ],
   "launch_handler": {
     "client_mode": "focus-existing"
   },
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#12100e",
   "background_color": "#12100e",

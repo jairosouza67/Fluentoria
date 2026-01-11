@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Fluentoria Service Worker - Offline Support
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const STATIC_CACHE = `fluentoria-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `fluentoria-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
@@ -89,6 +89,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Avoid a known fetch() failure mode in service workers.
+  // See: only-if-cached is only valid with mode=same-origin.
+  if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {
+    return;
+  }
+
   const isSameOrigin = url.origin === self.location.origin;
 
   const isStaticCdn = STATIC_CDN_HOSTS.some(
@@ -147,12 +153,18 @@ async function cacheFirst(request) {
     const networkResponse = await fetch(request);
     if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
       const cache = await caches.open(DYNAMIC_CACHE);
-      cache.put(request, networkResponse.clone());
+      if (isCacheableResponse(request, networkResponse)) {
+        cache.put(request, networkResponse.clone());
+      }
     }
     return networkResponse;
   } catch (error) {
+    const fallback = await caches.match(request);
+    if (fallback) {
+      return fallback;
+    }
     console.error('[Service Worker] Fetch failed:', error);
-    throw error;
+    return Response.error();
   }
 }
 
@@ -162,7 +174,9 @@ async function networkFirst(request) {
     const networkResponse = await fetch(request);
     if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
       const cache = await caches.open(DYNAMIC_CACHE);
-      cache.put(request, networkResponse.clone());
+      if (isCacheableResponse(request, networkResponse)) {
+        cache.put(request, networkResponse.clone());
+      }
     }
     return networkResponse;
   } catch (error) {
@@ -170,7 +184,29 @@ async function networkFirst(request) {
     if (cachedResponse) {
       return cachedResponse;
     }
-    throw error;
+    console.error('[Service Worker] Network-first failed:', error);
+    return Response.error();
+  }
+}
+
+function isCacheableResponse(request, response) {
+  // Opaque responses (cross-origin no-cors) have no readable headers; safe to cache.
+  if (response.type === 'opaque') {
+    return true;
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  switch (request.destination) {
+    case 'image':
+      return contentType.startsWith('image/');
+    case 'style':
+      return contentType.includes('text/css');
+    case 'script':
+      return contentType.includes('javascript') || contentType.includes('ecmascript');
+    case 'font':
+      return contentType.includes('font/') || contentType.includes('woff') || contentType.includes('opentype');
+    default:
+      return true;
   }
 }
 
@@ -180,6 +216,12 @@ async function navigateWithAppShell(request) {
     // Prefer live HTML so users get updates when online.
     return await fetch(request);
   } catch (error) {
+    // First, try a cached response for the exact navigation request (e.g. '/').
+    const cachedNavigation = await caches.match(request);
+    if (cachedNavigation) {
+      return cachedNavigation;
+    }
+
     // App shell (SPA) fallback
     const appShell = await caches.match('/index.html');
     if (appShell) {
