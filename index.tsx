@@ -18,40 +18,38 @@ root.render(
 
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .then((registration) => {
-        console.log('[App] ServiceWorker registered:', registration.scope);
+  navigator.serviceWorker
+    .register('/service-worker.js')
+    .then((registration) => {
+      console.log('[App] ServiceWorker registered:', registration.scope);
 
-        // Check for updates
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('[App] New content available, please refresh.');
-                // Optionally notify user about update
-                if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  window.location.reload();
-                }
+      // Check for updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[App] New content available, please refresh.');
+              // Optionally notify user about update
+              if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
               }
-            });
-          }
-        });
-      })
-      .catch((error) => {
-        console.error('[App] ServiceWorker registration failed:', error);
+            }
+          });
+        }
       });
-
-    // Handle service worker updates
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
+    })
+    .catch((error) => {
+      console.error('[App] ServiceWorker registration failed:', error);
     });
+
+  // Handle service worker updates
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
   });
 }

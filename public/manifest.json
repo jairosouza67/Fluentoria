@@ -1,6 +1,7 @@
 {
   "short_name": "Fluentoria",
   "name": "Thiago Serpa - Fluentoria de Inglês",
+  "id": "/",
   "lang": "pt-BR",
   "description": "Plataforma interativa de aprendizado de inglês com cursos estruturados, gamificação, atividades diárias e acompanhamento de progresso em tempo real.",
   "categories": ["education"],
