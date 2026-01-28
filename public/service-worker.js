@@ -89,6 +89,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip video and audio requests to avoid range request issues
+  if (request.destination === 'video' || request.destination === 'audio') {
+    return;
+  }
+
   // Avoid a known fetch() failure mode in service workers.
   // See: only-if-cached is only valid with mode=same-origin.
   if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {

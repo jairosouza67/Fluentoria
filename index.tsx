@@ -18,38 +18,48 @@ root.render(
 
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .register('/service-worker.js')
-    .then((registration) => {
-      console.log('[App] ServiceWorker registered:', registration.scope);
-
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[App] New content available, please refresh.');
-              // Optionally notify user about update
-              if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-              }
-            }
-          });
-        }
-      });
-    })
-    .catch((error) => {
-      console.error('[App] ServiceWorker registration failed:', error);
+  if (import.meta.env.DEV) {
+    // Unregister any existing service workers in development to prevent interference
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+        console.log('[App] ServiceWorker unregistered for development');
+      }
     });
+  } else {
+    navigator.serviceWorker
+      .register('/service-worker.js')
+      .then((registration) => {
+        console.log('[App] ServiceWorker registered:', registration.scope);
 
-  // Handle service worker updates
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
-  });
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[App] New content available, please refresh.');
+                // Optionally notify user about update
+                if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  window.location.reload();
+                }
+              }
+            });
+          }
+        });
+      })
+      .catch((error) => {
+        console.error('[App] ServiceWorker registration failed:', error);
+      });
+
+    // Handle service worker updates
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+  }
 }
