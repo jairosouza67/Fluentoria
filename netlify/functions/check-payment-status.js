@@ -1,8 +1,27 @@
+const fetch = require('node-fetch');
+const { jwtVerify, createRemoteJWKSet } = require('jose');
+
+const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/robot/v1/metadata/jwk/securetoken@system.gserviceaccount.com'));
+
+const verifyFirebaseToken = async (token) => {
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'dark-theme-lms';
+  try {
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: `https://securetoken.google.com/${projectId}`,
+      audience: projectId,
+    });
+    return payload;
+  } catch (error) {
+    console.error('Token verification failed:', error.message);
+    return null;
+  }
+};
+
 exports.handler = async (event) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   };
@@ -18,6 +37,27 @@ exports.handler = async (event) => {
       statusCode: 405,
       headers,
       body: JSON.stringify({ error: 'Method not allowed' }),
+    };
+  }
+
+  // Verify authentication
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized: Missing token' }),
+    };
+  }
+
+  const token = authHeader.split('Bearer ')[1];
+  const decodedToken = await verifyFirebaseToken(token);
+
+  if (!decodedToken) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized: Invalid token' }),
     };
   }
 

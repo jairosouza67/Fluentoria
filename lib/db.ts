@@ -1,4 +1,4 @@
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc, where, onSnapshot, limit } from 'firebase/firestore';
 
 export interface CourseLesson {
@@ -518,11 +518,9 @@ export const getUserRole = async (uid: string): Promise<'admin' | 'student'> => 
 
         if (userSnap.exists()) {
             const userData = userSnap.data();
-            console.log('User data from Firestore:', userData);
             return userData.role === 'admin' ? 'admin' : 'student';
         }
 
-        console.log('User document not found in Firestore for uid:', uid);
         // Default to student if user not found
         return 'student';
     } catch (error) {
@@ -550,11 +548,9 @@ export const checkUserAccess = async (uid: string): Promise<{ authorized: boolea
             const authorized = userData.accessAuthorized === true;
             const paymentStatus = userData.paymentStatus || 'pending';
             
-            console.log('Access check for user:', uid, 'authorized:', authorized, 'paymentStatus:', paymentStatus);
             return { authorized, role: 'student', paymentStatus };
         }
 
-        console.log('User document not found, denying access');
         return { authorized: false, role: 'student' };
     } catch (error) {
         console.error("Error checking user access:", error);
@@ -583,7 +579,6 @@ export const forceUpdateUserRole = async (uid: string, email: string): Promise<v
             }
 
             await updateDoc(userRef, updates);
-            console.log('User role updated to:', role);
         } else {
             await setDoc(userRef, {
                 name: role === 'admin' ? 'Administrador' : '',
@@ -937,10 +932,14 @@ export const syncStudentWithAsaas = async (studentId: string, studentData: any):
         }
 
         // Call Netlify Function to create customer
+        const user = auth.currentUser;
+        const idToken = user ? await user.getIdToken() : '';
+
         const response = await fetch('/.netlify/functions/create-asaas-customer', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
             },
             body: JSON.stringify({
                 name: studentData.name || studentData.displayName || 'Student',
@@ -976,10 +975,14 @@ export const syncStudentWithAsaas = async (studentId: string, studentData: any):
 export const checkAsaasPaymentStatus = async (customerId: string): Promise<{ authorized: boolean; status: string; error?: string }> => {
     try {
         // Call Netlify Function to check payment status
+        const user = auth.currentUser;
+        const idToken = user ? await user.getIdToken() : '';
+
         const response = await fetch('/.netlify/functions/check-payment-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
             },
             body: JSON.stringify({ customerId }),
         });

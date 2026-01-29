@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Calendar, User, Mail, Phone, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CreditCard, Calendar, User, Mail, Phone, CheckCircle, AlertCircle, Loader2, Shield, Lock } from 'lucide-react';
+import { auth } from '../lib/firebase';
 
 interface AsaasPaymentProps {
   plan: string;
@@ -22,10 +23,6 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [processing, setProcessing] = useState(false);
   const [step, setStep] = useState<'form' | 'processing' | 'success' | 'error'>('form');
-
-  // Asaas configuration (estas chaves devem estar no ambiente)
-  const ASAAS_API_URL = 'https://api.asaas.com/v3';
-  const ASAAS_ACCESS_TOKEN = process.env.VITE_ASAAS_ACCESS_TOKEN || 'sandbox_token';
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -88,6 +85,9 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
 
   const createAsaasCustomer = async () => {
     try {
+      const user = auth.currentUser;
+      const idToken = user ? await user.getIdToken() : '';
+
       const customerData = {
         name: formData.name,
         email: formData.email,
@@ -105,21 +105,22 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
         }
       };
 
-      const response = await fetch(`${ASAAS_API_URL}/customers`, {
+      const response = await fetch('/.netlify/functions/create-asaas-customer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'access_token': ASAAS_ACCESS_TOKEN
+          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify(customerData)
       });
 
       if (!response.ok) {
-        throw new Error('Erro ao criar cliente');
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao criar cliente');
       }
 
-      const customer = await response.json();
-      return customer.id;
+      const data = await response.json();
+      return data.customerId;
     } catch (error) {
       console.error('Error creating customer:', error);
       throw error;
@@ -128,10 +129,13 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
 
   const createAsaasPayment = async (customerId: string) => {
     try {
+      const user = auth.currentUser;
+      const idToken = user ? await user.getIdToken() : '';
+
       const paymentData = {
         customer: customerId,
         billingType: 'CREDIT_CARD',
-        value: price * 100, // Asaas works in cents
+        value: price, // Now using the correct scale for the function
         dueDate: new Date().toISOString().split('T')[0],
         description: `Plano ${plan} - Fluentoria`,
         externalReference: `fluentoria_${Date.now()}`,
@@ -152,21 +156,20 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
           mobilePhone: formData.phone.replace(/\D/g, '')
         },
         installmentCount: formData.installments,
-        installmentValue: (price / formData.installments) * 100
       };
 
-      const response = await fetch(`${ASAAS_API_URL}/payments`, {
+      const response = await fetch('/.netlify/functions/process-asaas-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'access_token': ASAAS_ACCESS_TOKEN
+          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify(paymentData)
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.description || 'Erro ao processar pagamento');
+        throw new Error(error.description || error.error || 'Erro ao processar pagamento');
       }
 
       const payment = await response.json();
@@ -195,10 +198,21 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
       try {
         const user = auth.currentUser;
         if (user) {
-          await fetch('/api/update-user-customer-id', {
+          const idToken = await user.getIdToken();
+          // Update the path to match Firebase Functions or Netlify Functions
+          // Assuming we use the Firebase Function export named 'updateUserCustomerId'
+          // We need the project ID and region. 
+          // For now, I'll use a placeholder or check if it's already working via some proxy.
+          // Given the structure, maybe it's meant to be a Netlify function too?
+          // No, it's in functions/src/index.js.
+          
+          // Let's assume the user has a proxy or we should use the full URL.
+          // Using the full Firebase Function URL
+          await fetch('https://us-central1-fluentoria-527b2.cloudfunctions.net/updateUserCustomerId', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
             },
             body: JSON.stringify({
               userId: user.uid,
@@ -415,8 +429,8 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
               <div>
                 <label className="block text-sm font-medium text-[#F3F4F6] mb-2">Parcelas</label>
                 <select
-                  value={formData.installments}
-                  onChange={(e) => handleInputChange('installments', parseInt(e.target.value))}
+                  value={formData.installments.toString()}
+                  onChange={(e) => handleInputChange('installments', e.target.value)}
                   className="w-full bg-white/[0.02] border border-white/[0.06] rounded-lg px-4 py-3 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00] transition-colors"
                 >
                   {installmentOptions.map(num => (

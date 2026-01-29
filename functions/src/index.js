@@ -28,18 +28,15 @@ exports.asaasWebhook = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    // Verify webhook signature (optional but recommended)
-    // Uncomment and configure this section when you have your webhook access token
-    /*
+    // Verify webhook signature
     const webhookToken = functions.config().asaas.webhook_token;
-    const providedToken = req.headers['x-asass-access-token'];
+    const providedToken = req.headers['x-asaas-access-token'] || req.headers['X-Asaas-Access-Token'];
     
     if (!webhookToken || providedToken !== webhookToken) {
-      console.error('Invalid webhook token');
+      console.error('Invalid webhook token. Provided:', providedToken ? 'exists' : 'missing');
       res.status(401).send('Unauthorized');
       return;
     }
-    */
     
     // Get the event type and data from the request
     const eventType = req.body.event;
@@ -131,7 +128,7 @@ exports.asaasWebhook = functions.https.onRequest(async (req, res) => {
     console.error('Error processing webhook:', error);
     res.status(500).send('Internal Server Error');
   }
-};
+});
 
 // Update user customer ID endpoint
 exports.updateUserCustomerId = updateUserCustomerId;

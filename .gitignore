@@ -14,6 +14,11 @@ dist-ssr
 .env.local
 .env
 .env.example
+.qoder\skills
+.checklists.md 
+.security_scan.py
+.skill.md
+.gitignore
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

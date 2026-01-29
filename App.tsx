@@ -47,7 +47,6 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        console.log('User logged in:', currentUser.email);
 
         // Only load role once per session
         if (!roleLoaded || user?.uid !== currentUser.uid) {
@@ -60,14 +59,12 @@ const App: React.FC = () => {
           const role = await getUserRole(currentUser.uid);
           setUserRole(role);
           setRoleLoaded(true);
-          console.log('User role loaded:', role, 'for user:', currentUser.email);
           
           // Check user access authorization
           const accessInfo = await checkUserAccess(currentUser.uid);
           setHasAccess(accessInfo.authorized);
           setPaymentStatus(accessInfo.paymentStatus || 'pending');
           setAccessChecked(true);
-          console.log('Access check result:', accessInfo);
         }
 
         setUser(currentUser);
@@ -77,7 +74,6 @@ const App: React.FC = () => {
           setCurrentScreen('dashboard');
         }
       } else {
-        console.log('User logged out');
         setUser(null);
         setUserRole('student');
         setRoleLoaded(false);

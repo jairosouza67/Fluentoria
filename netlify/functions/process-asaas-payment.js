@@ -4,7 +4,7 @@ const { jwtVerify, createRemoteJWKSet } = require('jose');
 const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/robot/v1/metadata/jwk/securetoken@system.gserviceaccount.com'));
 
 const verifyFirebaseToken = async (token) => {
-  const projectId = process.env.FIREBASE_PROJECT_ID || 'dark-theme-lms'; // Fallback to name from package.json
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'dark-theme-lms';
   try {
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: `https://securetoken.google.com/${projectId}`,
@@ -62,16 +62,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { name, email, cpfCnpj, phone, mobilePhone, address, addressNumber, province, postalCode } = JSON.parse(event.body);
-
-    // Validate required fields
-    if (!name || !email || !cpfCnpj) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Missing required fields: name, email, cpfCnpj' }),
-      };
-    }
+    const paymentData = JSON.parse(event.body);
 
     const ASAAS_ACCESS_TOKEN = process.env.ASAAS_ACCESS_TOKEN;
     const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3';
@@ -85,26 +76,14 @@ exports.handler = async (event) => {
       };
     }
 
-    // Create customer in Asaas
-    const customerData = {
-      name,
-      email,
-      cpfCnpj,
-      phone,
-      mobilePhone,
-      address,
-      addressNumber,
-      province,
-      postalCode,
-    };
-
-    const response = await fetch(`${ASAAS_API_URL}/customers`, {
+    // Proxy the request to Asaas
+    const response = await fetch(`${ASAAS_API_URL}/payments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'access_token': ASAAS_ACCESS_TOKEN,
       },
-      body: JSON.stringify(customerData),
+      body: JSON.stringify(paymentData),
     });
 
     const data = await response.json();
@@ -115,7 +94,7 @@ exports.handler = async (event) => {
         statusCode: response.status,
         headers,
         body: JSON.stringify({ 
-          error: data.description || 'Failed to create customer',
+          error: data.description || 'Failed to process payment',
           details: data.errors || []
         }),
       };
@@ -124,11 +103,7 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        success: true,
-        customerId: data.id,
-        customer: data,
-      }),
+      body: JSON.stringify(data),
     };
 
   } catch (error) {
