@@ -19,6 +19,8 @@ dist-ssr
 .security_scan.py
 .skill.md
 .gitignore
+docs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
