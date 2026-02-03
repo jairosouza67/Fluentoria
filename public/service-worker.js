@@ -141,8 +141,21 @@ self.addEventListener('fetch', (event) => {
       .then((response) => {
         return response;
       })
-      .catch(() => {
-        return caches.match(request);
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        
+        // If it's a navigation request, return the offline page
+        if (request.mode === 'navigate') {
+          const offlinePage = await caches.match(OFFLINE_PAGE);
+          if (offlinePage) return offlinePage;
+        }
+        
+        // For other requests, return a proper error response
+        return new Response('Network error occurred', {
+          status: 408,
+          statusText: 'Network Error'
+        });
       })
   );
 });
