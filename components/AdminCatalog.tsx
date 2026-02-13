@@ -1,12 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, ChevronDown, Edit2, Trash2, Clock, Calendar, Loader2, Eye } from 'lucide-react';
-import { Course, getCourses, addCourse, updateCourse, deleteCourse, getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, getMusic, addMusic, updateMusic, deleteMusic } from '../lib/db';
-// Daily Contact disabled
-// import { getDailyContacts, addDailyContact, updateDailyContact, deleteDailyContact, DailyContact } from '../lib/db';
+import { 
+  Plus, 
+  ChevronDown, 
+  Edit2, 
+  Trash2, 
+  Clock, 
+  Calendar, 
+  Loader2, 
+  Eye, 
+  Search, 
+  Filter,
+  LayoutGrid,
+  Film,
+  Music,
+  Zap
+} from 'lucide-react';
+import { 
+  Course, 
+  getCourses, 
+  addCourse, 
+  updateCourse, 
+  deleteCourse, 
+  getMindfulFlows, 
+  addMindfulFlow, 
+  updateMindfulFlow, 
+  deleteMindfulFlow, 
+  getMusic, 
+  addMusic, 
+  updateMusic, 
+  deleteMusic 
+} from '../lib/db';
 import CourseForm from './CourseForm';
 import CourseDetail from './CourseDetail';
 import { getYouTubeThumbnail } from '../lib/video';
-import AnimatedInput from './ui/AnimatedInput';
+import { PageHeader } from './ui/PageHeader';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
 type TabType =
   | 'courses'
@@ -153,218 +183,206 @@ const AdminCatalog: React.FC = () => {
     course.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            {activeTab === 'courses' && 'Minhas Aulas'}
-            {activeTab === 'gallery' && 'Galeria de Aulas'}
-            {/* {activeTab === 'daily' && 'Daily Contact'} */}
-            {activeTab === 'mindful' && 'Mindful Flow'}
-            {activeTab === 'music' && 'Músicas'}
-          </h1>
-          <p className="text-muted-foreground mt-2">Gerencie seu conteúdo e listagens.</p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingCourse(null);
-            setIsFormOpen(true);
-          }}
-          className="w-full md:w-auto bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 rounded-md font-medium flex items-center justify-center md:justify-start gap-2 shadow-sm hover:-translate-y-0.5 transition-all duration-200"
-        >
-          <Plus className="w-4 h-4" />
-          Criar Novo Conteúdo
-        </button>
-      </div>
+  const tabs = [
+    { id: 'courses', label: 'Cursos & Vídeos', icon: Film },
+    { id: 'gallery', label: 'Galerias', icon: LayoutGrid },
+    { id: 'mindful', label: 'Mindful Flow', icon: Zap },
+    { id: 'music', label: 'Músicas', icon: Music },
+  ];
 
-      {/* Tabs */}
-      <div className="flex flex-wrap justify-center md:justify-start gap-2 border-b border-border">
-        <button
-          onClick={() => setActiveTab('courses')}
-          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'courses'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Aulas
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('gallery');
-          }}
-          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'gallery'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Galeria
-        </button>
-        {/* Daily Contact disabled */}
-        {/*
-        <button
-          onClick={() => setActiveTab('daily')}
-          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'daily'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Daily Contact
-        </button>
-        */}
-        <button
-          onClick={() => setActiveTab('mindful')}
-          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'mindful'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Mindful Flow
-        </button>
-        <button
-          onClick={() => setActiveTab('music')}
-          className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors border-b-2 ${activeTab === 'music'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-        >
-          Music
-        </button>
+  return (
+    <div className="space-y-8 pb-20">
+      <PageHeader
+        title="Catálogo de Conteúdo"
+        description="Gerencie seus cursos, aulas, galerias e materiais audiovisuais."
+        actions={
+          <Button onClick={() => { setEditingCourse(null); setIsFormOpen(true); }} className="gap-2">
+            <Plus size={20} />
+            Novo Conteúdo
+          </Button>
+        }
+      />
+
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-1 bg-card/50 p-1 rounded-xl border border-border w-fit">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as TabType)}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+              ${activeTab === tab.id 
+                ? 'bg-primary text-primary-foreground shadow-sm' 
+                : 'text-muted-foreground hover:text-foreground hover:bg-white/5'}
+            `}
+          >
+            <tab.icon size={16} />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-col md:flex-row md:items-center items-stretch gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <div className="flex-1 max-w-md w-full">
-          <AnimatedInput
-            type="search"
-            placeholder={activeTab === 'gallery' ? 'Buscar galerias...' : 'Buscar conteúdo...'}
-            value={searchTerm}
-            onChange={setSearchTerm}
-            icon="search"
-          />
+      <Card className="p-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-1">
+            <Input
+              type="search"
+              placeholder={activeTab === 'gallery' ? 'Buscar galerias...' : 'Buscar conteúdo...'}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              icon={<Search className="text-muted-foreground" size={18} />}
+              className="max-w-md"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+              <Filter size={16} />
+              Data de Lançamento
+              <ChevronDown size={14} />
+            </Button>
+            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+              Duração
+              <ChevronDown size={14} />
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button className="flex items-center gap-2 bg-transparent text-muted-foreground hover:text-foreground px-4 py-2.5 rounded-lg transition-colors">
-            Data de Lançamento <ChevronDown size={16} />
-          </button>
-          <button className="flex items-center gap-2 bg-transparent text-muted-foreground hover:text-foreground px-4 py-2.5 rounded-lg transition-colors">
-            Duração <ChevronDown size={16} />
-          </button>
-        </div>
-      </div>
+      </Card>
 
       {/* Course Grid */}
       {loading ? (
-        <div className="flex justify-center py-20">
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="animate-spin text-primary" size={40} />
+          <p className="text-muted-foreground animate-pulse">Carregando catálogo...</p>
         </div>
       ) : filteredCourses.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-border rounded-xl">
-          <p className="text-muted-foreground mb-2">
+        <Card className="flex flex-col items-center justify-center py-20 bg-card/30 border-dashed">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+            <Search className="text-muted-foreground/50" size={32} />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">
             {activeTab === 'gallery' ? 'Nenhuma galeria encontrada' : 'Nenhum conteúdo encontrado'}
+          </h3>
+          <p className="text-muted-foreground text-center max-w-xs mb-6">
+            {activeTab === 'gallery' 
+              ? 'Tente ajustar sua busca ou crie uma nova galeria para começar.' 
+              : 'Comece criando novos conteúdos para popular sua plataforma.'}
           </p>
-          <p className="text-sm text-muted-foreground">
-            {activeTab === 'gallery' ? 'Crie cursos com galerias para vê-los aqui.' : 'Comece criando novo conteúdo.'}
-          </p>
-        </div>
+          <Button variant="outline" onClick={() => setSearchTerm('')}>
+            Limpar Filtros
+          </Button>
+        </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           {filteredCourses.map((course) => {
             const thumbnailUrl = course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
             const displayImage = course.coverImage || thumbnailUrl;
-            
-            // Gallery-specific data
             const galleryCount = activeTab === 'gallery' ? (course.galleries?.length || 0) : 0;
             const totalModules = activeTab === 'gallery' ? (course.galleries?.reduce((acc, g) => acc + g.modules.length, 0) || 0) : 0;
 
             return (
-              <div key={course.id} className="overflow-hidden bg-card border-border group hover:shadow-elevated transition-all duration-300 rounded-xl">
-                {/* Thumbnail */}
-                <div className="aspect-video relative overflow-hidden">
+              <Card key={course.id} className="group overflow-hidden flex flex-col h-full border-white/5 hover:border-primary/20 transition-all duration-300 rounded-xl shadow-sm">
+                {/* Thumbnail Area */}
+                <div className="aspect-video relative overflow-hidden bg-muted">
                   {displayImage ? (
                     <img
                       src={displayImage}
                       alt={course.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${course.thumbnail}`} />
+                    <div className={`w-full h-full bg-gradient-to-br ${course.thumbnail} opacity-60`} />
                   )}
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                   
-                  <div className="absolute top-3 right-3 flex gap-2">
-                    <button
+                  {/* Overlay Actions */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 px-4 text-center">
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20"
                       onClick={() => handleViewCourse(course)}
-                      className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
-                      title="Visualizar"
                     >
-                      <Eye size={16} />
-                    </button>
-                    <button
+                      <Eye size={16} className="mr-2" />
+                      Ver
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20"
                       onClick={() => handleEditCourse(course)}
-                      className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground p-2 rounded-lg transition-colors"
-                      title="Editar"
                     >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteCourse(course.id!)}
-                      className="bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-destructive p-2 rounded-lg transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                      <Edit2 size={16} className="mr-2" />
+                      Editar
+                    </Button>
                   </div>
+
+                  {/* Top Badges */}
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <span className="bg-black/60 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-white/10 shadow-sm">
+                      {course.type}
+                    </span>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleDeleteCourse(course.id!)}
+                    className="absolute top-3 right-3 p-2 rounded-lg bg-black/60 backdrop-blur-md text-white/70 hover:text-destructive hover:bg-destructive/20 transition-all border border-white/10 shadow-sm"
+                    title="Excluir"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-lg line-clamp-2 text-foreground group-hover:text-primary transition-colors">
-                      {course.title}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                <div className="p-5 flex-1 flex flex-col">
+                  <h3 className="font-bold text-lg mb-2 text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                    {course.title}
+                  </h3>
+                  
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
                     {activeTab === 'gallery' ? (
                       <>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
+                        <div className="flex items-center gap-1.5">
+                          <LayoutGrid size={13} className="text-primary/70" />
                           {galleryCount} {galleryCount === 1 ? 'galeria' : 'galerias'}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={13} className="text-primary/70" />
                           {totalModules} {totalModules === 1 ? 'módulo' : 'módulos'}
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {course.duration}
+                        <div className="flex items-center gap-1.5">
+                          <Clock size={13} className="text-primary/70" />
+                          {course.duration || '00:00'}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={13} className="text-primary/70" />
                           {course.launchDate || 'Em breve'}
                         </div>
                       </>
                     )}
                   </div>
 
-                  <p className="text-sm text-muted-foreground mb-1">Por {course.author}</p>
-                </div>
+                  <p className="text-sm text-muted-foreground mb-5 line-clamp-2">
+                    {course.description || `Conteúdo produzido por ${course.author}`}
+                  </p>
 
-                <div className="p-6 pt-0 flex justify-between items-center border-t border-border/50">
-                  <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{course.type}</span>
-                  <button
-                    onClick={() => handleViewCourse(course)}
-                    className="border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary px-4 py-2 rounded-lg text-sm font-medium border transition-all"
-                  >
-                    {activeTab === 'courses' ? 'Acessar Galeria' : activeTab === 'gallery' ? 'Ver Galerias' : 'Acessar'}
-                  </button>
+                  <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-muted-foreground uppercase opacity-70">
+                      ID: {course.id?.substring(0, 8)}...
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-primary hover:bg-primary/10 -mr-2"
+                      onClick={() => handleViewCourse(course)}
+                    >
+                      {activeTab === 'courses' ? 'Acessar Curso' : activeTab === 'gallery' ? 'Ver Galerias' : 'Visualizar'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -379,7 +397,7 @@ const AdminCatalog: React.FC = () => {
       )}
 
       {viewingCourse && (
-        <div className="fixed inset-0 z-50 bg-[#0B0B0B]">
+        <div className="fixed inset-0 z-[100] bg-background">
           <CourseDetail
             course={viewingCourse}
             onBack={() => setViewingCourse(null)}

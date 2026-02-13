@@ -47,8 +47,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       let message = "Ocorreu um erro. Tente novamente.";
       if (err.code === 'auth/invalid-email') message = "Email inválido.";
       if (err.code === 'auth/user-disabled') message = "Usuário desativado.";
-      if (err.code === 'auth/user-not-found') message = "Usuário não encontrado.";
-      if (err.code === 'auth/wrong-password') message = "Senha incorreta.";
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        message = "Email ou senha incorretos.";
+      }
       if (err.code === 'auth/email-already-in-use') message = "Email já está em uso.";
       if (err.code === 'auth/weak-password') message = "A senha deve ter pelo menos 6 caracteres.";
 

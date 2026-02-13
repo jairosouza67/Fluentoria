@@ -4,6 +4,10 @@ import { UserStats } from '../types';
 import { auth } from '../lib/firebase';
 import { getStudentProgress, createStudentProgress } from '../lib/gamification';
 import { signOut } from 'firebase/auth';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Input } from './ui/Input';
+import { PageHeader } from './ui/PageHeader';
 
 const Profile: React.FC = () => {
   const user = auth.currentUser;
@@ -171,12 +175,15 @@ const Profile: React.FC = () => {
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-10">
-      <h1 className="text-3xl font-bold text-white">Meu Perfil</h1>
+      <PageHeader 
+        title="Meu Perfil"
+        description="Gerencie suas informações e acompanhe seu progresso"
+      />
 
       <div className="flex flex-col md:flex-row gap-8">
         {/* Left Column: Avatar & Stats - Mobile: Second, Desktop: First */}
         <div className="w-full md:w-1/3 space-y-6 order-2 md:order-1">
-          <div className="bg-[#1c1917] border border-stone-800 rounded-xl p-6 text-center space-y-4">
+          <Card className="text-center space-y-4">
             <div className="relative w-28 h-28 mx-auto group/avatar">
               <img 
                 src={userPhoto}
@@ -187,7 +194,7 @@ const Profile: React.FC = () => {
               <button 
                 onClick={handlePhotoChange}
                 disabled={saving}
-                className="absolute bottom-0 right-0 bg-orange-500 p-2 rounded-full text-white hover:bg-orange-600 transition-colors border border-[#1c1917] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                className="absolute bottom-0 right-0 bg-orange-500 p-2 rounded-full text-white hover:bg-orange-600 transition-colors border border-[#111111] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 title="Alterar foto"
               >
                 <Camera size={16} />
@@ -196,7 +203,7 @@ const Profile: React.FC = () => {
                 <button 
                   onClick={handlePhotoRemove}
                   disabled={saving}
-                  className="absolute bottom-0 left-0 bg-red-600 p-2 rounded-full text-white hover:bg-red-700 transition-all border border-[#1c1917] disabled:opacity-50 disabled:cursor-not-allowed opacity-0 group-hover/avatar:opacity-100 shadow-lg"
+                  className="absolute bottom-0 left-0 bg-red-600 p-2 rounded-full text-white hover:bg-red-700 transition-all border border-[#111111] disabled:opacity-50 disabled:cursor-not-allowed opacity-0 group-hover/avatar:opacity-100 shadow-lg"
                   title="Remover foto"
                 >
                   <Trash2 size={14} />
@@ -210,9 +217,9 @@ const Profile: React.FC = () => {
                 <p className="text-xs text-orange-400 mt-2">Nível {studentProgress.currentLevel} • {studentProgress.currentXP} XP</p>
               )}
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-[#1c1917] border border-stone-800 rounded-xl p-6 space-y-4">
+          <Card className="space-y-4">
             <h3 className="text-sm font-semibold text-stone-400 uppercase tracking-wider mb-4">Estatísticas</h3>
             
             <div className="flex items-center gap-4">
@@ -244,12 +251,12 @@ const Profile: React.FC = () => {
                 <p className="text-xs text-stone-500">Ofensiva Atual</p>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Right Column: Settings Form - Mobile: First, Desktop: Second */}
-        <div className="flex-1 bg-gradient-to-br from-[#1c1917] to-[#141312] border border-stone-800 rounded-xl p-8 order-1 md:order-2 shadow-2xl">
-          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-stone-800">
+        <div className="flex-1 bg-gradient-to-br from-[#111111] to-[#0b0b0b] border border-white/[0.06] rounded-xl p-8 order-1 md:order-2 shadow-2xl">
+          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/[0.06]">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
               <User className="text-white" size={24} />
             </div>
@@ -269,46 +276,42 @@ const Profile: React.FC = () => {
               <div className="relative">
                 {editingName ? (
                   <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-orange-400" size={18} />
-                      <input 
-                        type="text" 
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        placeholder="Digite seu nome completo"
-                        className="w-full bg-[#0a0908] border-2 border-orange-500 rounded-xl py-3.5 pl-14 pr-24 text-white placeholder-stone-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all shadow-lg shadow-orange-500/10" 
-                        autoFocus
-                      />
-                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
-                        <button
-                          type="button"
-                          onClick={handleNameSave}
-                          disabled={saving || !newName.trim()}
-                          className="p-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-lg shadow-orange-500/30"
-                          title="Salvar"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingName(false)}
-                          disabled={saving}
-                          className="p-2 bg-stone-800 text-white rounded-lg hover:bg-stone-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                          title="Cancelar"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
+                    <Input 
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="Digite seu nome completo"
+                      icon={<User size={18} className="text-orange-400" />}
+                      autoFocus
+                    />
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        onClick={handleNameSave}
+                        disabled={saving || !newName.trim()}
+                        isLoading={saving}
+                        className="p-2 h-auto"
+                        title="Salvar"
+                      >
+                        <Check size={16} />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setEditingName(false)}
+                        disabled={saving}
+                        className="p-2 h-auto"
+                        title="Cancelar"
+                      >
+                        <X size={16} />
+                      </Button>
                     </div>
                   </div>
                 ) : (
                   <div className="relative group">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-stone-600 group-hover:text-orange-400 transition-colors" size={18} />
-                    <input 
-                      type="text" 
+                    <Input 
                       value={userName} 
                       readOnly
-                      className="w-full bg-[#0a0908] border border-stone-800 rounded-xl py-3.5 pl-14 pr-12 text-white cursor-default group-hover:border-orange-500/30 transition-all" 
+                      icon={<User size={18} className="text-stone-600 group-hover:text-orange-400" />}
                     />
                     <button
                       type="button"
@@ -330,16 +333,15 @@ const Profile: React.FC = () => {
                 Nível Atual
               </label>
               <div className="relative group">
-                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                    <Award className="text-white" size={15} />
-                  </div>
-                </div>
-                <input 
-                  type="text" 
+                <Input 
                   value={studentProgress ? `Nível ${studentProgress.currentLevel}` : 'Carregando...'} 
                   readOnly
-                  className="w-full bg-gradient-to-r from-[#0a0908] to-[#1c1917] border border-stone-800 rounded-xl py-3.5 pl-16 pr-4 text-white font-bold cursor-default group-hover:border-orange-500/50 transition-all shadow-inner" 
+                  icon={
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                      <Award className="text-white" size={15} />
+                    </div>
+                  }
+                  className="font-bold bg-gradient-to-r from-[#0a0908] to-[#111111]"
                 />
               </div>
             </div>
@@ -349,18 +351,15 @@ const Profile: React.FC = () => {
                 <span className="w-1 h-3 bg-orange-500 rounded-full"></span>
                 Email
               </label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-stone-600 group-hover:text-orange-400 transition-colors" size={18} />
-                <input 
-                  type="email" 
-                  value={userEmail} 
-                  readOnly
-                  className="w-full bg-[#0a0908] border border-stone-800 rounded-xl py-3.5 pl-14 pr-4 text-white cursor-default group-hover:border-orange-500/30 transition-all" 
-                />
-              </div>
+              <Input 
+                type="email" 
+                value={userEmail} 
+                readOnly
+                icon={<Mail size={18} className="text-stone-600 group-hover:text-orange-400" />}
+              />
             </div>
 
-            <div className="pt-6 mt-6 border-t border-stone-800">
+            <div className="pt-6 mt-6 border-t border-white/[0.06]">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <button 
                   type="button" 
@@ -370,7 +369,7 @@ const Profile: React.FC = () => {
                   <LogOut size={18} className="group-hover:-translate-x-0.5 transition-transform" />
                   Sair da Conta
                 </button>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-800/50 rounded-lg border border-stone-700">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.02] rounded-lg border border-white/[0.06]">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                   <span className="text-xs text-stone-400 font-mono">ID: {user?.uid.substring(0, 12)}...</span>
                 </div>

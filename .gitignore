@@ -19,6 +19,7 @@ dist-ssr
 .security_scan.py
 .skill.md
 .gitignore
+.agent 
 docs
 
 # Editor directories and files
