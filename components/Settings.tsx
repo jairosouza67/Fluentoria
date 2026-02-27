@@ -33,7 +33,7 @@ import {
   RefreshCw,
   Search
 } from 'lucide-react';
-import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas } from '../lib/db';
+import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas, isPrimaryAdmin } from '../lib/db';
 import { OrangeToggle } from './ui/toggle';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -452,7 +452,7 @@ const Settings: React.FC = () => {
                     <p className="text-center text-[#9CA3AF] py-8">Nenhum administrador cadastrado</p>
                   ) : (
                     adminEmails.map((email, index) => {
-                      const isPrimary = email === 'jairosouza67@gmail.com';
+                      const isPrimary = isPrimaryAdmin(email);
                       return (
                         <Card key={index} className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">

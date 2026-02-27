@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete } from '../lib/db';
+import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
 import { formatFileSize } from '../lib/media';
 import CourseChat from './CourseChat';
@@ -501,7 +501,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                 courseName={course.title}
                 studentId={user.uid}
                 studentName={user.displayName || user.email || 'User'}
-                isInstructor={user.email === 'jairosouza67@gmail.com'}
+                isInstructor={!!user.email && isAdminEmail(user.email)}
               />
             )}
 
@@ -512,7 +512,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                 userId={user.uid}
                 userName={user.displayName || user.email || 'User'}
                 userEmail={user.email || ''}
-                isInstructor={user.email === 'jairosouza67@gmail.com'}
+                isInstructor={!!user.email && isAdminEmail(user.email)}
               />
             )}
           </div>
