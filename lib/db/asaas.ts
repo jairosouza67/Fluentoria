@@ -1,6 +1,7 @@
 import { db, auth } from '../firebase';
 import { collection, getDocs, updateDoc, doc, query, where } from 'firebase/firestore';
 import { USERS_COLLECTION } from './config';
+import { requireAdmin } from './admin';
 
 // Check payment status from Asaas
 export const checkAsaasPaymentStatus = async (customerId: string): Promise<{ authorized: boolean; status: string; error?: string }> => {
@@ -88,6 +89,7 @@ export const syncAllStudentsWithAsaas = async (): Promise<{ success: number; fai
     const results = { success: 0, failed: 0, errors: [] as string[] };
 
     try {
+        await requireAdmin();
         const usersRef = collection(db, USERS_COLLECTION);
         const q = query(usersRef, where('role', '==', 'student'));
         const querySnapshot = await getDocs(q);

@@ -2,6 +2,7 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { Course } from './types';
 import { COURSES_COLLECTION } from './config';
+import { requireAdmin } from './admin';
 
 export const getCourses = async (): Promise<Course[]> => {
     try {
@@ -16,6 +17,7 @@ export const getCourses = async (): Promise<Course[]> => {
 
 export const addCourse = async (course: Course): Promise<string | null> => {
     try {
+        await requireAdmin();
         const docRef = await addDoc(collection(db, COURSES_COLLECTION), course);
         return docRef.id;
     } catch (error) {
@@ -26,6 +28,7 @@ export const addCourse = async (course: Course): Promise<string | null> => {
 
 export const updateCourse = async (id: string, updates: Partial<Course>): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, COURSES_COLLECTION, id);
         await updateDoc(docRef, updates);
         return true;
@@ -37,6 +40,7 @@ export const updateCourse = async (id: string, updates: Partial<Course>): Promis
 
 export const deleteCourse = async (id: string): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, COURSES_COLLECTION, id);
         await deleteDoc(docRef);
         return true;

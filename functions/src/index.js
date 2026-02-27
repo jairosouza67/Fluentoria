@@ -28,11 +28,21 @@ exports.asaasWebhook = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    // Verify webhook signature
-    const webhookToken = functions.config().asaas.webhook_token;
+    // Verify webhook signature (MANDATORY - fail-closed)
+    const webhookToken = functions.config().asaas?.webhook_token;
+    if (!webhookToken) {
+      console.error('CRITICAL: asaas.webhook_token not configured. Rejecting all webhook requests.');
+      res.status(500).send('Server misconfiguration');
+      return;
+    }
+
     const providedToken = req.headers['x-asaas-access-token'] || req.headers['X-Asaas-Access-Token'];
-    
-    if (!webhookToken || providedToken !== webhookToken) {
+    if (!providedToken ||
+        webhookToken.length !== String(providedToken).length ||
+        !crypto.timingSafeEqual(
+          Buffer.from(webhookToken),
+          Buffer.from(String(providedToken))
+        )) {
       console.error('Invalid webhook token. Provided:', providedToken ? 'exists' : 'missing');
       res.status(401).send('Unauthorized');
       return;

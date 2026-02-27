@@ -1,7 +1,20 @@
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, getDoc, setDoc } from 'firebase/firestore';
 import { isAdminEmail, isPrimaryAdmin, USERS_COLLECTION, ADMIN_EMAILS_COLLECTION, PRIMARY_ADMIN_EMAIL } from './config';
 import { findAndMergeStudentByEmail } from './students';
+
+// Security: Verify the current user is an admin before performing sensitive operations
+export const requireAdmin = async (): Promise<void> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Não autenticado');
+
+    const userRef = doc(db, USERS_COLLECTION, user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists() || userSnap.data().role !== 'admin') {
+        throw new Error('Acesso negado: permissão de administrador necessária');
+    }
+};
 
 // Create user in Firestore if doesn't exist
 export const createOrUpdateUser = async (uid: string, userData: any): Promise<void> => {
@@ -96,6 +109,7 @@ export const checkUserAccess = async (uid: string): Promise<{ authorized: boolea
 // Force update user role (for admin setup)
 export const forceUpdateUserRole = async (uid: string, email: string): Promise<void> => {
     try {
+        await requireAdmin();
         // Check if email is in admin list
         const adminEmails = await getAdminEmails();
         const isAdmin = adminEmails.includes(email.toLowerCase());
@@ -133,6 +147,7 @@ export const forceUpdateUserRole = async (uid: string, email: string): Promise<v
 // Add a new admin by email
 export const addAdminByEmail = async (email: string): Promise<{ success: boolean; message: string }> => {
     try {
+        await requireAdmin();
         const normalizedEmail = email.toLowerCase().trim();
         
         // Check if email is valid
@@ -172,6 +187,7 @@ export const addAdminByEmail = async (email: string): Promise<{ success: boolean
 // Get all admin emails (both existing users and pending)
 export const getAdminEmails = async (): Promise<string[]> => {
     try {
+        await requireAdmin();
         const adminEmails: string[] = [PRIMARY_ADMIN_EMAIL]; // Always include primary admin
         
         // Get existing admin users
@@ -205,6 +221,7 @@ export const getAdminEmails = async (): Promise<string[]> => {
 // Remove admin privileges
 export const removeAdmin = async (email: string): Promise<{ success: boolean; message: string }> => {
     try {
+        await requireAdmin();
         const normalizedEmail = email.toLowerCase().trim();
         
         // Don't allow removing primary admin
@@ -243,6 +260,7 @@ export const removeAdmin = async (email: string): Promise<{ success: boolean; me
 // Update student access authorization
 export const updateStudentAccess = async (studentId: string, authorized: boolean, manual: boolean = false): Promise<{ success: boolean; message: string }> => {
     try {
+        await requireAdmin();
         const updates: any = {
             accessAuthorized: authorized,
             accessUpdatedAt: new Date()

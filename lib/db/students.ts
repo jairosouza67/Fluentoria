@@ -2,9 +2,11 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, setDoc, getDoc } from 'firebase/firestore';
 import { Student } from './types';
 import { USERS_COLLECTION } from './config';
+import { requireAdmin } from './admin';
 
 export const getAllStudents = async (): Promise<Student[]> => {
     try {
+        await requireAdmin();
         const querySnapshot = await getDocs(collection(db, USERS_COLLECTION));
 
         const students = querySnapshot.docs.map(doc => {
@@ -62,6 +64,7 @@ export const getAllStudents = async (): Promise<Student[]> => {
 
 export const addStudent = async (name: string, email: string, photoURL?: string): Promise<string | null> => {
     try {
+        await requireAdmin();
         const studentData = {
             name,
             email: email.toLowerCase(),
@@ -82,6 +85,7 @@ export const addStudent = async (name: string, email: string, photoURL?: string)
 
 export const updateStudent = async (id: string, updates: Partial<Student>): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, USERS_COLLECTION, id);
         await updateDoc(docRef, updates as any);
         return true;
@@ -93,6 +97,7 @@ export const updateStudent = async (id: string, updates: Partial<Student>): Prom
 
 export const deleteStudent = async (id: string): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, USERS_COLLECTION, id);
         await deleteDoc(docRef);
         return true;
@@ -141,6 +146,7 @@ export const findAndMergeStudentByEmail = async (email: string, googleUserData: 
 // Export student data to CSV (with Asaas integration data)
 export const exportStudentData = async (): Promise<string> => {
     try {
+        await requireAdmin();
         const usersRef = collection(db, USERS_COLLECTION);
         const q = query(usersRef, where('role', '==', 'student'));
         const querySnapshot = await getDocs(q);
@@ -178,6 +184,7 @@ export const importStudentData = async (csvData: string): Promise<{ success: num
     const results = { success: 0, errors: [] as string[] };
 
     try {
+        await requireAdmin();
         // Parse CSV
         const lines = csvData.split('\n').filter(line => line.trim());
         if (lines.length < 2) {
@@ -254,6 +261,7 @@ export const importStudentData = async (csvData: string): Promise<{ success: num
 // Get students with access control info
 export const getStudentsWithAccessControl = async (): Promise<any[]> => {
     try {
+        await requireAdmin();
         const usersRef = collection(db, USERS_COLLECTION);
         const q = query(usersRef, where('role', '==', 'student'));
         const querySnapshot = await getDocs(q);

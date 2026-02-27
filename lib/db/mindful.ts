@@ -2,6 +2,7 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { Course } from './types';
 import { MINDFUL_FLOW_COLLECTION } from './config';
+import { requireAdmin } from './admin';
 
 export const getMindfulFlows = async (): Promise<Course[]> => {
     try {
@@ -16,6 +17,7 @@ export const getMindfulFlows = async (): Promise<Course[]> => {
 
 export const addMindfulFlow = async (flow: Course): Promise<string | null> => {
     try {
+        await requireAdmin();
         const docRef = await addDoc(collection(db, MINDFUL_FLOW_COLLECTION), flow);
         return docRef.id;
     } catch (error) {
@@ -26,6 +28,7 @@ export const addMindfulFlow = async (flow: Course): Promise<string | null> => {
 
 export const updateMindfulFlow = async (id: string, updates: Partial<Course>): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, MINDFUL_FLOW_COLLECTION, id);
         await updateDoc(docRef, updates);
         return true;
@@ -37,6 +40,7 @@ export const updateMindfulFlow = async (id: string, updates: Partial<Course>): P
 
 export const deleteMindfulFlow = async (id: string): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, MINDFUL_FLOW_COLLECTION, id);
         await deleteDoc(docRef);
         return true;

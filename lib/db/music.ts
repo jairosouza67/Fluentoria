@@ -2,6 +2,7 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { Course } from './types';
 import { MUSIC_COLLECTION } from './config';
+import { requireAdmin } from './admin';
 
 export const getMusic = async (): Promise<Course[]> => {
     try {
@@ -16,6 +17,7 @@ export const getMusic = async (): Promise<Course[]> => {
 
 export const addMusic = async (music: Course): Promise<string | null> => {
     try {
+        await requireAdmin();
         const docRef = await addDoc(collection(db, MUSIC_COLLECTION), music);
         return docRef.id;
     } catch (error) {
@@ -26,6 +28,7 @@ export const addMusic = async (music: Course): Promise<string | null> => {
 
 export const updateMusic = async (id: string, updates: Partial<Course>): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, MUSIC_COLLECTION, id);
         await updateDoc(docRef, updates);
         return true;
@@ -37,6 +40,7 @@ export const updateMusic = async (id: string, updates: Partial<Course>): Promise
 
 export const deleteMusic = async (id: string): Promise<boolean> => {
     try {
+        await requireAdmin();
         const docRef = doc(db, MUSIC_COLLECTION, id);
         await deleteDoc(docRef);
         return true;
