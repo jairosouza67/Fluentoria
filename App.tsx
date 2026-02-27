@@ -404,39 +404,45 @@ const App: React.FC = () => {
 
               {/* Dropdown Menu */}
               {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-white/[0.1] rounded-xl shadow-elevated overflow-hidden animate-fade-in">
-                  <div className="p-4 border-b border-white/[0.06]">
-                    <p className="text-sm font-semibold text-[#F3F4F6]">{user?.displayName || 'Usuário'}</p>
-                    <p className="text-xs text-[#9CA3AF] mb-2">{user?.email}</p>
-                    <div className="inline-block px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.1] text-[10px] text-[#9CA3AF] uppercase tracking-wider">
-                      {viewMode === 'student' ? 'Aluno' : 'Admin'}
-                    </div>
+                <div className="absolute right-0 mt-2 w-56 bg-[#111111]/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl overflow-hidden animate-fade-in">
+                  {/* User Info Header */}
+                  <div className="px-4 py-3 border-b border-white/[0.06]">
+                    <p className="text-sm font-medium text-[#F3F4F6] truncate">{user?.displayName || 'Usuário'}</p>
+                    <p className="text-xs text-[#9CA3AF] truncate">{user?.email}</p>
                   </div>
 
-                  <div className="py-2">
+                  {/* Menu Items - Compact List Style */}
+                  <div className="py-1">
                     <button
                       onClick={() => {
                         navigateTo('profile');
                         setShowProfileMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-[#F3F4F6] hover:bg-white/[0.05] transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2 text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/[0.04] transition-all duration-150"
                     >
-                      <UserIcon className="w-5 h-5 text-[#FF6A00]" />
+                      <UserIcon className="w-4 h-4" />
                       <span className="text-sm">Perfil</span>
                     </button>
-                  </div>
 
-                  <div className="p-2 border-t border-white/[0.06]">
+                    <div className="border-t border-white/[0.04] my-1" />
+
                     <button
                       onClick={() => {
                         handleLogout();
                         setShowProfileMenu(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2 text-red-400/80 hover:text-red-400 hover:bg-red-500/5 transition-all duration-150"
                     >
-                      <LogOutIcon className="w-5 h-5" />
-                      <span className="text-sm font-medium">Sair</span>
+                      <LogOutIcon className="w-4 h-4" />
+                      <span className="text-sm">Sair</span>
                     </button>
+                  </div>
+
+                  {/* Mode Indicator Footer */}
+                  <div className="px-4 py-1.5 bg-white/[0.02] border-t border-white/[0.06]">
+                    <span className="text-[10px] text-[#9CA3AF]/60 uppercase tracking-wider">
+                      Modo: {viewMode === 'student' ? 'Aluno' : 'Admin'}
+                    </span>
                   </div>
                 </div>
               )}
