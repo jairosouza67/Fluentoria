@@ -368,14 +368,11 @@ const AdminCatalog: React.FC = () => {
                     {course.description || `Conteúdo produzido por ${course.author}`}
                   </p>
 
-                  <div className="mt-auto pt-4 border-t border-white/[0.06] flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-[#9CA3AF] uppercase opacity-70">
-                      ID: {course.id?.substring(0, 8)}...
-                    </span>
+                  <div className="mt-auto pt-4 border-t border-white/[0.06] flex items-center justify-center">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-[#FF6A00] hover:bg-[#FF6A00]/10 -mr-2"
+                      className="text-[#FF6A00] hover:bg-[#FF6A00]/10"
                       onClick={() => handleViewCourse(course)}
                     >
                       {activeTab === 'courses' ? 'Acessar Curso' : activeTab === 'gallery' ? 'Ver Galerias' : 'Visualizar'}

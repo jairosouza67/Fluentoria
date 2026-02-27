@@ -371,7 +371,7 @@ const Profile: React.FC = () => {
                 </button>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.02] rounded-lg border border-white/[0.06]">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-xs text-stone-400 font-mono">ID: {user?.uid.substring(0, 12)}...</span>
+                  <span className="text-xs text-stone-400">Online</span>
                 </div>
               </div>
             </div>
