@@ -80,7 +80,7 @@
 }
 
 .input-pluma {
-  @apply bg-white/[0.02] border border-white/[0.06] rounded-lg px-3 py-3 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms];
+  @apply bg-white/[0.02] border border-white/[0.06] rounded-lg py-3 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms];
 }
 
 .surface-pluma {
