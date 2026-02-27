@@ -35,6 +35,12 @@ import {
 } from 'lucide-react';
 import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas } from '../lib/db';
 import { OrangeToggle } from './ui/toggle';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Card } from './ui/Card';
+import { SettingSection } from './ui/SettingSection';
+import { Modal } from './ui/Modal';
+import { PageHeader } from './ui/PageHeader';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -328,32 +334,68 @@ const Settings: React.FC = () => {
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Add Admin Modal */}
-      <AddAdminModal
+      <Modal
         isOpen={showAddAdminModal}
         onClose={() => {
           setShowAddAdminModal(false);
           setNewAdminEmail('');
         }}
-        onAdd={handleAddAdmin}
-        email={newAdminEmail}
-        setEmail={setNewAdminEmail}
-        isLoading={isAddingAdmin}
-      />
+        title="Adicionar Administrador"
+        description="Insira o email do novo administrador"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setShowAddAdminModal(false)}
+              className="flex-1"
+              disabled={isAddingAdmin}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAddAdmin}
+              disabled={isAddingAdmin || !newAdminEmail.trim()}
+              isLoading={isAddingAdmin}
+              className="flex-1"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Adicionar
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#9CA3AF]">
+              Email do Administrador
+            </label>
+            <Input
+              type="email"
+              value={newAdminEmail}
+              onChange={(e) => setNewAdminEmail(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !isAddingAdmin && handleAddAdmin()}
+              placeholder="exemplo@email.com"
+              disabled={isAddingAdmin}
+              autoFocus
+            />
+            <p className="text-xs text-[#9CA3AF]">
+              O usuário receberá permissões de administrador ao fazer login
+            </p>
+          </div>
+        </div>
+      </Modal>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#F3F4F6]">Configurações do Sistema</h1>
-          <p className="text-[#9CA3AF] mt-2">Gerencie configurações administrativas e preferências da plataforma</p>
-        </div>
-        <button 
-          onClick={handleSaveSettings}
-          className="w-full md:w-auto bg-[#FF6A00] hover:bg-[#E15B00] text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center md:justify-start gap-2 transition-all duration-200"
-        >
-          <Save className="w-4 h-4" />
-          Salvar Todas
-        </button>
-      </div>
+      <PageHeader 
+        title="Configurações do Sistema"
+        description="Gerencie configurações administrativas e preferências da plataforma"
+        action={
+          <Button onClick={handleSaveSettings}>
+            <Save className="w-4 h-4 mr-2" />
+            Salvar Todas
+          </Button>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-white/[0.06]">
@@ -391,13 +433,14 @@ const Settings: React.FC = () => {
                   <p className="text-sm text-[#9CA3AF]">
                     {isLoadingAdmins ? 'Carregando...' : `Total de Admins: ${adminEmails.length}`}
                   </p>
-                  <button 
+                  <Button 
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setShowAddAdminModal(true)}
-                    className="bg-[#FF6A00]/10 border border-[#FF6A00]/20 text-[#FF6A00] px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#FF6A00]/20 transition-all"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 mr-2" />
                     Adicionar Admin
-                  </button>
+                  </Button>
                 </div>
                 
                 <div className="space-y-3">
@@ -411,7 +454,7 @@ const Settings: React.FC = () => {
                     adminEmails.map((email, index) => {
                       const isPrimary = email === 'jairosouza67@gmail.com';
                       return (
-                        <div key={index} className="bg-[#111111] border border-white/[0.06] rounded-lg p-4 flex items-center justify-between">
+                        <Card key={index} className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold">
                               {email.charAt(0).toUpperCase()}
@@ -439,7 +482,7 @@ const Settings: React.FC = () => {
                               </button>
                             )}
                           </div>
-                        </div>
+                        </Card>
                       );
                     })
                   )}
@@ -456,7 +499,7 @@ const Settings: React.FC = () => {
               onToggle={() => toggleSection('studentSettings')}
             >
               <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-[#111111] rounded-lg border border-white/[0.06]">
+                <Card className="flex items-center justify-between p-4 bg-white/[0.01]">
                   <div>
                     <h4 className="text-[#F3F4F6] font-medium mb-1">Auto-excluir contas inativas</h4>
                     <p className="text-sm text-[#9CA3AF]">Excluir automaticamente contas após período de inatividade</p>
@@ -465,21 +508,20 @@ const Settings: React.FC = () => {
                     checked={studentAutoDelete.enabled}
                     onChange={(e) => setStudentAutoDelete({...studentAutoDelete, enabled: e.target.checked})}
                   />
-                </div>
+                </Card>
 
                 {studentAutoDelete.enabled && (
                   <div className="ml-4 space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">Período de inatividade (dias)</label>
-                    <input
+                    <Input
                       type="number"
                       value={studentAutoDelete.days}
                       onChange={(e) => setStudentAutoDelete({...studentAutoDelete, days: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
                   </div>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -487,40 +529,26 @@ const Settings: React.FC = () => {
                     onChange={handleImportStudents}
                     className="hidden"
                   />
-                  <button 
+                  <Button 
+                    variant="secondary"
                     onClick={handleExportStudents}
                     disabled={isExporting}
-                    className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1"
+                    isLoading={isExporting}
                   >
-                    {isExporting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Exportando...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="w-4 h-4" />
-                        Exportar Dados de Alunos
-                      </>
-                    )}
-                  </button>
-                  <button 
+                    {!isExporting && <Download className="w-4 h-4 mr-2" />}
+                    Exportar Dados de Alunos
+                  </Button>
+                  <Button 
+                    variant="secondary"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isImporting}
-                    className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1"
+                    isLoading={isImporting}
                   >
-                    {isImporting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Importando...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-4 h-4" />
-                        Importar Alunos em Massa
-                      </>
-                    )}
-                  </button>
+                    {!isImporting && <Upload className="w-4 h-4 mr-2" />}
+                    Importar Alunos em Massa
+                  </Button>
                 </div>
               </div>
             </SettingSection>
@@ -535,48 +563,35 @@ const Settings: React.FC = () => {
             >
               <div className="space-y-6">
                 {/* Sync Button */}
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-[#FF6A00]/10 to-transparent rounded-lg border border-[#FF6A00]/20">
+                <Card className="flex items-center justify-between p-4 bg-gradient-to-r from-[#FF6A00]/05 to-transparent border-[#FF6A00]/20">
                   <div>
                     <h4 className="text-[#F3F4F6] font-medium mb-1 flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4" />
+                      <RefreshCw className="w-4 h-4 text-orange-400" />
                       Sincronização Automática com Asaas
                     </h4>
                     <p className="text-sm text-[#9CA3AF]">
                       Alunos com pagamento em dia serão autorizados automaticamente
                     </p>
                   </div>
-                  <button
+                  <Button
                     onClick={handleSyncAsaas}
                     disabled={isSyncingAsaas}
-                    className="bg-[#FF6A00] hover:bg-[#E15B00] text-white px-6 py-2.5 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    isLoading={isSyncingAsaas}
                   >
-                    {isSyncingAsaas ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Sincronizando...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4" />
-                        Sincronizar Agora
-                      </>
-                    )}
-                  </button>
-                </div>
+                    {!isSyncingAsaas && <RefreshCw className="w-4 h-4 mr-2" />}
+                    Sincronizar Agora
+                  </Button>
+                </Card>
 
                 {/* Search */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-[#9CA3AF]">Buscar Aluno</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
-                    <input
-                      type="text"
-                      placeholder="Buscar aluno por nome ou email..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] pl-15 pr-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                    />
-                  </div>
+                  <Input
+                    placeholder="Buscar aluno por nome ou email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    icon={<Search className="w-4 h-4 text-[#9CA3AF]" />}
+                  />
                 </div>
 
                 {/* Students List */}
@@ -617,9 +632,9 @@ const Settings: React.FC = () => {
                         const statusInfo = getStatusInfo(student.paymentStatus);
 
                         return (
-                          <div
+                          <Card
                             key={student.id}
-                            className="bg-[#111111] border border-white/[0.06] rounded-lg p-4 hover:border-white/[0.1] transition-all"
+                            className="p-4 hover:border-white/[0.1] transition-all"
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3 flex-1">
@@ -637,44 +652,35 @@ const Settings: React.FC = () => {
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-sm text-[#9CA3AF]">{student.email}</p>
-                                  <div className="flex items-center gap-3 mt-1">
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${statusInfo.bg} ${statusInfo.color}`}>
+                                  <p className="text-sm text-[#9CA3AF] line-clamp-1">{student.email}</p>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusInfo.bg} ${statusInfo.color}`}>
                                       {statusInfo.label}
                                     </span>
                                     {student.asaasCustomerId && (
-                                      <span className="text-xs text-[#9CA3AF]">
-                                        ID: {student.asaasCustomerId.slice(0, 12)}...
-                                      </span>
-                                    )}
-                                    {student.lastAsaasSync && (
-                                      <span className="text-xs text-[#9CA3AF]">
-                                        Últ. Sync: {new Date(student.lastAsaasSync).toLocaleDateString()}
+                                      <span className="text-[10px] text-[#9CA3AF]">
+                                        ID: {student.asaasCustomerId.slice(0, 10)}...
                                       </span>
                                     )}
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-4">
-                                <div className="flex flex-col items-end gap-1">
-                                  <span className="text-xs text-[#9CA3AF]">
-                                    {student.accessAuthorized ? 'Autorizado' : 'Não Autorizado'}
-                                  </span>
-                                  <button
-                                    onClick={() => handleToggleAccess(student.id, student.accessAuthorized, student.manualAuthorization)}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                      student.accessAuthorized
-                                        ? 'bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20'
-                                        : 'bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20'
-                                    }`}
-                                  >
-                                    {student.accessAuthorized ? 'Desautorizar' : 'Autorizar'}
-                                  </button>
-                                </div>
+                              <div className="flex flex-col items-end gap-2 ml-4">
+                                <span className={`text-[10px] font-medium ${student.accessAuthorized ? 'text-green-400' : 'text-red-400'}`}>
+                                  {student.accessAuthorized ? 'AUTORIZADO' : 'BLOQUEADO'}
+                                </span>
+                                <Button
+                                  variant={student.accessAuthorized ? 'destructive' : 'secondary'}
+                                  size="sm"
+                                  onClick={() => handleToggleAccess(student.id, student.accessAuthorized, student.manualAuthorization)}
+                                  className="h-8 py-0 px-3 text-xs"
+                                >
+                                  {student.accessAuthorized ? 'Desautorizar' : 'Autorizar'}
+                                </Button>
                               </div>
                             </div>
-                          </div>
+                          </Card>
                         );
                       })
                   )}
@@ -726,7 +732,7 @@ const Settings: React.FC = () => {
                     <select 
                       value={courseDefaults.visibility}
                       onChange={(e) => setCourseDefaults({...courseDefaults, visibility: e.target.value})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
+                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-xl focus:outline-none focus:border-[#FF6A00] transition-colors"
                     >
                       <option value="private">Privado</option>
                       <option value="public">Público</option>
@@ -735,21 +741,19 @@ const Settings: React.FC = () => {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">Critério de Conclusão (%)</label>
-                    <input
+                    <Input
                       type="number"
                       value={courseDefaults.completionCriteria}
                       onChange={(e) => setCourseDefaults({...courseDefaults, completionCriteria: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">Tamanho Máx. de Mídia (MB)</label>
-                    <input
+                    <Input
                       type="number"
                       value={courseDefaults.maxMediaSize}
                       onChange={(e) => setCourseDefaults({...courseDefaults, maxMediaSize: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
                   </div>
                 </div>
@@ -775,64 +779,46 @@ const Settings: React.FC = () => {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">XP por Conclusão de Curso</label>
-                    <input
+                    <Input
                       type="number"
                       value={xpValues.courseCompletion}
                       onChange={(e) => setXpValues({...xpValues, courseCompletion: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    {/* Daily Contact disabled */}
-                    {/*
-                    <label className="text-sm font-medium text-[#9CA3AF]">XP por Daily Contact</label>
-                    <input
-                      type="number"
-                      value={xpValues.dailyContact}
-                      onChange={(e) => setXpValues({...xpValues, dailyContact: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
-                    />
-                    */}
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">XP por Mindful Flow</label>
-                    <input
+                    <Input
                       type="number"
                       value={xpValues.mindfulFlow}
                       onChange={(e) => setXpValues({...xpValues, mindfulFlow: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">XP por Upload de Mídia</label>
-                    <input
+                    <Input
                       type="number"
                       value={xpValues.mediaUpload}
                       onChange={(e) => setXpValues({...xpValues, mediaUpload: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">XP por Presença Perfeita</label>
-                    <input
+                    <Input
                       type="number"
                       value={xpValues.perfectAttendance}
                       onChange={(e) => setXpValues({...xpValues, perfectAttendance: parseInt(e.target.value)})}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#9CA3AF]">Nível Máximo</label>
-                    <input
+                    <Input
                       type="number"
                       value={levelCap}
                       onChange={(e) => setLevelCap(parseInt(e.target.value))}
-                      className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-2.5 rounded-lg focus:outline-none focus:border-[#FF6A00]"
                     />
                   </div>
                 </div>
@@ -849,7 +835,7 @@ const Settings: React.FC = () => {
             >
               <div className="space-y-4">
                 {achievements.map((achievement) => (
-                  <div key={achievement.id} className="bg-[#111111] border border-white/[0.06] rounded-lg p-4">
+                  <Card key={achievement.id} className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3 flex-1">
                         <Trophy className="w-5 h-5 text-[#FF6A00]" />
@@ -862,12 +848,12 @@ const Settings: React.FC = () => {
                         checked={achievement.enabled}
                       />
                     </div>
-                  </div>
+                  </Card>
                 ))}
-                <button className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" />
+                <Button variant="secondary" className="w-full">
+                  <Plus className="w-4 h-4 mr-2" />
                   Adicionar Nova Conquista
-                </button>
+                </Button>
               </div>
             </SettingSection>
           </>
@@ -879,133 +865,5 @@ const Settings: React.FC = () => {
   );
 };
 
-// Add Admin Modal Component
-interface AddAdminModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: () => void;
-  email: string;
-  setEmail: (email: string) => void;
-  isLoading: boolean;
-}
-
-const AddAdminModal: React.FC<AddAdminModalProps> = ({ isOpen, onClose, onAdd, email, setEmail, isLoading }) => {
-  if (!isOpen) return null;
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !isLoading) {
-      onAdd();
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#111111] border border-white/[0.06] rounded-xl w-full max-w-md shadow-elevated">
-        <div className="flex items-center justify-between p-6 border-b border-white/[0.06]">
-          <div>
-            <h2 className="text-xl font-bold text-[#F3F4F6]">Adicionar Administrador</h2>
-            <p className="text-sm text-[#9CA3AF] mt-1">Insira o email do novo administrador</p>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="text-[#9CA3AF] hover:text-[#F3F4F6] transition-colors"
-            disabled={isLoading}
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-[#9CA3AF]">
-              Email do Administrador
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="exemplo@email.com"
-              className="w-full bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg focus:outline-none focus:border-[#FF6A00] transition-colors"
-              disabled={isLoading}
-              autoFocus
-            />
-            <p className="text-xs text-[#9CA3AF]">
-              O usuário receberá permissões de administrador ao fazer login
-            </p>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 bg-white/[0.02] border border-white/[0.06] text-[#F3F4F6] px-4 py-3 rounded-lg hover:bg-white/[0.05] transition-all font-medium"
-              disabled={isLoading}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={onAdd}
-              disabled={isLoading || !email.trim()}
-              className="flex-1 bg-[#FF6A00] hover:bg-[#E15B00] text-white px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Adicionando...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-5 h-5" />
-                  Adicionar
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// SettingSection Component
-interface SettingSectionProps {
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  expanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-const SettingSection: React.FC<SettingSectionProps> = ({ title, description, icon: Icon, expanded, onToggle, children }) => {
-  return (
-    <div className="bg-[#111111]/50 border border-white/[0.06] rounded-xl overflow-hidden shadow-card">
-      <button
-        onClick={onToggle}
-        className="w-full p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg bg-[#FF6A00]/10 flex items-center justify-center text-[#FF6A00]">
-            <Icon className="w-6 h-6" />
-          </div>
-          <div className="text-left">
-            <h3 className="text-lg font-bold text-[#F3F4F6]">{title}</h3>
-            <p className="text-sm text-[#9CA3AF] mt-1">{description}</p>
-          </div>
-        </div>
-        {expanded ? (
-          <ChevronDown className="w-5 h-5 text-[#9CA3AF] transition-transform" />
-        ) : (
-          <ChevronRight className="w-5 h-5 text-[#9CA3AF] transition-transform" />
-        )}
-      </button>
-      {expanded && (
-        <div className="p-6 border-t border-white/[0.06] bg-[#0B0B0B]/50">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
-
+// Remove separate definitions since they are now imported
 export default Settings;

@@ -5,6 +5,9 @@ import { auth } from '../lib/firebase';
 import { getStudentProgress, createStudentProgress } from '../lib/gamification';
 import LevelProgress from './LevelProgress';
 import AttendanceTracker from './AttendanceTracker';
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { PageHeader } from './ui/PageHeader';
 
 interface StudentDashboardProps {
   onNavigate: (screen: Screen) => void;
@@ -42,18 +45,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="sticky top-0 z-30 -mx-6 -mt-6 px-6 py-6 md:-mx-8 md:-mt-8 md:px-8 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-white/[0.06] flex flex-col md:flex-row md:items-center gap-6 transition-all duration-300">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            Dashboard <Sparkles className="text-primary" size={24} />
-          </h1>
-          <p className="text-muted-foreground mt-2">Bem-vindo de volta! Continue sua jornada de aprendizado.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Bem-vindo de volta! Continue sua jornada de aprendizado."
+        icon={<Sparkles size={24} />}
+        sticky
+      />
 
       {/* Level Progress */}
       {studentProgress && (
-        <div className="bg-card border border-border rounded-xl p-6 shadow-card-custom">
+        <Card className="p-6">
           <LevelProgress
             currentXP={studentProgress.currentXP}
             currentLevel={studentProgress.currentLevel}
@@ -69,13 +70,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
               <span>{studentProgress.unlockedAchievements.length} Conquistas • Ver Ranking</span>
             </button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Stats Grid - Now shows real data */}
       {studentProgress && (
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="bg-card border-border rounded-xl p-6 shadow-card-custom hover:-translate-y-0.5 transition-transform duration-200">
+          <Card className="p-6 hover-elevate">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-muted-foreground">Total XP</span>
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -86,9 +87,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
             <p className="text-xs text-green-500 flex items-center gap-1">
               Nível {studentProgress.currentLevel} <ArrowUpRight className="w-3 h-3" />
             </p>
-          </div>
+          </Card>
 
-          <div className="bg-card border-border rounded-xl p-6 shadow-card-custom hover:-translate-y-0.5 transition-transform duration-200">
+          <Card className="p-6 hover-elevate">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-muted-foreground">Conquistas</span>
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -99,9 +100,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
             <p className="text-xs text-green-500 flex items-center gap-1">
               Desbloqueadas <ArrowUpRight className="w-3 h-3" />
             </p>
-          </div>
+          </Card>
 
-          <div className="bg-card border-border rounded-xl p-6 shadow-card-custom hover:-translate-y-0.5 transition-transform duration-200">
+          <Card className="p-6 hover-elevate">
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-medium text-muted-foreground">Ranking</span>
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -112,7 +113,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
             <p className="text-xs text-green-500 flex items-center gap-1">
               Posição global <ArrowUpRight className="w-3 h-3" />
             </p>
-          </div>
+          </Card>
         </div>
       )}
 

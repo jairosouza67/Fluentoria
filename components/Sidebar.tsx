@@ -80,6 +80,19 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
                 active={currentScreen === 'achievements'}
                 onClick={() => onNavigate('achievements')}
               />
+              <div className="h-px bg-white/[0.06] my-4 mx-2" />
+              <NavItem
+                icon={<User size={20} />}
+                label="Perfil"
+                active={currentScreen === 'profile'}
+                onClick={() => onNavigate('profile')}
+              />
+              <NavItem
+                icon={<Settings size={20} />}
+                label="Configurações"
+                active={currentScreen === 'settings'}
+                onClick={() => onNavigate('settings')}
+              />
             </>
           ) : (
             <>
