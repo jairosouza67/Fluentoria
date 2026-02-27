@@ -22,7 +22,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [lessonDurations, setLessonDurations] = useState<{[key: string]: string}>({});
+  const [lessonDurations, setLessonDurations] = useState<{ [key: string]: string }>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const user = auth.currentUser;
 
@@ -83,7 +83,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
           }));
         }
       };
-      
+
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
       return () => {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -95,18 +95,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   useEffect(() => {
     if (activeLesson?.videoUrl && activeLesson.id) {
       const videoUrl = activeLesson.videoUrl;
-      
+
       // Skip YouTube and Drive URLs as they use iframes
       if (isYouTubeUrl(videoUrl) || isGoogleDriveUrl(videoUrl)) {
         return;
       }
-      
+
       // Try to load direct video URLs (MP4, etc)
       if (videoUrl.match(/\.(mp4|webm|ogg)$/i)) {
         const video = document.createElement('video');
         video.src = videoUrl;
         video.preload = 'metadata';
-        
+
         video.onloadedmetadata = () => {
           const duration = formatDuration(video.duration);
           if (duration && duration !== '00:00') {
@@ -117,7 +117,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
           }
           video.remove();
         };
-        
+
         video.onerror = () => {
           video.remove();
         };
@@ -189,25 +189,25 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   }
 
   return (
-    <div className="max-w-container mx-auto min-h-screen bg-[#0B0B0B] flex flex-col">
+    <div className="w-full min-h-screen bg-[#0B0B0B] flex flex-col">
       {/* Top Bar */}
-      <div className="p-4 md:p-6 flex items-center gap-4 border-b border-white/[0.06] sticky top-0 bg-[#0B0B0B]/95 backdrop-blur-sm z-10">
+      <div className="p-4 md:p-6 flex items-center gap-3 md:gap-4 border-b border-white/[0.06] sticky top-0 bg-[#0B0B0B]/95 backdrop-blur-sm z-10">
         <button onClick={onBack} className="p-2 hover:bg-white/[0.02] rounded-xl text-[#9CA3AF] hover:text-[#F3F4F6] transition-all duration-200">
           <ArrowLeft size={20} />
         </button>
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold text-[#F3F4F6]">{course.title}</h1>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base md:text-lg font-semibold text-[#F3F4F6] truncate">{course.title}</h1>
           <p className="text-xs text-[#9CA3AF]">{course.author} • {course.duration}</p>
         </div>
         <button
           onClick={handleMarkComplete}
-          className={`px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 ${isCompleted
+          className={`px-3 md:px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 shrink-0 ${isCompleted
             ? 'bg-[#23D18B]/20 text-[#23D18B] border border-[#23D18B]/30'
             : 'bg-white/[0.02] text-[#9CA3AF] hover:bg-white/[0.04] border border-white/[0.06]'
             }`}
         >
           <CheckCircle size={16} />
-          {isCompleted ? 'Concluída' : 'Marcar Concluída'}
+          <span className="hidden sm:inline">{isCompleted ? 'Concluída' : 'Marcar Concluída'}</span>
         </button>
       </div>
 
@@ -289,9 +289,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {activeLesson.supportMaterials.map((material) => {
                   const icon = material.type === 'pdf' ? <FileText size={18} /> :
-                             material.type === 'image' ? <ImageIcon size={18} /> :
-                             <Mic size={18} />;
-                  
+                    material.type === 'image' ? <ImageIcon size={18} /> :
+                      <Mic size={18} />;
+
                   return (
                     <a
                       key={material.id}

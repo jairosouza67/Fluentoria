@@ -1,34 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  ChevronDown, 
-  Edit2, 
-  Trash2, 
-  Clock, 
-  Calendar, 
-  Loader2, 
-  Eye, 
-  Search, 
+import {
+  Plus,
+  ChevronDown,
+  Edit2,
+  Trash2,
+  Clock,
+  Calendar,
+  Loader2,
+  Eye,
+  Search,
   Filter,
   LayoutGrid,
   Film,
   Music,
   Zap
 } from 'lucide-react';
-import { 
-  Course, 
-  getCourses, 
-  addCourse, 
-  updateCourse, 
-  deleteCourse, 
-  getMindfulFlows, 
-  addMindfulFlow, 
-  updateMindfulFlow, 
-  deleteMindfulFlow, 
-  getMusic, 
-  addMusic, 
-  updateMusic, 
-  deleteMusic 
+import {
+  Course,
+  getCourses,
+  addCourse,
+  updateCourse,
+  deleteCourse,
+  getMindfulFlows,
+  addMindfulFlow,
+  updateMindfulFlow,
+  deleteMindfulFlow,
+  getMusic,
+  addMusic,
+  updateMusic,
+  deleteMusic
 } from '../lib/db';
 import CourseForm from './CourseForm';
 import CourseDetail from './CourseDetail';
@@ -106,7 +106,7 @@ const AdminCatalog: React.FC = () => {
         if (course.galleries && course.galleries.length > 0) {
           // Check if there's already a main container course
           const existingCourses = await getCourses();
-          const mainCourse = existingCourses.find(c => 
+          const mainCourse = existingCourses.find(c =>
             c.galleries && c.galleries.length > 0 && c.title === course.title
           );
 
@@ -191,12 +191,12 @@ const AdminCatalog: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
       <PageHeader
         title="Catálogo de Conteúdo"
         description="Gerencie seus cursos, aulas, galerias e materiais audiovisuais."
-        actions={
-          <Button onClick={() => { setEditingCourse(null); setIsFormOpen(true); }} className="gap-2">
+        action={
+          <Button onClick={() => { setEditingCourse(null); setIsFormOpen(true); }} className="gap-2 w-full sm:w-auto">
             <Plus size={20} />
             Novo Conteúdo
           </Button>
@@ -204,16 +204,16 @@ const AdminCatalog: React.FC = () => {
       />
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-1 bg-card/50 p-1 rounded-xl border border-border w-fit">
+      <div className="flex items-center gap-1 bg-[#111111]/50 p-1 rounded-xl border border-white/[0.06] w-full overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
             className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-              ${activeTab === tab.id 
-                ? 'bg-primary text-primary-foreground shadow-sm' 
-                : 'text-muted-foreground hover:text-foreground hover:bg-white/5'}
+              flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0
+              ${activeTab === tab.id
+                ? 'bg-[#FF6A00] text-white shadow-sm'
+                : 'text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/5'}
             `}
           >
             <tab.icon size={16} />
@@ -223,55 +223,55 @@ const AdminCatalog: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
+      <div className="bg-[#111111] border border-white/[0.06] rounded-xl p-4 shadow-[0_6px_18px_rgba(0,0,0,0.55)]">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="flex-1">
             <Input
               type="search"
               placeholder={activeTab === 'gallery' ? 'Buscar galerias...' : 'Buscar conteúdo...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              icon={<Search className="text-muted-foreground" size={18} />}
-              className="max-w-md"
+              icon={<Search className="text-[#9CA3AF]" size={18} />}
+              className="w-full lg:max-w-md"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-[#9CA3AF] gap-2">
               <Filter size={16} />
               Data de Lançamento
               <ChevronDown size={14} />
             </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-2">
+            <Button variant="ghost" size="sm" className="text-[#9CA3AF] gap-2">
               Duração
               <ChevronDown size={14} />
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Course Grid */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="animate-spin text-primary" size={40} />
-          <p className="text-muted-foreground animate-pulse">Carregando catálogo...</p>
+          <Loader2 className="animate-spin text-[#FF6A00]" size={40} />
+          <p className="text-[#9CA3AF] animate-pulse">Carregando catálogo...</p>
         </div>
       ) : filteredCourses.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center py-20 bg-card/30 border-dashed">
-          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-            <Search className="text-muted-foreground/50" size={32} />
+        <div className="flex flex-col items-center justify-center py-20 bg-[#111111]/30 border border-dashed border-white/[0.06] rounded-xl">
+          <div className="w-16 h-16 rounded-full bg-[#9CA3AF]/10 flex items-center justify-center mb-4">
+            <Search className="text-[#9CA3AF]/50" size={32} />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">
+          <h3 className="text-lg font-semibold text-[#F3F4F6] mb-1">
             {activeTab === 'gallery' ? 'Nenhuma galeria encontrada' : 'Nenhum conteúdo encontrado'}
           </h3>
-          <p className="text-muted-foreground text-center max-w-xs mb-6">
-            {activeTab === 'gallery' 
-              ? 'Tente ajustar sua busca ou crie uma nova galeria para começar.' 
+          <p className="text-[#9CA3AF] text-center max-w-xs mb-6">
+            {activeTab === 'gallery'
+              ? 'Tente ajustar sua busca ou crie uma nova galeria para começar.'
               : 'Comece criando novos conteúdos para popular sua plataforma.'}
           </p>
           <Button variant="outline" onClick={() => setSearchTerm('')}>
             Limpar Filtros
           </Button>
-        </Card>
+        </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           {filteredCourses.map((course) => {
@@ -281,7 +281,7 @@ const AdminCatalog: React.FC = () => {
             const totalModules = activeTab === 'gallery' ? (course.galleries?.reduce((acc, g) => acc + g.modules.length, 0) || 0) : 0;
 
             return (
-              <Card key={course.id} className="group overflow-hidden flex flex-col h-full border-white/5 hover:border-primary/20 transition-all duration-300 rounded-xl shadow-sm">
+              <Card key={course.id} className="group overflow-hidden flex flex-col h-full border-white/[0.05] hover:border-[#FF6A00]/20 transition-all duration-300 rounded-xl shadow-sm">
                 {/* Thumbnail Area */}
                 <div className="aspect-video relative overflow-hidden bg-muted">
                   {displayImage ? (
@@ -293,21 +293,21 @@ const AdminCatalog: React.FC = () => {
                   ) : (
                     <div className={`w-full h-full bg-gradient-to-br ${course.thumbnail} opacity-60`} />
                   )}
-                  
+
                   {/* Overlay Actions */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 px-4 text-center">
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20"
                       onClick={() => handleViewCourse(course)}
                     >
                       <Eye size={16} className="mr-2" />
                       Ver
                     </Button>
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20"
                       onClick={() => handleEditCourse(course)}
                     >
@@ -322,7 +322,7 @@ const AdminCatalog: React.FC = () => {
                       {course.type}
                     </span>
                   </div>
-                  
+
                   <button
                     onClick={() => handleDeleteCourse(course.id!)}
                     className="absolute top-3 right-3 p-2 rounded-lg bg-black/60 backdrop-blur-md text-white/70 hover:text-destructive hover:bg-destructive/20 transition-all border border-white/10 shadow-sm"
@@ -334,26 +334,26 @@ const AdminCatalog: React.FC = () => {
 
                 {/* Content */}
                 <div className="p-5 flex-1 flex flex-col">
-                  <h3 className="font-bold text-lg mb-2 text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-lg mb-2 text-[#F3F4F6] line-clamp-1 group-hover:text-[#FF6A00] transition-colors">
                     {course.title}
                   </h3>
-                  
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
+
+                  <div className="flex items-center gap-4 text-xs text-[#9CA3AF] mb-4">
                     {activeTab === 'gallery' ? (
                       <>
                         <div className="flex items-center gap-1.5">
-                          <LayoutGrid size={13} className="text-primary/70" />
+                          <LayoutGrid size={13} className="text-[#FF6A00]/70" />
                           {galleryCount} {galleryCount === 1 ? 'galeria' : 'galerias'}
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Calendar size={13} className="text-primary/70" />
+                          <Calendar size={13} className="text-[#FF6A00]/70" />
                           {totalModules} {totalModules === 1 ? 'módulo' : 'módulos'}
                         </div>
                       </>
                     ) : (
                       <>
                         <div className="flex items-center gap-1.5">
-                          <Clock size={13} className="text-primary/70" />
+                          <Clock size={13} className="text-[#FF6A00]/70" />
                           {course.duration || '00:00'}
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -364,18 +364,18 @@ const AdminCatalog: React.FC = () => {
                     )}
                   </div>
 
-                  <p className="text-sm text-muted-foreground mb-5 line-clamp-2">
+                  <p className="text-sm text-[#9CA3AF] mb-5 line-clamp-2">
                     {course.description || `Conteúdo produzido por ${course.author}`}
                   </p>
 
-                  <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-muted-foreground uppercase opacity-70">
+                  <div className="mt-auto pt-4 border-t border-white/[0.06] flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-[#9CA3AF] uppercase opacity-70">
                       ID: {course.id?.substring(0, 8)}...
                     </span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-primary hover:bg-primary/10 -mr-2"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#FF6A00] hover:bg-[#FF6A00]/10 -mr-2"
                       onClick={() => handleViewCourse(course)}
                     >
                       {activeTab === 'courses' ? 'Acessar Curso' : activeTab === 'gallery' ? 'Ver Galerias' : 'Visualizar'}
@@ -397,7 +397,7 @@ const AdminCatalog: React.FC = () => {
       )}
 
       {viewingCourse && (
-        <div className="fixed inset-0 z-[100] bg-background">
+        <div className="fixed inset-0 md:left-64 z-[100] bg-[#0B0B0B] overflow-y-auto overscroll-contain">
           <CourseDetail
             course={viewingCourse}
             onBack={() => setViewingCourse(null)}
