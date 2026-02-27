@@ -1,0 +1,3 @@
+[submodule ".qoder/skills/antigravity-awesome-skills"]
+	path = .qoder/skills/antigravity-awesome-skills
+	url = https://github.com/sickn33/antigravity-awesome-skills.git
