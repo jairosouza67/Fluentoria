@@ -56,6 +56,10 @@ const AdminCatalog: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [viewingCourse, setViewingCourse] = useState<Course | null>(null);
+  const [dateFilterOpen, setDateFilterOpen] = useState(false);
+  const [durationFilterOpen, setDurationFilterOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<string>('');
+  const [durationFilter, setDurationFilter] = useState<string>('');
 
   const fetchCourses = async () => {
     setLoading(true);
@@ -95,6 +99,19 @@ const AdminCatalog: React.FC = () => {
       fetchMusic();
     }
   }, [activeTab]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.relative')) {
+        setDateFilterOpen(false);
+        setDurationFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSaveCourse = async (course: Course) => {
     if (activeTab === 'courses' || activeTab === 'gallery') {
@@ -179,9 +196,40 @@ const AdminCatalog: React.FC = () => {
     return [];
   };
 
-  const filteredCourses = getCurrentList().filter(course =>
-    course.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCourses = getCurrentList().filter(course => {
+    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Date filter
+    let matchesDate = true;
+    if (dateFilter) {
+      const courseDate = course.launchDate ? new Date(course.launchDate) : null;
+      const now = new Date();
+      if (dateFilter === 'recent') {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        matchesDate = courseDate ? courseDate >= thirtyDaysAgo : false;
+      } else if (dateFilter === 'upcoming') {
+        matchesDate = courseDate ? courseDate >= now : false;
+      } else if (dateFilter === 'past') {
+        matchesDate = courseDate ? courseDate < now : false;
+      }
+    }
+    
+    // Duration filter
+    let matchesDuration = true;
+    if (durationFilter && course.duration) {
+      const durationParts = course.duration.split(':').map(Number);
+      const minutes = durationParts.length === 2 ? durationParts[0] : 0;
+      if (durationFilter === 'short') {
+        matchesDuration = minutes < 10;
+      } else if (durationFilter === 'medium') {
+        matchesDuration = minutes >= 10 && minutes <= 30;
+      } else if (durationFilter === 'long') {
+        matchesDuration = minutes > 30;
+      }
+    }
+    
+    return matchesSearch && matchesDate && matchesDuration;
+  });
 
   const tabs = [
     { id: 'courses', label: 'Cursos & Vídeos', icon: Film },
@@ -236,15 +284,106 @@ const AdminCatalog: React.FC = () => {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-[#9CA3AF] gap-2">
-              <Filter size={16} />
-              Data de Lançamento
-              <ChevronDown size={14} />
-            </Button>
-            <Button variant="ghost" size="sm" className="text-[#9CA3AF] gap-2">
-              Duração
-              <ChevronDown size={14} />
-            </Button>
+            {/* Date Filter Dropdown */}
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`gap-2 ${dateFilter ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}
+                onClick={() => {
+                  setDateFilterOpen(!dateFilterOpen);
+                  setDurationFilterOpen(false);
+                }}
+              >
+                <Filter size={16} />
+                Data de Lançamento
+                <ChevronDown size={14} className={`transition-transform ${dateFilterOpen ? 'rotate-180' : ''}`} />
+              </Button>
+              {dateFilterOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a1a] border border-white/[0.08] rounded-xl shadow-xl z-50 py-2">
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${dateFilter === '' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDateFilter(''); setDateFilterOpen(false); }}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${dateFilter === 'recent' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDateFilter('recent'); setDateFilterOpen(false); }}
+                  >
+                    Lançados recentemente (30 dias)
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${dateFilter === 'upcoming' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDateFilter('upcoming'); setDateFilterOpen(false); }}
+                  >
+                    Em breve
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${dateFilter === 'past' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDateFilter('past'); setDateFilterOpen(false); }}
+                  >
+                    Já lançados
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Duration Filter Dropdown */}
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className={`gap-2 ${durationFilter ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}
+                onClick={() => {
+                  setDurationFilterOpen(!durationFilterOpen);
+                  setDateFilterOpen(false);
+                }}
+              >
+                Duração
+                <ChevronDown size={14} className={`transition-transform ${durationFilterOpen ? 'rotate-180' : ''}`} />
+              </Button>
+              {durationFilterOpen && (
+                <div className="absolute top-full left-0 mt-2 w-40 bg-[#1a1a1a] border border-white/[0.08] rounded-xl shadow-xl z-50 py-2">
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${durationFilter === '' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDurationFilter(''); setDurationFilterOpen(false); }}
+                  >
+                    Todas
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${durationFilter === 'short' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDurationFilter('short'); setDurationFilterOpen(false); }}
+                  >
+                    Curta (&lt; 10 min)
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${durationFilter === 'medium' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDurationFilter('medium'); setDurationFilterOpen(false); }}
+                  >
+                    Média (10-30 min)
+                  </button>
+                  <button
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${durationFilter === 'long' ? 'text-[#FF6A00]' : 'text-[#F3F4F6]'}`}
+                    onClick={() => { setDurationFilter('long'); setDurationFilterOpen(false); }}
+                  >
+                    Longa (&gt; 30 min)
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Clear Filters */}
+            {(dateFilter || durationFilter) && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-[#9CA3AF] hover:text-[#FF6A00]"
+                onClick={() => { setDateFilter(''); setDurationFilter(''); }}
+              >
+                Limpar filtros
+              </Button>
+            )}
           </div>
         </div>
       </div>

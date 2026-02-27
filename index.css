@@ -76,7 +76,7 @@
 }
 
 .btn-ghost-pluma {
-  @apply bg-transparent border border-white/[0.08] text-[#F3F4F6] rounded-xl px-5 py-3 font-medium hover:bg-white/[0.02] transition-all duration-[200ms];
+  @apply bg-transparent border border-white/[0.08] text-[#F3F4F6] rounded-xl font-medium hover:bg-white/[0.02] hover:text-white transition-all duration-[200ms];
 }
 
 .input-pluma {
