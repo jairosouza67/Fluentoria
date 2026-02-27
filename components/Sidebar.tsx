@@ -4,7 +4,6 @@ import {
   BookOpen,
   Users,
   User,
-  Settings,
   Home,
   BarChart3,
   LogOut,
@@ -28,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
   const isStudent = viewMode === 'student';
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-[#111111]/95 backdrop-blur-xl border-r border-white/[0.06] flex-col justify-between p-6 z-20 shadow-elevated">
+    <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-[#111111]/95 backdrop-blur-xl border-r border-white/[0.06] flex-col justify-between p-6 z-20 shadow-elevated overflow-y-auto">
 
       {/* Logo or Brand */}
       <div className="w-full text-center">
@@ -87,19 +86,12 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
                 active={currentScreen === 'profile'}
                 onClick={() => onNavigate('profile')}
               />
-              <NavItem
-                icon={<Settings size={20} />}
-                label="Configurações"
-                active={currentScreen === 'settings'}
-                onClick={() => onNavigate('settings')}
-              />
             </>
           ) : (
             <>
               <NavItem icon={<BarChart3 size={20} />} label="Dashboard" active={currentScreen === 'admin-reports'} onClick={() => onNavigate('admin-reports')} />
               <NavItem icon={<BookOpen size={20} />} label="Content" active={currentScreen === 'admin-catalog'} onClick={() => onNavigate('admin-catalog')} />
               <NavItem icon={<Users size={20} />} label="Alunos" active={currentScreen === 'admin-students'} onClick={() => onNavigate('admin-students')} />
-              <NavItem icon={<Settings size={20} />} label="Configurações" active={currentScreen === 'admin-settings'} onClick={() => onNavigate('admin-settings')} />
               <NavItem icon={<Activity size={20} />} label="Financeiro" active={currentScreen === 'admin-financial'} onClick={() => onNavigate('admin-financial')} />
             </>
           )}
