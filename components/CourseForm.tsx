@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    X, 
-    Save, 
-    Loader2, 
-    Plus, 
-    Trash, 
-    ChevronDown, 
-    ChevronRight, 
-    Video, 
-    Mic, 
-    FileText, 
-    Layers, 
-    Film, 
-    Upload, 
-    Image as ImageIcon, 
-    Clock, 
-    Paperclip, 
+import {
+    X,
+    Save,
+    Loader2,
+    Plus,
+    Trash,
+    ChevronDown,
+    ChevronRight,
+    Video,
+    Mic,
+    FileText,
+    Layers,
+    Film,
+    Upload,
+    Image as ImageIcon,
+    Clock,
+    Paperclip,
     File as FileIcon,
     Type,
     AlignLeft
@@ -60,7 +60,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
     const [contentType, setContentType] = useState<ContentType>(null);
     const [coverType, setCoverType] = useState<'link' | 'upload'>('link');
     const [uploadingCover, setUploadingCover] = useState(false);
-    const [uploadingMaterial, setUploadingMaterial] = useState<{[key: string]: boolean}>({});
+    const [uploadingMaterial, setUploadingMaterial] = useState<{ [key: string]: boolean }>({});
 
     useEffect(() => {
         if (course) {
@@ -421,13 +421,13 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         const video = document.createElement('video');
         video.src = videoUrl;
         video.preload = 'metadata';
-        
+
         video.onloadedmetadata = () => {
             const duration = formatDuration(video.duration);
             updateLessonInGallery(galleryId, moduleId, lessonId, { duration });
             video.remove();
         };
-        
+
         video.onerror = () => {
             console.error('Error loading video metadata');
             video.remove();
@@ -458,17 +458,17 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
     ) => {
         const uploadKey = `${galleryId}-${moduleId}-${lessonId}`;
         setUploadingMaterial(prev => ({ ...prev, [uploadKey]: true }));
-        
+
         try {
             const courseId = formData.id || 'temp';
             const url = await uploadSupportMaterial(file, courseId, lessonId);
-            
+
             if (url) {
                 // Determine file type
                 let materialType: 'pdf' | 'image' | 'audio' = 'pdf';
                 if (file.type.startsWith('image/')) materialType = 'image';
                 else if (file.type.startsWith('audio/')) materialType = 'audio';
-                
+
                 const newMaterial: SupportMaterial = {
                     id: Math.random().toString(36).substr(2, 9),
                     name: file.name,
@@ -477,7 +477,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                     size: file.size,
                     uploadedAt: new Date().toISOString()
                 };
-                
+
                 // Update lesson with new material
                 setFormData(prev => ({
                     ...prev,
@@ -519,7 +519,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
         materialId: string
     ) => {
         if (!confirm('Remover este material de apoio?')) return;
-        
+
         setFormData(prev => ({
             ...prev,
             galleries: prev.galleries?.map(g =>
@@ -580,8 +580,29 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                 ) : undefined
             }
             maxWidth="4xl"
+            footer={
+                <div className="flex flex-row justify-end gap-3 w-full">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onCancel}
+                        className="h-10 px-5 text-sm"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="course-form"
+                        disabled={loading}
+                        className="h-10 px-5 text-sm gap-2"
+                    >
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                        <span>Salvar {course ? 'Alterações' : 'Conteúdo'}</span>
+                    </Button>
+                </div>
+            }
         >
-            <form onSubmit={handleSubmit} className="space-y-8 p-1">
+            <form id="course-form" onSubmit={handleSubmit} className="space-y-6 p-0">
                 {/* MODULE TYPE - Simplified fields */}
                 {contentType === 'module' && (
                     <>
@@ -591,7 +612,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                 <Film size={16} />
                                 Informações do Curso
                             </h3>
-                            
+
                             {/* Course Title */}
                             <Input
                                 label="Nome do Curso"
@@ -604,24 +625,24 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                             />
 
                             {/* Course Cover Image */}
-                            <div className="flex flex-col md:flex-row items-start gap-4">
+                            <div className="grid md:grid-cols-4 gap-6 items-start">
                                 {formData.coverImage && (
-                                    <div className="w-full md:w-32 aspect-video md:aspect-square rounded-lg overflow-hidden border border-border flex-shrink-0">
-                                        <img src={formData.coverImage} alt={formData.title} className="w-full h-full object-cover" />
+                                    <div className="md:col-span-1 aspect-video md:aspect-square rounded-xl overflow-hidden border border-white/[0.08] shadow-lg group relative">
+                                        <img src={formData.coverImage} alt={formData.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                                     </div>
                                 )}
-                                <div className="flex-1 w-full">
+                                <div className={cn("space-y-4", formData.coverImage ? "md:col-span-3" : "md:col-span-4")}>
                                     <Input
-                                        label="Imagem de Capa (Pasta Principal)"
+                                        label="Link da Imagem de Capa"
                                         type="text"
                                         value={formData.coverImage || ''}
                                         onChange={(e) => setFormData(prev => ({ ...prev, coverImage: e.target.value }))}
-                                        placeholder="URL da imagem ou fazer upload"
-                                        icon={<ImageIcon size={18} className="text-muted-foreground" />}
-                                        className="text-sm"
+                                        placeholder="Cole a URL ou faça upload abaixo"
+                                        icon={<ImageIcon size={18} />}
                                     />
-                                    <div className="mt-2">
-                                        <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer text-sm font-medium transition-colors border border-border shadow-sm">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-1">
+                                        <label className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#FF6A00]/10 text-[#FF6A00] hover:bg-[#FF6A00] hover:text-white cursor-pointer text-sm font-bold transition-all border border-[#FF6A00]/20 shadow-sm active:scale-95">
                                             {uploadingCover ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                                             {uploadingCover ? 'Enviando...' : 'Upload da Capa'}
                                             <input
@@ -632,7 +653,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                                 disabled={uploadingCover}
                                             />
                                         </label>
-                                        <p className="text-[11px] text-muted-foreground mt-2 px-1">Esta imagem será exibida como capa principal do curso na listagem</p>
+                                        <p className="text-[10px] text-muted-foreground font-medium max-w-[200px] leading-tight">Sugestão: 1280x720px para melhor qualidade.</p>
                                     </div>
                                 </div>
                             </div>
@@ -659,255 +680,252 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                 )}
                             </div>
 
-                        <div className="space-y-4">
-                            {formData.galleries?.map((gallery, galleryIndex) => (
-                                <Card key={gallery.id} className="border-primary/20 overflow-hidden bg-card/30">
-                                    {/* Gallery Header */}
-                                    <div className="p-4 bg-primary/5 space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() => toggleGallery(gallery.id)}
-                                                className="text-primary hover:bg-primary/10 p-1 rounded transition-colors"
-                                            >
-                                                {expandedGalleries.includes(gallery.id) ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                                            </button>
-                                            <div className="flex-1">
-                                                <input
-                                                    type="text"
-                                                    value={gallery.title}
-                                                    onChange={(e) => updateGallery(gallery.id, { title: e.target.value })}
-                                                    className="bg-transparent border-none text-primary font-bold focus:ring-0 w-full placeholder-primary/50 text-lg p-0"
-                                                    placeholder="Nome da Galeria"
-                                                />
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => deleteGallery(gallery.id)}
-                                                className="text-muted-foreground hover:text-destructive"
-                                                title="Excluir Galeria"
-                                            >
-                                                <Trash size={18} />
-                                            </Button>
-                                        </div>
-
-                                        {/* Gallery Cover & Description */}
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Capa da Galeria</label>
-                                                <div className="flex gap-2">
-                                                    <Input
-                                                        type="text"
-                                                        value={gallery.coverImage || ''}
-                                                        onChange={(e) => updateGallery(gallery.id, { coverImage: e.target.value })}
-                                                        placeholder="URL da imagem ou upload"
-                                                        className="h-9 text-sm"
-                                                    />
-                                                    <label className="flex items-center justify-center p-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer border border-border transition-colors">
-                                                        <Upload size={16} />
-                                                        <input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            className="hidden"
-                                                            onChange={(e) => e.target.files?.[0] && handleGalleryCoverUpload(gallery.id, e.target.files[0])}
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Descrição</label>
-                                                <textarea
-                                                    value={gallery.description || ''}
-                                                    onChange={(e) => updateGallery(gallery.id, { description: e.target.value })}
-                                                    className="w-full bg-background/50 border border-border rounded-lg text-sm p-2.5 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none h-[38px]"
-                                                    placeholder="Breve descrição"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Modules within Gallery */}
-                                    {expandedGalleries.includes(gallery.id) && (
-                                        <div className="p-4 border-t border-border/50 bg-background/40 space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                                                    <Layers size={14} className="text-primary/70" />
-                                                    Módulos
-                                                </h4>
-                                                <Button
+                            <div className="space-y-4">
+                                {formData.galleries?.map((gallery, galleryIndex) => (
+                                    <Card key={gallery.id} className="glass border-white/[0.08] overflow-hidden rounded-2xl shadow-elevated transition-all duration-300 hover:border-primary/30">
+                                        {/* Gallery Header */}
+                                        <div className="p-5 bg-white/[0.02] border-b border-white/[0.06] space-y-5">
+                                            <div className="flex items-center gap-3">
+                                                <button
                                                     type="button"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() => addModuleToGallery(gallery.id)}
-                                                    className="h-8 text-xs gap-1.5"
+                                                    onClick={() => toggleGallery(gallery.id)}
+                                                    className="text-primary hover:bg-primary/10 p-1 rounded transition-colors"
                                                 >
-                                                    <Plus size={14} />
-                                                    Add Módulo
+                                                    {expandedGalleries.includes(gallery.id) ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                                </button>
+                                                <div className="flex-1">
+                                                    <Input
+                                                        value={gallery.title}
+                                                        onChange={(e) => updateGallery(gallery.id, { title: e.target.value })}
+                                                        placeholder="Nome da Galeria"
+                                                        className="text-primary font-bold text-lg"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => deleteGallery(gallery.id)}
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                    title="Excluir Galeria"
+                                                >
+                                                    <Trash size={18} />
                                                 </Button>
                                             </div>
 
-                                            {gallery.modules.length === 0 && (
-                                                <div className="text-center py-8 border border-dashed border-border rounded-xl">
-                                                    <p className="text-xs text-muted-foreground">Esta galeria ainda não tem módulos.</p>
-                                                </div>
-                                            )}
-
-                                            <div className="space-y-4">
-                                                {gallery.modules.map((module) => (
-                                                    <div key={module.id} className="border border-border/60 rounded-xl overflow-hidden bg-card/50 shadow-sm transition-all hover:border-primary/30">
-                                                        {/* Module Header */}
-                                                        <div className="p-3 bg-muted/30 flex items-center gap-3">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleModule(module.id)}
-                                                                className="text-muted-foreground hover:text-foreground p-1 transition-colors"
-                                                            >
-                                                                {expandedModules.includes(module.id) ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                                                            </button>
+                                            {/* Gallery Cover & Description */}
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Capa da Galeria</label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            type="text"
+                                                            value={gallery.coverImage || ''}
+                                                            onChange={(e) => updateGallery(gallery.id, { coverImage: e.target.value })}
+                                                            placeholder="URL da imagem ou upload"
+                                                            className="h-9 text-sm"
+                                                        />
+                                                        <label className="flex items-center justify-center p-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer border border-border transition-colors">
+                                                            <Upload size={16} />
                                                             <input
-                                                                type="text"
-                                                                value={module.title}
-                                                                onChange={(e) => updateModuleInGallery(gallery.id, module.id, { title: e.target.value })}
-                                                                className="bg-transparent border-none text-foreground font-medium focus:ring-0 flex-1 placeholder-muted-foreground/50 h-8"
-                                                                placeholder="Nome do Módulo"
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={(e) => e.target.files?.[0] && handleGalleryCoverUpload(gallery.id, e.target.files[0])}
                                                             />
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => deleteModuleFromGallery(gallery.id, module.id)}
-                                                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                                            >
-                                                                <Trash size={16} />
-                                                            </Button>
-                                                        </div>
-
-                                                        {/* Module Content */}
-                                                        {expandedModules.includes(module.id) && (
-                                                            <div className="p-4 space-y-4 border-t border-border/40">
-                                                                {/* Module Meta */}
-                                                                <div className="grid md:grid-cols-2 gap-4">
-                                                                    <div className="space-y-2">
-                                                                        <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Capa do Módulo</label>
-                                                                        <div className="flex gap-2">
-                                                                            <Input
-                                                                                type="text"
-                                                                                value={module.coverImage || ''}
-                                                                                onChange={(e) => updateModuleInGallery(gallery.id, module.id, { coverImage: e.target.value })}
-                                                                                placeholder="URL ou upload"
-                                                                                className="h-9 text-sm"
-                                                                            />
-                                                                            <label className="flex items-center justify-center p-2 rounded-lg bg-secondary hover:bg-secondary/80 cursor-pointer border border-border transition-colors">
-                                                                                <Upload size={16} />
-                                                                                <input
-                                                                                    type="file"
-                                                                                    accept="image/*"
-                                                                                    className="hidden"
-                                                                                    onChange={(e) => e.target.files?.[0] && handleModuleCoverUploadInGallery(gallery.id, module.id, e.target.files[0])}
-                                                                                />
-                                                                            </label>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="space-y-2">
-                                                                        <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Descrição</label>
-                                                                        <Input
-                                                                            value={module.description || ''}
-                                                                            onChange={(e) => updateModuleInGallery(gallery.id, module.id, { description: e.target.value })}
-                                                                            placeholder="Sobre o módulo"
-                                                                            className="h-9 text-sm"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-
-                                                                {/* Lessons List */}
-                                                                <div className="pt-2">
-                                                                    <h5 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2 mb-3 px-1">
-                                                                        <Film size={12} className="text-primary/50" />
-                                                                        Aulas
-                                                                    </h5>
-                                                                    
-                                                                    <div className="space-y-3">
-                                                                        {module.lessons.map((lesson) => {
-                                                                            const thumbnailUrl = lesson.videoUrl ? getYouTubeThumbnail(lesson.videoUrl) : null;
-                                                                            return (
-                                                                                <div key={lesson.id} className="p-3 rounded-lg border border-border/40 bg-muted/20 space-y-3 group/lesson hover:border-primary/20 transition-all">
-                                                                                    <div className="flex gap-4">
-                                                                                        {thumbnailUrl && (
-                                                                                            <div className="w-24 h-14 rounded-lg overflow-hidden border border-border/50 flex-shrink-0 bg-black">
-                                                                                                <img src={thumbnailUrl} alt={lesson.title} className="w-full h-full object-cover" />
-                                                                                            </div>
-                                                                                        )}
-                                                                                        <div className="flex-1 space-y-2">
-                                                                                            <input
-                                                                                                type="text"
-                                                                                                value={lesson.title}
-                                                                                                onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { title: e.target.value })}
-                                                                                                className="bg-transparent border-none text-sm font-bold focus:ring-0 w-full p-0 placeholder-muted-foreground/50"
-                                                                                                placeholder="Título da Aula"
-                                                                                            />
-                                                                                            <input
-                                                                                                type="text"
-                                                                                                value={lesson.videoUrl || ''}
-                                                                                                onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { videoUrl: e.target.value })}
-                                                                                                className="bg-transparent border-none text-xs font-mono text-muted-foreground focus:ring-0 w-full p-0 truncate"
-                                                                                                placeholder="Link do Vídeo"
-                                                                                            />
-                                                                                        </div>
-                                                                                        <Button
-                                                                                            variant="ghost"
-                                                                                            size="sm"
-                                                                                            onClick={() => deleteLessonFromGallery(gallery.id, module.id, lesson.id)}
-                                                                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/lesson:opacity-100 transition-opacity"
-                                                                                        >
-                                                                                            <Trash size={14} />
-                                                                                        </Button>
-                                                                                    </div>
-                                                                                    
-                                                                                    <div className="flex items-center gap-4">
-                                                                                        <div className="flex items-center gap-2 flex-1">
-                                                                                            <Clock size={12} className="text-muted-foreground" />
-                                                                                            <input
-                                                                                                type="text"
-                                                                                                value={lesson.duration || '00:00'}
-                                                                                                onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { duration: e.target.value })}
-                                                                                                className="bg-transparent border-none text-xs text-muted-foreground focus:ring-0 w-16 p-0"
-                                                                                                placeholder="00:00"
-                                                                                            />
-                                                                                        </div>
-                                                                                        {/* Support Materials summary */}
-                                                                                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                                                            <Paperclip size={10} />
-                                                                                            {lesson.supportMaterials?.length || 0} anexos
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            onClick={() => addLessonToGalleryModule(gallery.id, module.id)}
-                                                                            className="w-full border-dashed border-border/60 hover:border-primary/40 text-muted-foreground h-9"
-                                                                        >
-                                                                            <Plus size={14} className="mr-2" />
-                                                                            Adicionar Aula
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
+                                                        </label>
                                                     </div>
-                                                ))}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">Descrição</label>
+                                                    <textarea
+                                                        value={gallery.description || ''}
+                                                        onChange={(e) => updateGallery(gallery.id, { description: e.target.value })}
+                                                        className="w-full bg-background/50 border border-border rounded-lg text-sm p-2.5 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none h-[38px]"
+                                                        placeholder="Breve descrição"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                    )}
-                                </Card>
-                            ))}
-                        </div>
 
-                        {(!formData.galleries || formData.galleries.length === 0) && (
+                                        {/* Modules within Gallery */}
+                                        {expandedGalleries.includes(gallery.id) && (
+                                            <div className="p-4 border-t border-border/50 bg-background/40 space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                                        <Layers size={14} className="text-primary/70" />
+                                                        Módulos
+                                                    </h4>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => addModuleToGallery(gallery.id)}
+                                                        className="h-8 text-xs gap-1.5"
+                                                    >
+                                                        <Plus size={14} />
+                                                        Add Módulo
+                                                    </Button>
+                                                </div>
+
+                                                {gallery.modules.length === 0 && (
+                                                    <div className="text-center py-8 border border-dashed border-border rounded-xl">
+                                                        <p className="text-xs text-muted-foreground">Esta galeria ainda não tem módulos.</p>
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-4">
+                                                    {gallery.modules.map((module) => (
+                                                        <div key={module.id} className="bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm transition-all hover:bg-white/[0.04]">
+                                                            {/* Module Header */}
+                                                            <div className="p-3 flex items-center gap-3 bg-white/[0.02]">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => toggleModule(module.id)}
+                                                                    className="text-muted-foreground hover:text-foreground p-1 transition-colors"
+                                                                >
+                                                                    {expandedModules.includes(module.id) ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                                                </button>
+                                                                <Input
+                                                                    value={module.title}
+                                                                    onChange={(e) => updateModuleInGallery(gallery.id, module.id, { title: e.target.value })}
+                                                                    placeholder="Nome do Módulo"
+                                                                    className="flex-1 h-10"
+                                                                />
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => deleteModuleFromGallery(gallery.id, module.id)}
+                                                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                                                >
+                                                                    <Trash size={16} />
+                                                                </Button>
+                                                            </div>
+
+                                                            {/* Module Content */}
+                                                            {expandedModules.includes(module.id) && (
+                                                                <div className="p-4 space-y-4 bg-transparent">
+                                                                    {/* Module Meta */}
+                                                                    <div className="grid md:grid-cols-2 gap-4">
+                                                                        <div className="space-y-2">
+                                                                            <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Capa do Módulo</label>
+                                                                            <div className="flex gap-2">
+                                                                                <Input
+                                                                                    type="text"
+                                                                                    value={module.coverImage || ''}
+                                                                                    onChange={(e) => updateModuleInGallery(gallery.id, module.id, { coverImage: e.target.value })}
+                                                                                    placeholder="URL ou upload"
+                                                                                    className="h-9 text-sm"
+                                                                                />
+                                                                                <label className="flex items-center justify-center p-2 rounded-lg bg-secondary hover:bg-secondary/80 cursor-pointer border border-border transition-colors">
+                                                                                    <Upload size={16} />
+                                                                                    <input
+                                                                                        type="file"
+                                                                                        accept="image/*"
+                                                                                        className="hidden"
+                                                                                        onChange={(e) => e.target.files?.[0] && handleModuleCoverUploadInGallery(gallery.id, module.id, e.target.files[0])}
+                                                                                    />
+                                                                                </label>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="space-y-2">
+                                                                            <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Descrição</label>
+                                                                            <Input
+                                                                                value={module.description || ''}
+                                                                                onChange={(e) => updateModuleInGallery(gallery.id, module.id, { description: e.target.value })}
+                                                                                placeholder="Sobre o módulo"
+                                                                                className="h-9 text-sm"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Lessons List */}
+                                                                    <div className="pt-2">
+                                                                        <h5 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2 mb-3 px-1">
+                                                                            <Film size={12} className="text-primary/50" />
+                                                                            Aulas
+                                                                        </h5>
+
+                                                                        <div className="space-y-3">
+                                                                            {module.lessons.map((lesson) => {
+                                                                                const thumbnailUrl = lesson.videoUrl ? getYouTubeThumbnail(lesson.videoUrl) : null;
+                                                                                return (
+                                                                                    <div key={lesson.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex flex-col sm:flex-row items-start gap-4 transition-all hover:border-primary/20 hover:bg-white/[0.05] group">
+                                                                                        <div className="flex gap-4">
+                                                                                            {thumbnailUrl && (
+                                                                                                <div className="w-24 h-14 rounded-lg overflow-hidden border border-border/50 flex-shrink-0 bg-black">
+                                                                                                    <img src={thumbnailUrl} alt={lesson.title} className="w-full h-full object-cover" />
+                                                                                                </div>
+                                                                                            )}
+                                                                                            <div className="flex-1 space-y-3">
+                                                                                                <Input
+                                                                                                    value={lesson.title}
+                                                                                                    onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { title: e.target.value })}
+                                                                                                    placeholder="Título da Aula"
+                                                                                                    className="font-bold border-white/[0.05]"
+                                                                                                />
+                                                                                                <Input
+                                                                                                    value={lesson.videoUrl || ''}
+                                                                                                    onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { videoUrl: e.target.value })}
+                                                                                                    placeholder="Link do Vídeo"
+                                                                                                    className="font-mono text-xs text-muted-foreground border-white/[0.05]"
+                                                                                                    icon={<Video size={14} />}
+                                                                                                />
+                                                                                            </div>
+                                                                                            <Button
+                                                                                                variant="ghost"
+                                                                                                size="sm"
+                                                                                                onClick={() => deleteLessonFromGallery(gallery.id, module.id, lesson.id)}
+                                                                                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover/lesson:opacity-100 transition-opacity"
+                                                                                            >
+                                                                                                <Trash size={14} />
+                                                                                            </Button>
+                                                                                        </div>
+
+                                                                                        <div className="flex items-center gap-4">
+                                                                                            <div className="flex items-center gap-2 flex-1">
+                                                                                                <Clock size={12} className="text-muted-foreground" />
+                                                                                                <Input
+                                                                                                    value={lesson.duration || '00:00'}
+                                                                                                    onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { duration: e.target.value })}
+                                                                                                    placeholder="00:00"
+                                                                                                    className="w-24 text-center"
+                                                                                                    icon={<Clock size={12} />}
+                                                                                                />
+                                                                                            </div>
+                                                                                            {/* Support Materials summary */}
+                                                                                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                                                                <Paperclip size={10} />
+                                                                                                {lesson.supportMaterials?.length || 0} anexos
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                onClick={() => addLessonToGalleryModule(gallery.id, module.id)}
+                                                                                className="w-full border-dashed border-border/60 hover:border-primary/40 text-muted-foreground h-9"
+                                                                            >
+                                                                                <Plus size={14} className="mr-2" />
+                                                                                Adicionar Aula
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </Card>
+                                ))}
+                            </div>
+
+                            {(!formData.galleries || formData.galleries.length === 0) && (
                                 <div className="text-center py-16 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center gap-4 opacity-70">
                                     <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center text-primary/50">
                                         <Layers size={32} />
@@ -933,7 +951,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                             <Film size={18} className="text-primary" />
                             <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Informações do Vídeo</h3>
                         </div>
-                        
+
                         <div className="grid md:grid-cols-2 gap-6">
                             <Input
                                 label="Título do Vídeo *"
@@ -1002,38 +1020,21 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-2">
                                 <AlignLeft size={14} />
                                 Descrição
                             </label>
                             <textarea
                                 value={formData.description || ''}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full bg-background border border-border rounded-xl text-sm p-4 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all resize-none h-32"
+                                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm p-4 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] resize-none h-32"
                                 placeholder="Detalhes sobre este conteúdo..."
                             />
                         </div>
                     </div>
                 )}
 
-                    <div className="flex justify-end gap-3 pt-6 border-t border-border">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={onCancel}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={loading}
-                            className="gap-2"
-                        >
-                            {loading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                            <span>Salvar {course ? 'Alterações' : 'Conteúdo'}</span>
-                        </Button>
-                    </div>
-                </form>
+            </form>
         </Modal>
     );
 };

@@ -15,31 +15,31 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
             <div className="fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 grid grid-cols-5 items-center z-50 md:hidden pb-safe shadow-elevated">
                 <NavItem
                     icon={<LayoutDashboard size={20} />}
-                    label="Dashboard"
+                    label="Painel"
                     active={currentScreen === 'admin-reports'}
                     onClick={() => onNavigate('admin-reports')}
                 />
                 <NavItem
                     icon={<FileText size={20} />}
-                    label="Content"
+                    label="Conteúdo"
                     active={currentScreen === 'admin-catalog'}
                     onClick={() => onNavigate('admin-catalog')}
                 />
                 <NavItem
                     icon={<Users size={20} />}
-                    label="Students"
+                    label="Alunos"
                     active={currentScreen === 'admin-students'}
                     onClick={() => onNavigate('admin-students')}
                 />
                 <NavItem
                     icon={<Activity size={20} />}
-                    label="Fin"
+                    label="Finan"
                     active={currentScreen === 'admin-financial'}
                     onClick={() => onNavigate('admin-financial')}
                 />
                 <NavItem
                     icon={<Settings size={20} />}
-                    label="Setup"
+                    label="Config"
                     active={currentScreen === 'admin-settings'}
                     onClick={() => onNavigate('admin-settings')}
                 />
@@ -52,7 +52,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
         <div className="fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 flex justify-around items-center z-50 md:hidden pb-safe shadow-elevated">
             <NavItem
                 icon={<LayoutDashboard size={20} />}
-                label="Home"
+                label="Início"
                 active={currentScreen === 'dashboard'}
                 onClick={() => onNavigate('dashboard')}
             />
@@ -73,19 +73,19 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
             */}
             <NavItem
                 icon={<Activity size={20} />}
-                label="Flow"
+                label="Fluxo"
                 active={currentScreen === 'mindful'}
                 onClick={() => onNavigate('mindful')}
             />
             <NavItem
                 icon={<MusicIcon size={20} />}
-                label="Music"
+                label="Músicas"
                 active={currentScreen === 'music'}
                 onClick={() => onNavigate('music')}
             />
             <NavItem
                 icon={<Trophy size={20} />}
-                label="Achievements"
+                label="Conquistas"
                 active={currentScreen === 'achievements'}
                 onClick={() => onNavigate('achievements')}
             />

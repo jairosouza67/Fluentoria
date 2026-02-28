@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus,
   ChevronDown,
@@ -13,7 +13,8 @@ import {
   LayoutGrid,
   Film,
   Music,
-  Zap
+  Zap,
+  MoreVertical
 } from 'lucide-react';
 import { Course } from '../lib/db';
 import { useCatalogData, TabType } from '../hooks/useCatalogData';
@@ -114,9 +115,9 @@ const AdminCatalog: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2">
             {/* Date Filter Dropdown */}
             <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className={`gap-2 ${dateFilter ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}
                 onClick={() => {
                   setDateFilterOpen(!dateFilterOpen);
@@ -149,9 +150,9 @@ const AdminCatalog: React.FC = () => {
 
             {/* Duration Filter Dropdown */}
             <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className={`gap-2 ${durationFilter ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}
                 onClick={() => {
                   setDurationFilterOpen(!durationFilterOpen);
@@ -183,9 +184,9 @@ const AdminCatalog: React.FC = () => {
 
             {/* Clear Filters */}
             {(dateFilter || durationFilter) && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="text-[#9CA3AF] hover:text-[#FF6A00]"
                 onClick={() => { setDateFilter(''); setDurationFilter(''); }}
               >
@@ -258,117 +259,158 @@ interface CatalogGridProps {
   onDelete: (id: string) => void;
 }
 
-const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, onEdit, onDelete }) => (
-  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-    {courses.map((course) => {
-      const thumbnailUrl = course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
-      const displayImage = course.coverImage || thumbnailUrl;
-      const galleryCount = activeTab === 'gallery' ? (course.galleries?.length || 0) : 0;
-      const totalModules = activeTab === 'gallery' ? (course.galleries?.reduce((acc, g) => acc + g.modules.length, 0) || 0) : 0;
+const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, onEdit, onDelete }) => {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-      return (
-        <Card key={course.id} className="group overflow-hidden flex flex-col h-full border-white/[0.05] hover:border-[#FF6A00]/20 transition-all duration-300 rounded-xl shadow-sm">
-          {/* Thumbnail Area */}
-          <div className="aspect-video relative overflow-hidden bg-muted">
-            {displayImage ? (
-              <img
-                src={displayImage}
-                alt={course.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            ) : (
-              <div className={`w-full h-full bg-gradient-to-br ${course.thumbnail} opacity-60`} />
-            )}
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-            {/* Overlay Actions */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2 px-4 text-center">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20"
-                onClick={() => onView(course)}
-              >
-                <Eye size={16} className="mr-2" />
-                Ver
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="bg-white/10 backdrop-blur-md border-white/10 hover:bg-white/20"
-                onClick={() => onEdit(course)}
-              >
-                <Edit2 size={16} className="mr-2" />
-                Editar
-              </Button>
-            </div>
+  return (
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+      {courses.map((course) => {
+        const thumbnailUrl = course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
+        const displayImage = course.coverImage || thumbnailUrl;
+        const galleryCount = activeTab === 'gallery' ? (course.galleries?.length || 0) : 0;
+        const totalModules = activeTab === 'gallery' ? (course.galleries?.reduce((acc, g) => acc + g.modules.length, 0) || 0) : 0;
+        const isMenuOpen = openMenuId === course.id;
 
-            {/* Top Badges */}
-            <div className="absolute top-3 left-3 flex gap-2">
-              <span className="bg-black/60 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-white/10 shadow-sm">
-                {course.type}
-              </span>
-            </div>
-
-            <button
-              onClick={() => onDelete(course.id!)}
-              className="absolute top-3 right-3 p-2 rounded-lg bg-black/60 backdrop-blur-md text-white/70 hover:text-destructive hover:bg-destructive/20 transition-all border border-white/10 shadow-sm"
-              title="Excluir"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="p-5 flex-1 flex flex-col">
-            <h3 className="font-bold text-lg mb-2 text-[#F3F4F6] line-clamp-1 group-hover:text-[#FF6A00] transition-colors">
-              {course.title}
-            </h3>
-
-            <div className="flex items-center gap-4 text-xs text-[#9CA3AF] mb-4">
-              {activeTab === 'gallery' ? (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <LayoutGrid size={13} className="text-[#FF6A00]/70" />
-                    {galleryCount} {galleryCount === 1 ? 'galeria' : 'galerias'}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar size={13} className="text-[#FF6A00]/70" />
-                    {totalModules} {totalModules === 1 ? 'módulo' : 'módulos'}
-                  </div>
-                </>
+        return (
+          <Card key={course.id} className="group overflow-hidden flex flex-col h-full border-white/[0.05] hover:border-[#FF6A00]/20 transition-all duration-300 rounded-xl shadow-sm">
+            {/* Thumbnail Area */}
+            <div className="aspect-video relative overflow-hidden bg-muted cursor-pointer" onClick={() => onView(course)}>
+              {displayImage ? (
+                <img
+                  src={displayImage}
+                  alt={course.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
               ) : (
-                <>
-                  <div className="flex items-center gap-1.5">
-                    <Clock size={13} className="text-[#FF6A00]/70" />
-                    {course.duration || '00:00'}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Calendar size={13} className="text-primary/70" />
-                    {course.launchDate || 'Em breve'}
-                  </div>
-                </>
+                <div className={`w-full h-full bg-gradient-to-br ${course.thumbnail} opacity-60`} />
               )}
+
+              {/* Top Badges */}
+              <div className="absolute top-3 left-3 flex gap-2">
+                <span className="bg-black/60 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-white/10 shadow-sm">
+                  {course.type}
+                </span>
+              </div>
             </div>
 
-            <p className="text-sm text-[#9CA3AF] mb-5 line-clamp-2">
-              {course.description || `Conteúdo produzido por ${course.author}`}
-            </p>
+            {/* Content */}
+            <div className="p-5 flex-1 flex flex-col">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="font-bold text-lg text-[#F3F4F6] line-clamp-1 group-hover:text-[#FF6A00] transition-colors">
+                  {course.title}
+                </h3>
 
-            <div className="mt-auto pt-4 border-t border-white/[0.06] flex items-center justify-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-[#FF6A00] hover:bg-[#FF6A00]/10"
-                onClick={() => onView(course)}
-              >
-                {activeTab === 'courses' ? 'Acessar Curso' : activeTab === 'gallery' ? 'Ver Galerias' : 'Visualizar'}
-              </Button>
+                {/* Three-dot menu */}
+                <div className="relative flex-shrink-0" ref={isMenuOpen ? menuRef : undefined}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(isMenuOpen ? null : course.id!);
+                    }}
+                    className="p-1.5 rounded-lg text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/[0.06] transition-all"
+                    title="Opções"
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+
+                  {isMenuOpen && (
+                    <div className="absolute right-0 top-full mt-1 w-40 bg-[#1a1a1a] border border-white/[0.1] rounded-xl shadow-2xl z-50 py-1.5 animate-in fade-in zoom-in-95 duration-150">
+                      <button
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#F3F4F6] hover:bg-white/[0.06] transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(null);
+                          onView(course);
+                        }}
+                      >
+                        <Eye size={15} className="text-[#9CA3AF]" />
+                        Visualizar
+                      </button>
+                      <button
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#F3F4F6] hover:bg-white/[0.06] transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(null);
+                          onEdit(course);
+                        }}
+                      >
+                        <Edit2 size={15} className="text-[#9CA3AF]" />
+                        Editar
+                      </button>
+                      <div className="mx-3 my-1 border-t border-white/[0.06]" />
+                      <button
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(null);
+                          onDelete(course.id!);
+                        }}
+                      >
+                        <Trash2 size={15} />
+                        Excluir
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs text-[#9CA3AF] mb-4">
+                {activeTab === 'gallery' ? (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <LayoutGrid size={13} className="text-[#FF6A00]/70" />
+                      {galleryCount} {galleryCount === 1 ? 'galeria' : 'galerias'}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={13} className="text-[#FF6A00]/70" />
+                      {totalModules} {totalModules === 1 ? 'módulo' : 'módulos'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={13} className="text-[#FF6A00]/70" />
+                      {course.duration || '00:00'}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={13} className="text-primary/70" />
+                      {course.launchDate || 'Em breve'}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <p className="text-sm text-[#9CA3AF] mb-5 line-clamp-2">
+                {course.description || `Conteúdo produzido por ${course.author}`}
+              </p>
+
+              <div className="mt-auto pt-4 border-t border-white/[0.06] flex items-center justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[#FF6A00] hover:bg-[#FF6A00]/10"
+                  onClick={() => onView(course)}
+                >
+                  {activeTab === 'courses' ? 'Acessar Curso' : activeTab === 'gallery' ? 'Ver Galerias' : 'Visualizar'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </Card>
-      );
-    })}
-  </div>
-);
+          </Card>
+        );
+      })}
+    </div>
+  );
+};
 
 export default AdminCatalog;

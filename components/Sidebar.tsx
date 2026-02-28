@@ -10,7 +10,8 @@ import {
   Edit3,
   Trophy,
   Activity,
-  Music
+  Music,
+  Settings
 } from 'lucide-react';
 import { ViewMode, Screen } from '../types';
 import { User as FirebaseUser } from 'firebase/auth';
@@ -33,7 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
       <div className="w-full text-center flex-shrink-0">
         <div className="mb-10 px-2">
           <h1 className="text-xl font-bold text-[#FF6A00] leading-tight">Thiago Serpa - Fluentoria de Inglês</h1>
-          <p className="text-xs text-[#9CA3AF] mt-1">Learning Platform</p>
+          <p className="text-xs text-[#9CA3AF] mt-1">Plataforma de Ensino</p>
         </div>
 
         {/* Navigation Items */}
@@ -63,36 +64,38 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
               */}
               <NavItem
                 icon={<Activity size={20} />}
-                label="Mindful Flow"
+                label="Fluxo Mental"
                 active={currentScreen === 'mindful'}
                 onClick={() => onNavigate('mindful')}
               />
               <NavItem
                 icon={<Music size={20} />}
-                label="Music"
+                label="Músicas"
                 active={currentScreen === 'music'}
                 onClick={() => onNavigate('music')}
               />
               <NavItem
                 icon={<Trophy size={20} />}
-                label="Achievements"
+                label="Conquistas"
                 active={currentScreen === 'achievements'}
                 onClick={() => onNavigate('achievements')}
               />
               <div className="h-px bg-white/[0.06] my-4 mx-2" />
               <NavItem
                 icon={<User size={20} />}
-                label="Perfil"
+                label="Meu Perfil"
                 active={currentScreen === 'profile'}
                 onClick={() => onNavigate('profile')}
               />
             </>
           ) : (
             <>
-              <NavItem icon={<BarChart3 size={20} />} label="Dashboard" active={currentScreen === 'admin-reports'} onClick={() => onNavigate('admin-reports')} />
-              <NavItem icon={<BookOpen size={20} />} label="Content" active={currentScreen === 'admin-catalog'} onClick={() => onNavigate('admin-catalog')} />
+              <NavItem icon={<BarChart3 size={20} />} label="Painel" active={currentScreen === 'admin-reports'} onClick={() => onNavigate('admin-reports')} />
+              <NavItem icon={<BookOpen size={20} />} label="Conteúdo" active={currentScreen === 'admin-catalog'} onClick={() => onNavigate('admin-catalog')} />
               <NavItem icon={<Users size={20} />} label="Alunos" active={currentScreen === 'admin-students'} onClick={() => onNavigate('admin-students')} />
               <NavItem icon={<Activity size={20} />} label="Financeiro" active={currentScreen === 'admin-financial'} onClick={() => onNavigate('admin-financial')} />
+              <div className="h-px bg-white/[0.06] my-4 mx-2" />
+              <NavItem icon={<Settings size={20} />} label="Configurações" active={currentScreen === 'admin-settings'} onClick={() => onNavigate('admin-settings')} />
             </>
           )}
         </nav>

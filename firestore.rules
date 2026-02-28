@@ -57,6 +57,22 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Gamification and Activities
+    match /student_progress/{userId} {
+      allow read, write: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    match /student_activities/{activityId} {
+      allow read: if isAuthenticated() && (isOwner(resource.data.studentId) || isAdmin());
+      allow create: if isAuthenticated() && (isOwner(request.resource.data.studentId) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    match /achievements/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;
