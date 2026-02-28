@@ -33,7 +33,7 @@ import {
   RefreshCw,
   Search
 } from 'lucide-react';
-import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas } from '../lib/db';
+import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas, isPrimaryAdmin } from '../lib/db';
 import { OrangeToggle } from './ui/toggle';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -398,19 +398,19 @@ const Settings: React.FC = () => {
       />
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-white/[0.06]">
+      <div className="flex items-center gap-1 p-1.5 bg-[#111111] rounded-xl border border-white/[0.08]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium transition-all duration-200 border-b-2 ${
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-all duration-200 rounded-lg ${
               activeTab === tab.id
-                ? 'border-[#FF6A00] text-[#FF6A00]'
-                : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'
+                ? 'bg-[#FF6A00] text-white shadow-lg shadow-[#FF6A00]/20'
+                : 'text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/[0.04]'
             }`}
           >
-            <tab.icon className="w-5 h-5" />
-            {tab.label}
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -452,7 +452,7 @@ const Settings: React.FC = () => {
                     <p className="text-center text-[#9CA3AF] py-8">Nenhum administrador cadastrado</p>
                   ) : (
                     adminEmails.map((email, index) => {
-                      const isPrimary = email === 'jairosouza67@gmail.com';
+                      const isPrimary = isPrimaryAdmin(email);
                       return (
                         <Card key={index} className="p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">

@@ -30,7 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
     <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-[#111111]/95 backdrop-blur-xl border-r border-white/[0.06] flex-col justify-between p-6 z-20 shadow-elevated overflow-y-auto">
 
       {/* Logo or Brand */}
-      <div className="w-full text-center">
+      <div className="w-full text-center flex-shrink-0">
         <div className="mb-10 px-2">
           <h1 className="text-xl font-bold text-[#FF6A00] leading-tight">Thiago Serpa - Fluentoria de Inglês</h1>
           <p className="text-xs text-[#9CA3AF] mt-1">Learning Platform</p>

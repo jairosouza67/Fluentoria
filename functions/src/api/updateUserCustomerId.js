@@ -52,7 +52,8 @@ exports.updateUserCustomerId = functions.https.onRequest(async (req, res) => {
     }
 
     // Ensure user is updating their own record OR is an admin
-    if (decodedToken.uid !== userId && decodedToken.role !== 'admin' && decodedToken.email !== 'jairosouza67@gmail.com') {
+    const isAdmin = decodedToken.role === 'admin' || decodedToken.email === 'jairosouza67@gmail.com';
+    if (decodedToken.uid !== userId && !isAdmin) {
       console.error(`User ${decodedToken.uid} tried to update customerId for user ${userId}`);
       res.status(403).send('Forbidden');
       return;
