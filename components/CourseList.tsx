@@ -85,13 +85,13 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                       className="group overflow-hidden hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
                     >
                       {/* Thumbnail */}
-                      <div className={`h-44 w-full ${displayImage ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
+                      <div className={`w-full ${displayImage ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail} min-h-[176px]`} relative flex items-center justify-center overflow-hidden`}>
                         {displayImage ? (
                           <>
                             <img
                               src={displayImage}
                               alt={course.title}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              className="w-full h-auto block transition-transform duration-500 group-hover:scale-110"
                             />
                             <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
                           </>
@@ -124,8 +124,8 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                           <p className="text-sm text-muted-foreground font-medium">{course.author}</p>
                         </div>
 
-                        <Button 
-                          variant={course.progress === 100 ? "outline" : "primary"} 
+                        <Button
+                          variant={course.progress === 100 ? "outline" : "primary"}
                           className="w-full group-hover:shadow-[0_0_15px_rgba(255,106,0,0.3)]"
                         >
                           {course.progress === 0 ? 'Iniciar Aula' : course.progress === 100 ? 'Rever Aula' : 'Continuar'}

@@ -76,13 +76,13 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse }) => 
                 className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
               >
                 {/* Thumbnail */}
-                <div className={`h-40 w-full ${displayImage ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail}`} relative flex items-center justify-center overflow-hidden`}>
+                <div className={`w-full ${displayImage ? 'bg-black' : `bg-gradient-to-br ${course.thumbnail} min-h-[160px]`} relative flex items-center justify-center overflow-hidden`}>
                   {displayImage ? (
                     <>
                       <img
                         src={displayImage}
                         alt={course.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-auto block"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}

@@ -627,8 +627,8 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                             {/* Course Cover Image */}
                             <div className="grid md:grid-cols-4 gap-6 items-start">
                                 {formData.coverImage && (
-                                    <div className="md:col-span-1 aspect-video md:aspect-square rounded-xl overflow-hidden border border-white/[0.08] shadow-lg group relative">
-                                        <img src={formData.coverImage} alt={formData.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                    <div className="md:col-span-1 rounded-xl overflow-hidden border border-white/[0.08] shadow-lg group relative">
+                                        <img src={formData.coverImage} alt={formData.title} className="w-full h-auto block transition-transform duration-500 group-hover:scale-110" />
                                         <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                                     </div>
                                 )}

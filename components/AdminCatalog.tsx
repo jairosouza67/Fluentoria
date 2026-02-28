@@ -285,15 +285,15 @@ const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, o
         return (
           <Card key={course.id} className="group overflow-hidden flex flex-col h-full border-white/[0.05] hover:border-[#FF6A00]/20 transition-all duration-300 rounded-xl shadow-sm">
             {/* Thumbnail Area */}
-            <div className="aspect-video relative overflow-hidden bg-muted cursor-pointer" onClick={() => onView(course)}>
+            <div className="w-full relative overflow-hidden bg-muted cursor-pointer" onClick={() => onView(course)}>
               {displayImage ? (
                 <img
                   src={displayImage}
                   alt={course.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-auto block transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
-                <div className={`w-full h-full bg-gradient-to-br ${course.thumbnail} opacity-60`} />
+                <div className={`w-full min-h-[120px] bg-gradient-to-br ${course.thumbnail} opacity-60`} />
               )}
 
               {/* Top Badges */}

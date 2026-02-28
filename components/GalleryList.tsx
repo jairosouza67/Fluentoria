@@ -76,77 +76,77 @@ const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery }
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredGalleries.map(({ gallery, course }, index) => {
-              const moduleCount = gallery.modules?.length || 0;
-              const lessonCount = gallery.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
+            const moduleCount = gallery.modules?.length || 0;
+            const lessonCount = gallery.modules?.reduce((acc, mod) => acc + (mod.lessons?.length || 0), 0) || 0;
 
-              return (
-                <div
-                  key={`${course.id}-${gallery.id}`}
-                  onClick={() => onSelectGallery(gallery, course)}
-                  className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
-                >
-                  {/* Gallery Cover Image */}
-                  <div className="h-48 w-full bg-gradient-to-br from-[#FF6A00]/20 to-[#E15B00]/20 relative overflow-hidden">
-                    {gallery.coverImage ? (
-                      <>
-                        <img
-                          src={gallery.coverImage}
-                          alt={gallery.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                      </>
-                    ) : (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-br from-orange-900 to-stone-900" />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                        {/* Gallery Icon - only shown when no cover image */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20">
-                            <ImageIcon size={32} className="text-white" />
-                          </div>
+            return (
+              <div
+                key={`${course.id}-${gallery.id}`}
+                onClick={() => onSelectGallery(gallery, course)}
+                className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
+              >
+                {/* Gallery Cover Image */}
+                <div className={`w-full relative overflow-hidden ${gallery.coverImage ? '' : 'min-h-[160px]'} bg-gradient-to-br from-[#FF6A00]/20 to-[#E15B00]/20`}>
+                  {gallery.coverImage ? (
+                    <>
+                      <img
+                        src={gallery.coverImage}
+                        alt={gallery.title}
+                        className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-br from-orange-900 to-stone-900" />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                      {/* Gallery Icon - only shown when no cover image */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white group-hover:scale-110 transition-transform border border-white/20">
+                          <ImageIcon size={32} className="text-white" />
                         </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-5">
-                    {/* Course Badge */}
-                    <div className="mb-3">
-                      <span className="text-[10px] font-semibold text-[#FF6A00] uppercase tracking-wider bg-[#FF6A00]/10 px-2 py-1 rounded">
-                        {course.title}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-[#F3F4F6] mb-2 group-hover:text-[#FF6A00] transition-colors duration-200">
-                      {gallery.title}
-                    </h3>
-                    
-                    {gallery.description && (
-                      <p className="text-sm text-[#9CA3AF] mb-4 line-clamp-2">{gallery.description}</p>
-                    )}
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs text-[#9CA3AF] mb-4">
-                      <span className="flex items-center gap-1">
-                        <BookOpen size={14} />
-                        {moduleCount} {moduleCount === 1 ? 'módulo' : 'módulos'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <PlayCircle size={14} />
-                        {lessonCount} {lessonCount === 1 ? 'aula' : 'aulas'}
-                      </span>
-                    </div>
-
-                    <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200 flex items-center justify-center gap-2">
-                      Acessar Galeria
-                      <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-              );
-            })}
+
+                {/* Content */}
+                <div className="p-5">
+                  {/* Course Badge */}
+                  <div className="mb-3">
+                    <span className="text-[10px] font-semibold text-[#FF6A00] uppercase tracking-wider bg-[#FF6A00]/10 px-2 py-1 rounded">
+                      {course.title}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-[#F3F4F6] mb-2 group-hover:text-[#FF6A00] transition-colors duration-200">
+                    {gallery.title}
+                  </h3>
+
+                  {gallery.description && (
+                    <p className="text-sm text-[#9CA3AF] mb-4 line-clamp-2">{gallery.description}</p>
+                  )}
+
+                  {/* Stats */}
+                  <div className="flex items-center gap-4 text-xs text-[#9CA3AF] mb-4">
+                    <span className="flex items-center gap-1">
+                      <BookOpen size={14} />
+                      {moduleCount} {moduleCount === 1 ? 'módulo' : 'módulos'}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <PlayCircle size={14} />
+                      {lessonCount} {lessonCount === 1 ? 'aula' : 'aulas'}
+                    </span>
+                  </div>
+
+                  <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200 flex items-center justify-center gap-2">
+                    Acessar Galeria
+                    <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

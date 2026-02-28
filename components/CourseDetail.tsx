@@ -241,7 +241,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               <img
                 src={course.coverImage}
                 alt={course.title}
-                className="w-full h-full object-cover"
+                className="w-full h-auto block"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">

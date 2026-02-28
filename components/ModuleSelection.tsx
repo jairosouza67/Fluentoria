@@ -53,15 +53,15 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
 
           <div className="flex items-start gap-6">
             {course.coverImage && (
-              <div className="hidden md:block w-32 h-32 rounded-xl overflow-hidden border border-white/[0.06] shadow-card flex-shrink-0">
+              <div className="hidden md:block max-w-[200px] rounded-xl overflow-hidden border border-white/[0.06] shadow-card flex-shrink-0">
                 <img
                   src={course.coverImage}
                   alt={course.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-auto block"
                 />
               </div>
             )}
-            
+
             <div className="flex-1">
               <h1 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-2">{course.title}</h1>
               <p className="text-[#9CA3AF] mb-4">{course.description}</p>
@@ -102,21 +102,21 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
                 >
                   {/* Gallery Cover Image */}
                   {gallery.coverImage && (
-                    <div className="h-48 w-full bg-black relative overflow-hidden">
+                    <div className="w-full bg-black relative overflow-hidden">
                       <img
                         src={gallery.coverImage}
                         alt={gallery.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                      
+
                       {/* Gallery Number Badge */}
                       <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#FF6A00] border-2 border-white/20 flex items-center justify-center shadow-lg">
                         <span className="text-sm font-bold text-white">{index + 1}</span>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Content */}
                   <div className="p-6">
                     {!gallery.coverImage && (
@@ -178,15 +178,15 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
 
         <div className="flex items-start gap-6">
           {(selectedGallery?.coverImage || course.coverImage) && (
-            <div className="hidden md:block w-32 h-32 rounded-xl overflow-hidden border border-white/[0.06] shadow-card flex-shrink-0">
+            <div className="hidden md:block max-w-[200px] rounded-xl overflow-hidden border border-white/[0.06] shadow-card flex-shrink-0">
               <img
                 src={selectedGallery?.coverImage || course.coverImage}
                 alt={selectedGallery?.title || course.title}
-                className="w-full h-full object-cover"
+                className="w-full h-auto block"
               />
             </div>
           )}
-          
+
           <div className="flex-1">
             <h1 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-2">{selectedGallery ? selectedGallery.title : course.title}</h1>
             <p className="text-[#9CA3AF] mb-4">{selectedGallery ? selectedGallery.description : course.description}</p>
@@ -237,21 +237,21 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
                 >
                   {/* Module Cover Image */}
                   {module.coverImage && (
-                    <div className="h-48 w-full bg-black relative overflow-hidden">
+                    <div className="w-full bg-black relative overflow-hidden">
                       <img
                         src={module.coverImage}
                         alt={module.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-auto block group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                      
+
                       {/* Module Number Badge */}
                       <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-[#FF6A00] border-2 border-white/20 flex items-center justify-center shadow-lg">
                         <span className="text-sm font-bold text-white">{index + 1}</span>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Content */}
                   <div className="p-6">
                     {!module.coverImage && (
