@@ -2,7 +2,8 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { Course } from './types';
 import { MINDFUL_FLOW_COLLECTION } from './config';
-import { requireAdmin } from './admin';
+import { requireAdmin, checkUserAccess } from './admin';
+import { getUserCourses } from './userCourses';
 
 export const getMindfulFlows = async (): Promise<Course[]> => {
     try {
@@ -47,5 +48,45 @@ export const deleteMindfulFlow = async (id: string): Promise<boolean> => {
     } catch (error) {
         console.error("Error deleting mindful flow:", error);
         return false;
+    }
+};
+
+export const getMindfulFlowsForUser = async (userId: string): Promise<Course[]> => {
+    try {
+        const { authorized, role } = await checkUserAccess(userId);
+        
+        // Admin sees all
+        if (role === 'admin') {
+            return getMindfulFlows();
+        }
+        
+        // Not authorized = no content
+        if (!authorized) return [];
+
+        // Get user's assigned courses
+        const userCourses = await getUserCourses(userId);
+        const activeCourseIds = userCourses
+            .filter(uc => uc.status === 'active')
+            .map(uc => uc.courseId);
+        
+        // No courses assigned = show nothing
+        if (activeCourseIds.length === 0) {
+            return [];
+        }
+        
+        const allFlows = await getMindfulFlows();
+        
+        // Filter by productId matching user's courses
+        return allFlows.filter(flow => {
+            const prodId = flow.productId;
+            if (!prodId) {
+                // Legacy content belongs to the 'default' product
+                return activeCourseIds.includes('default');
+            }
+            return activeCourseIds.includes(String(prodId));
+        });
+    } catch (error) {
+        console.error("Error fetching mindful flows for user:", error);
+        return [];
     }
 };

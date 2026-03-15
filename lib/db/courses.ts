@@ -2,7 +2,8 @@ import { db } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { Course } from './types';
 import { COURSES_COLLECTION } from './config';
-import { requireAdmin } from './admin';
+import { requireAdmin, checkUserAccess } from './admin';
+import { getUserCourses } from './userCourses';
 
 export const getCourses = async (): Promise<Course[]> => {
     try {
@@ -47,5 +48,50 @@ export const deleteCourse = async (id: string): Promise<boolean> => {
     } catch (error) {
         console.error("Error deleting course:", error);
         return false;
+    }
+};
+
+export const getCoursesForUser = async (userId: string): Promise<Course[]> => {
+    try {
+        const { authorized, role } = await checkUserAccess(userId);
+        
+        // Admin sees all courses
+        if (role === 'admin') {
+            return getCourses();
+        }
+        
+        // Not authorized = no courses
+        if (!authorized) return [];
+
+        // Get user's assigned courses
+        const userCourses = await getUserCourses(userId);
+        const activeCourseIds = userCourses
+            .filter(uc => uc.status === 'active')
+            .map(uc => uc.courseId);
+        
+        // No courses assigned = show nothing (user needs to be granted access)
+        if (activeCourseIds.length === 0) {
+            return [];
+        }
+        
+        const allCourses = await getCourses();
+        
+        // Filter courses by user's assigned course IDs
+        return allCourses.filter(c => {
+            const courseId = c.id;
+            if (courseId && activeCourseIds.includes(courseId)) {
+                return true;
+            }
+
+            const productId = c.productId;
+            if (productId && activeCourseIds.includes(String(productId))) {
+                return true;
+            }
+
+            return false;
+        });
+    } catch (error) {
+        console.error("Error fetching courses for user:", error);
+        return [];
     }
 };

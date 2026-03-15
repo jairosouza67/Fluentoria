@@ -118,6 +118,7 @@ export interface StudentProgress {
   currentStreak: number;
   longestStreak: number;
   unlockedAchievements: string[]; // Achievement IDs
+  rank?: number;
   lastActivityDate?: Date;
   createdAt: Date;
   updatedAt: Date;

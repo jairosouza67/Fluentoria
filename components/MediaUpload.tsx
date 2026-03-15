@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, File, Image, Video, Music, FileText, Trash2, Download, X, Mic, Square, Send } from 'lucide-react';
+import { Upload, File as FileIcon, Image, Video, Music, FileText, Trash2, Download, X, Mic, Square, Send } from 'lucide-react';
 import { MediaSubmission } from '../types';
 import { uploadMedia, getCourseMedia, formatFileSize, deleteMedia } from '../lib/media';
 
@@ -213,7 +213,7 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
       case 'video': return <Video className="w-5 h-5" />;
       case 'audio': return <Music className="w-5 h-5" />;
       case 'pdf': return <FileText className="w-5 h-5" />;
-      default: return <File className="w-5 h-5" />;
+      default: return <FileIcon className="w-5 h-5" />;
     }
   };
 
@@ -500,7 +500,7 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
       {others.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-[#F3F4F6] mb-4 flex items-center gap-2">
-            <File className="w-4 h-4 text-[#FF6A00]" />
+            <FileIcon className="w-4 h-4 text-[#FF6A00]" />
             Outros Arquivos ({others.length})
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

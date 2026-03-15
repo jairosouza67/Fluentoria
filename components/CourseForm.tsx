@@ -33,12 +33,14 @@ interface CourseFormProps {
     course?: Course | null;
     onSave: (course: Course) => Promise<void>;
     onCancel: () => void;
+    activeTab?: 'courses' | 'gallery' | 'mindful' | 'music';
+    availableCourses?: Course[];
 }
 
 type ContentMode = 'modules' | 'single';
 type ContentType = 'module' | 'video' | null;
 
-const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => {
+const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activeTab, availableCourses }) => {
     const [formData, setFormData] = useState<Course>({
         title: '',
         author: '',
@@ -116,6 +118,9 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
             } else {
                 dataToSave.modules = []; // Clear modules if in single mode
                 dataToSave.galleries = []; // Clear galleries if in single mode
+            }
+            if (dataToSave.productId === undefined) {
+                delete dataToSave.productId;
             }
             await onSave(dataToSave);
         } catch (error) {
@@ -613,16 +618,64 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                 Informações do Curso
                             </h3>
 
-                            {/* Course Title */}
-                            <Input
-                                label="Nome do Curso"
-                                type="text"
-                                value={formData.title}
-                                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                                placeholder="Ex: Curso de Inglês Avançado"
-                                required
-                                icon={<Type size={18} className="text-muted-foreground" />}
-                            />
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* Course Title */}
+                                <Input
+                                    label="Nome do Curso"
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                    placeholder="Ex: Curso de Inglês Avançado"
+                                    required
+                                    icon={<Type size={18} className="text-muted-foreground" />}
+                                />
+
+                                {(activeTab === 'mindful' || activeTab === 'music') ? (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                                            Curso Vinculado *
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={formData.productId || ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === '' ? undefined : e.target.value }))}
+                                                required
+                                                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
+                                            >
+                                                <option value="" disabled className="bg-stone-900">Selecione um curso</option>
+                                                {availableCourses?.map(c => (
+                                                    <option key={c.id} value={c.id} className="bg-stone-900">
+                                                        {c.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
+                                                <ChevronDown size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                                            Produto (Opcional)
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={formData.productId || 'all'}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === 'all' ? undefined : e.target.value }))}
+                                                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
+                                            >
+                                                <option value="all" className="bg-stone-900">Todos os Produtos</option>
+                                                <option value="1" className="bg-stone-900">Fluentoria Mindful (ID 1)</option>
+                                                <option value="2" className="bg-stone-900">Fluentoria Music (ID 2)</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
+                                                <ChevronDown size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Course Cover Image */}
                             <div className="grid md:grid-cols-4 gap-6 items-start">
@@ -986,14 +1039,62 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel }) => 
                                 />
                             </div>
 
-                            <Input
-                                label="Duração"
-                                type="text"
-                                value={formData.duration}
-                                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                                placeholder="Ex: 15:00"
-                                icon={<Clock size={18} className="text-muted-foreground" />}
-                            />
+                            <div className="md:col-span-2 grid md:grid-cols-2 gap-6">
+                                <Input
+                                    label="Duração"
+                                    type="text"
+                                    value={formData.duration}
+                                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                                    placeholder="Ex: 15:00"
+                                    icon={<Clock size={18} className="text-muted-foreground" />}
+                                />
+
+                                {(activeTab === 'mindful' || activeTab === 'music') ? (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                                            Curso Vinculado *
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={formData.productId || ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === '' ? undefined : e.target.value }))}
+                                                required
+                                                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
+                                            >
+                                                <option value="" disabled className="bg-stone-900">Selecione um curso</option>
+                                                {availableCourses?.map(c => (
+                                                    <option key={c.id} value={c.id} className="bg-stone-900">
+                                                        {c.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
+                                                <ChevronDown size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                                            Produto (Opcional)
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={formData.productId || 'all'}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === 'all' ? undefined : e.target.value }))}
+                                                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
+                                            >
+                                                <option value="all" className="bg-stone-900">Todos os Produtos</option>
+                                                <option value="1" className="bg-stone-900">Fluentoria Mindful (ID 1)</option>
+                                                <option value="2" className="bg-stone-900">Fluentoria Music (ID 2)</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
+                                                <ChevronDown size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="md:col-span-2">
                                 <Input

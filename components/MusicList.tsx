@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PlayCircle, FileText, Mic, Clock, Filter, Loader2 } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, getMusic } from '../lib/db';
+import { Course, getMusicForUser } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/video';
+import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
 
 interface MusicListProps {
@@ -11,19 +12,21 @@ interface MusicListProps {
 }
 
 const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse }) => {
+  const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchCourses = async () => {
+      if (!user) return;
       setLoading(true);
-      const data = await getMusic();
+      const data = await getMusicForUser(user.uid);
       setCourses(data);
       setLoading(false);
     };
     fetchCourses();
-  }, []);
+  }, [user]);
 
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

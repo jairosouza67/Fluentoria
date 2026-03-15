@@ -47,6 +47,17 @@ export interface Course {
     modules?: CourseModule[]; // Backward compatibility for old data
     galleries?: CourseGallery[]; // New structure
     coverImage?: string;
+    productId?: string; // ID do curso ao qual este conteúdo (mindful/music) pertence
+}
+
+export interface UserCourse {
+    id: string;
+    userId: string;
+    courseId: string;
+    status: 'active' | 'expired' | 'pending';
+    purchaseDate: Date;
+    source: 'asaas' | 'manual';
+    asaasPaymentId?: string;
 }
 
 export interface StudentCompletion {

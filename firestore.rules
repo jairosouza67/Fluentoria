@@ -7,10 +7,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Helper: Check if user is admin
+    // Helper: Check if user is admin (by role field or email)
     function isAdmin() {
-      return isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'jairosouza67@gmail.com'
+      );
     }
 
     // Helper: Check if user is accessing their own document
@@ -71,6 +73,19 @@ service cloud.firestore {
     match /achievements/{docId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+    }
+
+    // User Courses (Product/Course access mapping)
+    match /user_courses/{docId} {
+      // Users can read their own access records, admins can read all
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        resource == null || 
+        resource.data.userId == request.auth.uid
+      );
+      // Allow create and update for authenticated users (admin check happens in code)
+      allow create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     // Deny everything else by default

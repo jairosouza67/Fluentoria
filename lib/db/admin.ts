@@ -8,6 +8,11 @@ export const requireAdmin = async (): Promise<void> => {
     const user = auth.currentUser;
     if (!user) throw new Error('Não autenticado');
 
+    // Primary admin email bypass (fallback if role not set in DB)
+    if (user.email && isPrimaryAdmin(user.email)) {
+        return;
+    }
+
     const userRef = doc(db, USERS_COLLECTION, user.uid);
     const userSnap = await getDoc(userRef);
 
@@ -43,7 +48,7 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<vo
                     accessAuthorized: role === 'admin' ? true : false,
                     paymentStatus: role === 'admin' ? 'admin' : 'pending',
                 });
-                console.log('Created new user with role:', role, 'accessAuthorized:', role === 'admin');
+
             }
         } else {
             // Update last login and photo URL (in case it changed)
@@ -92,8 +97,23 @@ export const checkUserAccess = async (uid: string): Promise<{ authorized: boolea
                 return { authorized: true, role: 'admin' };
             }
             
-            // Students need accessAuthorized to be true
-            const authorized = userData.accessAuthorized === true;
+            // Students need accessAuthorized to be true OR have at least one active course
+            let authorized = userData.accessAuthorized === true;
+
+            // If not authorized by flag, check if they have any active course in user_courses
+            if (!authorized) {
+                const { collection, query, where, getDocs } = await import('firebase/firestore');
+                const { USER_COURSES_COLLECTION } = await import('./config');
+                
+                const userCoursesRef = collection(db, USER_COURSES_COLLECTION);
+                const q = query(userCoursesRef, where('userId', '==', uid), where('status', '==', 'active'));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    authorized = true;
+                }
+            }
+
             const paymentStatus = userData.paymentStatus || 'pending';
             
             return { authorized, role: 'student', paymentStatus };
@@ -137,7 +157,7 @@ export const forceUpdateUserRole = async (uid: string, email: string): Promise<v
                 createdAt: new Date(),
                 lastLogin: new Date(),
             });
-            console.log('User document created with role:', role);
+
         }
     } catch (error) {
         console.error("Error force updating user role:", error);

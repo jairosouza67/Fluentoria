@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PlayCircle, FileText, Mic, Clock, Filter, Loader2, BookOpen } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, getCourses } from '../lib/db';
+import { Course, getCoursesForUser } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/video';
+import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
 import { PageHeader } from './ui/PageHeader';
 import { Card } from './ui/Card';
@@ -14,19 +15,21 @@ interface CourseListProps {
 }
 
 const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) => {
+  const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchCourses = async () => {
+      if (!user) return;
       setLoading(true);
-      const data = await getCourses();
+      const data = await getCoursesForUser(user.uid);
       setCourses(data);
       setLoading(false);
     };
     fetchCourses();
-  }, []);
+  }, [user]);
 
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Image as ImageIcon, BookOpen, PlayCircle, Filter, Loader2, ChevronRight } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, getCourses, CourseGallery } from '../lib/db';
+import { Course, getCoursesForUser, CourseGallery } from '../lib/db';
+import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
 
 interface GalleryListProps {
@@ -10,19 +11,21 @@ interface GalleryListProps {
 }
 
 const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery }) => {
+  const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchCourses = async () => {
+      if (!user) return;
       setLoading(true);
-      const data = await getCourses();
+      const data = await getCoursesForUser(user.uid);
       setCourses(data);
       setLoading(false);
     };
     fetchCourses();
-  }, []);
+  }, [user]);
 
   // Flatten all galleries from all courses
   const allGalleries: Array<{ gallery: CourseGallery; course: Course }> = [];

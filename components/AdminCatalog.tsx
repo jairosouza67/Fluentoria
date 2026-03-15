@@ -39,6 +39,7 @@ const AdminCatalog: React.FC = () => {
     activeTab,
     setActiveTab,
     loading,
+    courses,
     isFormOpen,
     setIsFormOpen,
     editingCourse,
@@ -235,6 +236,8 @@ const AdminCatalog: React.FC = () => {
           course={editingCourse}
           onSave={handleSaveCourse}
           onCancel={() => setIsFormOpen(false)}
+          activeTab={activeTab}
+          availableCourses={courses}
         />
       )}
 
@@ -297,10 +300,20 @@ const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, o
               )}
 
               {/* Top Badges */}
-              <div className="absolute top-3 left-3 flex gap-2">
-                <span className="bg-black/60 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-white/10 shadow-sm">
+              <div className="absolute top-3 left-3 flex gap-2 flex-wrap max-w-full pr-3">
+                <span className="bg-black/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-white/10 shadow-sm">
                   {course.type}
                 </span>
+                {course.productId === '1' && (
+                  <span className="bg-[#FF6A00]/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-[#FF6A00]/20 shadow-sm">
+                    Mindful
+                  </span>
+                )}
+                {course.productId === '2' && (
+                  <span className="bg-[#8B5CF6]/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-[#8B5CF6]/20 shadow-sm">
+                    Music
+                  </span>
+                )}
               </div>
             </div>
 

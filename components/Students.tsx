@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MoreVertical, Mail, Calendar, Award, TrendingUp, Filter, UserPlus, X, Download, Video, Music, File, Image, FileText, ChevronDown, ChevronUp } from 'lucide-react';
-import { getAllStudents, Student, getCourses, addStudent } from '../lib/db';
+import { getAllStudents, Student, getCourses, addStudent, getUserCourses, grantCourseAccess, revokeCourseAccess, UserCourse } from '../lib/db';
 import { getAllStudentMediaGrouped, formatFileSize } from '../lib/media';
 import { MediaSubmission } from '../types';
 import AnimatedInput from './ui/AnimatedInput';
@@ -10,6 +10,9 @@ const Students: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [studentModalTab, setStudentModalTab] = useState<'files' | 'courses'>('files');
+  const [userCourses, setUserCourses] = useState<UserCourse[]>([]);
+  const [loadingUserCourses, setLoadingUserCourses] = useState(false);
   const [studentMedia, setStudentMedia] = useState<{ [date: string]: { [courseId: string]: MediaSubmission[] } }>({});
   const [courses, setCourses] = useState<{ [id: string]: string }>({});
   const [loadingMedia, setLoadingMedia] = useState(false);
@@ -30,8 +33,7 @@ const Students: React.FC = () => {
   const loadStudents = async () => {
     setLoading(true);
     const fetchedStudents = await getAllStudents();
-    console.log('📊 Admin - Students loaded:', fetchedStudents.length, 'students');
-    console.log('📊 Students data:', fetchedStudents);
+
     setStudents(fetchedStudents);
     setLoading(false);
   };
@@ -47,16 +49,36 @@ const Students: React.FC = () => {
 
   const handleStudentClick = async (student: Student) => {
     setSelectedStudent(student);
+    setStudentModalTab('files');
     setLoadingMedia(true);
-    console.log('🔍 Checking media for student:', student.id, student.name, student.email);
     const media = await getAllStudentMediaGrouped(student.id);
-    console.log('📁 Media found:', Object.keys(media).length, 'dates', media);
     setStudentMedia(media);
     setLoadingMedia(false);
     // Expand all dates by default
     const expanded: { [date: string]: boolean } = {};
     Object.keys(media).forEach(date => expanded[date] = true);
     setExpandedDates(expanded);
+
+    // Load student courses
+    setLoadingUserCourses(true);
+    const fetchedUserCourses = await getUserCourses(student.id);
+    setUserCourses(fetchedUserCourses);
+    setLoadingUserCourses(false);
+  };
+
+  const handleToggleCourse = async (courseId: string, hasAccess: boolean) => {
+    if (!selectedStudent) return;
+    
+    setLoadingUserCourses(true);
+    if (hasAccess) {
+      await revokeCourseAccess(selectedStudent.id, courseId);
+    } else {
+      await grantCourseAccess(selectedStudent.id, courseId, 'manual');
+    }
+    
+    const fetchedUserCourses = await getUserCourses(selectedStudent.id);
+    setUserCourses(fetchedUserCourses);
+    setLoadingUserCourses(false);
   };
 
   const toggleDate = (date: string) => {
@@ -241,7 +263,7 @@ const Students: React.FC = () => {
                         }}
                         className="text-primary hover:text-primary/80 px-4 py-2 rounded-lg hover:bg-secondary/50 transition-colors text-sm font-medium"
                       >
-                        Ver Arquivos
+                        Gerenciar
                       </button>
                     </td>
                   </tr>
@@ -271,88 +293,139 @@ const Students: React.FC = () => {
                   <p className="text-sm text-muted-foreground truncate">{selectedStudent.email}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedStudent(null)}
-                className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary/50 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
+
+              {/* Tabs */}
+              <div className="flex bg-secondary/30 p-1 rounded-lg shrink-0">
+                <button
+                  onClick={() => setStudentModalTab('files')}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${studentModalTab === 'files' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Arquivos
+                </button>
+                <button
+                  onClick={() => setStudentModalTab('courses')}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${studentModalTab === 'courses' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  Cursos
+                </button>
+              </div>
+
+              <div className="flex items-center">
+                <button
+                  onClick={() => setSelectedStudent(null)}
+                  className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6">
-              {loadingMedia ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p>Carregando arquivos...</p>
-                </div>
-              ) : Object.keys(studentMedia).length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <File className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                  <p>Nenhum arquivo enviado ainda</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {Object.entries(studentMedia)
-                    .sort(([dateA], [dateB]) => new Date(dateB.split('/').reverse().join('-')).getTime() - new Date(dateA.split('/').reverse().join('-')).getTime())
-                    .map(([date, courseFiles]) => (
-                      <div key={date} className="border border-border rounded-lg overflow-hidden">
-                        <button
-                          onClick={() => toggleDate(date)}
-                          className="w-full p-4 bg-secondary/30 hover:bg-secondary/50 transition-colors flex items-center justify-between"
-                        >
-                          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-primary" />
-                            {date}
-                          </h3>
-                          {expandedDates[date] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </button>
-                        
-                        {expandedDates[date] && (
-                          <div className="p-4 space-y-4">
-                            {Object.entries(courseFiles).map(([courseId, files]) => (
-                              <div key={courseId} className="space-y-3">
-                                <h4 className="text-sm font-semibold text-primary">
-                                  {courses[courseId] || 'Aula Desconhecida'}
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {files.map((media) => (
-                                    <div
-                                      key={media.id}
-                                      className="border border-border bg-secondary/20 rounded-lg p-3 hover:bg-secondary/40 transition-colors"
-                                    >
-                                      <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
-                                          {getFileIcon(media.fileType)}
+              {studentModalTab === 'files' ? (
+                loadingMedia ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p>Carregando arquivos...</p>
+                  </div>
+                ) : Object.keys(studentMedia).length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <File className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                    <p>Nenhum arquivo enviado ainda</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(studentMedia)
+                      .sort(([dateA], [dateB]) => new Date(dateB.split('/').reverse().join('-')).getTime() - new Date(dateA.split('/').reverse().join('-')).getTime())
+                      .map(([date, courseFiles]) => (
+                        <div key={date} className="border border-border rounded-lg overflow-hidden">
+                          <button
+                            onClick={() => toggleDate(date)}
+                            className="w-full p-4 bg-secondary/30 hover:bg-secondary/50 transition-colors flex items-center justify-between"
+                          >
+                            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                              <Calendar className="w-5 h-5 text-primary" />
+                              {date}
+                            </h3>
+                            {expandedDates[date] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                          </button>
+                          
+                          {expandedDates[date] && (
+                            <div className="p-4 space-y-4">
+                              {Object.entries(courseFiles).map(([courseId, files]) => (
+                                <div key={courseId} className="space-y-3">
+                                  <h4 className="text-sm font-semibold text-primary">
+                                    {courses[courseId] || 'Aula Desconhecida'}
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {files.map((media) => (
+                                      <div
+                                        key={media.id}
+                                        className="border border-border bg-secondary/20 rounded-lg p-3 hover:bg-secondary/40 transition-colors"
+                                      >
+                                        <div className="flex items-start gap-3">
+                                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+                                            {getFileIcon(media.fileType)}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-foreground truncate text-sm">{media.fileName}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              {formatFileSize(media.fileSize)} • {new Date(media.uploadedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                            {media.description && (
+                                              <p className="text-xs text-muted-foreground mt-2">{media.description}</p>
+                                            )}
+                                          </div>
+                                          <a
+                                            href={media.fileUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:text-primary/80 p-2 shrink-0"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Download className="w-4 h-4" />
+                                          </a>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-foreground truncate text-sm">{media.fileName}</p>
-                                          <p className="text-xs text-muted-foreground mt-1">
-                                            {formatFileSize(media.fileSize)} • {new Date(media.uploadedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                          </p>
-                                          {media.description && (
-                                            <p className="text-xs text-muted-foreground mt-2">{media.description}</p>
-                                          )}
-                                        </div>
-                                        <a
-                                          href={media.fileUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-primary hover:text-primary/80 p-2 shrink-0"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <Download className="w-4 h-4" />
-                                        </a>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )
+              ) : (
+                <div className="space-y-4">
+                  {loadingUserCourses ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                      <p>Carregando cursos...</p>
+                    </div>
+                  ) : (
+                    Object.entries(courses).map(([courseId, courseTitle]) => {
+                      const uc = userCourses.find(c => c.courseId === courseId);
+                      const hasAccess = uc?.status === 'active';
+                      return (
+                        <div key={courseId} className="flex items-center justify-between p-4 bg-secondary/20 border border-border rounded-lg hover:bg-secondary/40 transition-colors">
+                          <div>
+                            <h3 className="font-medium text-foreground">{courseTitle}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Status: {hasAccess ? 'Ativo' : 'Inativo'} {uc?.source && `(${uc.source})`}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          <button
+                            onClick={() => handleToggleCourse(courseId, hasAccess)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${hasAccess ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
+                          >
+                            {hasAccess ? 'Revogar Acesso' : 'Conceder Acesso'}
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>

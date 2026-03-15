@@ -33,7 +33,7 @@ import {
   RefreshCw,
   Search
 } from 'lucide-react';
-import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas, isPrimaryAdmin } from '../lib/db';
+import { getAdminEmails, addAdminByEmail, removeAdmin, exportStudentData, importStudentData, getStudentsWithAccessControl, updateStudentAccess, syncAllStudentsWithAsaas, isPrimaryAdmin, runAccessMigration } from '../lib/db';
 import { OrangeToggle } from './ui/toggle';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -71,6 +71,7 @@ const Settings: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isSyncingAsaas, setIsSyncingAsaas] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   // User & Role Management States
@@ -284,6 +285,28 @@ const Settings: React.FC = () => {
       alert(`❌ Erro ao sincronizar com Asaas: ${error.message}`);
     } finally {
       setIsSyncingAsaas(false);
+    }
+  };
+
+  const handleMigration = async () => {
+    if (!confirm('ATENÇÃO: Deseja migrar os dados antigos para o novo sistema multi-produtos (Fase 6)?\n\nIsso irá criar registros de acesso aos cursos para alunos que recebiam acesso automaticamente e ajustará conteúdos sem IDs definidos.')) {
+      return;
+    }
+
+    setIsMigrating(true);
+    try {
+      const result = await runAccessMigration();
+      if (result.success) {
+        alert(result.message);
+        await loadStudentsWithAccess(); // Reload students
+      } else {
+        alert(result.message);
+      }
+    } catch (error: any) {
+      console.error('Migration error:', error);
+      alert('❌ Erro na migração');
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -580,6 +603,28 @@ const Settings: React.FC = () => {
                   >
                     {!isSyncingAsaas && <RefreshCw className="w-4 h-4 mr-2" />}
                     Sincronizar Agora
+                  </Button>
+                </Card>
+
+                {/* Migration Button */}
+                <Card className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500/05 to-transparent border-blue-500/20 mt-4">
+                  <div>
+                    <h4 className="text-[#F3F4F6] font-medium mb-1 flex items-center gap-2">
+                      <SettingsIcon className="w-4 h-4 text-blue-400" />
+                      Migração de Dados Antigos (Fase 6)
+                    </h4>
+                    <p className="text-sm text-[#9CA3AF]">
+                      Migrar alunos e conteúdos do sistema legado para o novo modelo multi-produtos
+                    </p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={handleMigration}
+                    disabled={isMigrating}
+                    isLoading={isMigrating}
+                  >
+                    {!isMigrating && <RefreshCw className="w-4 h-4 mr-2" />}
+                    Executar Migração
                   </Button>
                 </Card>
 

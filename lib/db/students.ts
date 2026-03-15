@@ -16,8 +16,7 @@ export const getAllStudents = async (): Promise<Student[]> => {
             let planStatus = data.planStatus;
             const paymentStatus = data.paymentStatus;
             
-            // Log for debugging
-            console.log(`Student ${data.email}: paymentStatus=${paymentStatus}, planStatus=${planStatus}`);
+
             
             if (paymentStatus && paymentStatus !== 'admin') {
                 // Sync planStatus based on paymentStatus
@@ -49,8 +48,7 @@ export const getAllStudents = async (): Promise<Student[]> => {
             } as Student;
         });
 
-        console.log('📂 DB - getAllStudents: Found', students.length, 'users in database');
-        console.log('📂 DB - Students with Asaas data:', students.filter(s => s.asaasCustomerId).length);
+
 
         // Sort by name (client-side to avoid index requirement)
         students.sort((a, b) => a.name.localeCompare(b.name));
@@ -132,7 +130,7 @@ export const findAndMergeStudentByEmail = async (email: string, googleUserData: 
             }
 
             await updateDoc(doc(db, USERS_COLLECTION, studentDoc.id), updates);
-            console.log('Merged Google user with existing student:', studentDoc.id);
+
             return true;
         }
 
