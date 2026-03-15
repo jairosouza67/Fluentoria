@@ -266,6 +266,7 @@ const App: React.FC = () => {
       case 'gallery':
         return <GalleryList 
           onNavigate={navigateTo}
+          selectedCourse={selectedCourse}
           onSelectGallery={(gallery, course) => {
             setSelectedGallery(gallery);
             setSelectedCourse(course);
@@ -284,28 +285,31 @@ const App: React.FC = () => {
         />;
       case 'course-detail':
         return <CourseDetail 
+          key={selectedCourse?.id || 'no-course'}
           onBack={() => navigateTo('module-selection')} 
           course={selectedCourse}
           selectedModule={selectedModule}
         />;
       case 'mindful':
-        return <MindfulFlowList onNavigate={navigateTo} onSelectCourse={(course) => {
+        return <MindfulFlowList onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={(course) => {
           setSelectedCourse(course);
           navigateTo('mindful-detail');
         }} />;
       case 'mindful-detail':
         return <CourseDetail 
+          key={selectedCourse?.id || 'no-course'}
           onBack={() => navigateTo('mindful')} 
           course={selectedCourse}
           selectedModule={null}
         />;
       case 'music':
-        return <MusicList onNavigate={navigateTo} onSelectCourse={(course) => {
+        return <MusicList onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={(course) => {
           setSelectedCourse(course);
           navigateTo('music-detail');
         }} />;
       case 'music-detail':
         return <CourseDetail 
+          key={selectedCourse?.id || 'no-course'}
           onBack={() => navigateTo('music')} 
           course={selectedCourse}
           selectedModule={null}

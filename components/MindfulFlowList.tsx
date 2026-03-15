@@ -9,9 +9,10 @@ import AnimatedInput from './ui/AnimatedInput';
 interface MindfulFlowListProps {
   onNavigate: (screen: Screen) => void;
   onSelectCourse: (course: Course) => void;
+  courseId?: string | null;
 }
 
-const MindfulFlowList: React.FC<MindfulFlowListProps> = ({ onNavigate, onSelectCourse }) => {
+const MindfulFlowList: React.FC<MindfulFlowListProps> = ({ onNavigate, onSelectCourse, courseId }) => {
   const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +22,12 @@ const MindfulFlowList: React.FC<MindfulFlowListProps> = ({ onNavigate, onSelectC
     const fetchCourses = async () => {
       if (!user) return;
       setLoading(true);
-      const data = await getMindfulFlowsForUser(user.uid);
+      const data = await getMindfulFlowsForUser(user.uid, courseId || undefined);
       setCourses(data);
       setLoading(false);
     };
     fetchCourses();
-  }, [user]);
+  }, [user, courseId]);
 
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

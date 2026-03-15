@@ -8,15 +8,23 @@ import AnimatedInput from './ui/AnimatedInput';
 interface GalleryListProps {
   onNavigate: (screen: Screen) => void;
   onSelectGallery: (gallery: CourseGallery, course: Course) => void;
+  selectedCourse?: Course | null;
 }
 
-const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery }) => {
+const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery, selectedCourse }) => {
   const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    // If a course is already selected, no need to fetch all courses
+    if (selectedCourse) {
+      setCourses([selectedCourse]);
+      setLoading(false);
+      return;
+    }
+
     const fetchCourses = async () => {
       if (!user) return;
       setLoading(true);
@@ -25,9 +33,9 @@ const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery }
       setLoading(false);
     };
     fetchCourses();
-  }, [user]);
+  }, [user, selectedCourse]);
 
-  // Flatten all galleries from all courses
+  // Flatten galleries from courses (when selectedCourse is set, only that course's galleries)
   const allGalleries: Array<{ gallery: CourseGallery; course: Course }> = [];
   courses.forEach(course => {
     if (course.galleries && course.galleries.length > 0) {

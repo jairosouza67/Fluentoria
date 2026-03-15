@@ -51,13 +51,17 @@ export const deleteMindfulFlow = async (id: string): Promise<boolean> => {
     }
 };
 
-export const getMindfulFlowsForUser = async (userId: string): Promise<Course[]> => {
+export const getMindfulFlowsForUser = async (userId: string, courseId?: string): Promise<Course[]> => {
     try {
         const { authorized, role } = await checkUserAccess(userId);
         
-        // Admin sees all
+        // Admin sees all (optionally filtered by course)
         if (role === 'admin') {
-            return getMindfulFlows();
+            const allFlows = await getMindfulFlows();
+            if (courseId) {
+                return allFlows.filter(flow => String(flow.productId) === courseId);
+            }
+            return allFlows;
         }
         
         // Not authorized = no content
@@ -77,7 +81,7 @@ export const getMindfulFlowsForUser = async (userId: string): Promise<Course[]> 
         const allFlows = await getMindfulFlows();
         
         // Filter by productId matching user's courses
-        return allFlows.filter(flow => {
+        let filtered = allFlows.filter(flow => {
             const prodId = flow.productId;
             if (!prodId) {
                 // Legacy content belongs to the 'default' product
@@ -85,6 +89,13 @@ export const getMindfulFlowsForUser = async (userId: string): Promise<Course[]> 
             }
             return activeCourseIds.includes(String(prodId));
         });
+
+        // Additional filter: scope to specific course if courseId is provided
+        if (courseId) {
+            filtered = filtered.filter(flow => String(flow.productId) === courseId);
+        }
+
+        return filtered;
     } catch (error) {
         console.error("Error fetching mindful flows for user:", error);
         return [];

@@ -15,9 +15,16 @@ export const useCourseStore = create<CourseState>((set) => ({
   selectedCourse: null,
   selectedGallery: null,
   selectedModule: null,
-  setSelectedCourse: (selectedCourse) => set({ selectedCourse }),
-  setSelectedGallery: (selectedGallery) => set({ selectedGallery }),
-  setSelectedModule: (selectedModule) => set({ selectedModule }),
+  // Deep copy all objects to avoid reference mutations
+  setSelectedCourse: (selectedCourse) => set({ 
+    selectedCourse: selectedCourse ? JSON.parse(JSON.stringify(selectedCourse)) : null 
+  }),
+  setSelectedGallery: (selectedGallery) => set({ 
+    selectedGallery: selectedGallery ? JSON.parse(JSON.stringify(selectedGallery)) : null 
+  }),
+  setSelectedModule: (selectedModule) => set({ 
+    selectedModule: selectedModule ? JSON.parse(JSON.stringify(selectedModule)) : null 
+  }),
   clearSelection: () => set({
     selectedCourse: null,
     selectedGallery: null,

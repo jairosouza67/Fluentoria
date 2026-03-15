@@ -71,24 +71,8 @@ export const useCatalogData = () => {
       if (editingCourse && editingCourse.id) {
         await updateCourse(editingCourse.id, course);
       } else {
-        if (course.galleries && course.galleries.length > 0) {
-          const existingCourses = await getCourses();
-          const mainCourse = existingCourses.find(c =>
-            c.galleries && c.galleries.length > 0 && c.title === course.title
-          );
-
-          if (mainCourse && mainCourse.id) {
-            const updatedGalleries = [...(mainCourse.galleries || []), ...course.galleries];
-            await updateCourse(mainCourse.id, {
-              ...mainCourse,
-              galleries: updatedGalleries,
-            });
-          } else {
-            await addCourse(course);
-          }
-        } else {
-          await addCourse(course);
-        }
+        // Always create a new course - no merging logic
+        await addCourse(course);
       }
       await fetchCourses();
     } else if (activeTab === 'mindful') {
@@ -126,12 +110,14 @@ export const useCatalogData = () => {
   }, [activeTab, fetchCourses, fetchMindfulFlows, fetchMusic]);
 
   const handleEditCourse = useCallback((course: Course) => {
-    setEditingCourse(course);
+    // Deep copy to avoid reference mutations
+    setEditingCourse(JSON.parse(JSON.stringify(course)));
     setIsFormOpen(true);
   }, []);
 
   const handleViewCourse = useCallback((course: Course) => {
-    setViewingCourse(course);
+    // Deep copy to avoid reference mutations
+    setViewingCourse(JSON.parse(JSON.stringify(course)));
   }, []);
 
   return {

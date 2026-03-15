@@ -27,6 +27,11 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const user = auth.currentUser;
 
   useEffect(() => {
+    // Reset state when course changes
+    setActiveLesson(null);
+    setExpandedModules([]);
+    setExpandedGalleries([]);
+
     // Handle new gallery structure
     if (course?.galleries && course.galleries.length > 0) {
       const firstGallery = course.galleries[0];
@@ -43,7 +48,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     else if (selectedModule && selectedModule.lessons && selectedModule.lessons.length > 0) {
       setActiveLesson(selectedModule.lessons[0]);
       setExpandedModules([selectedModule.id]);
-    } else if (course?.modules && course.modules.length > 0 && !activeLesson) {
+    } else if (course?.modules && course.modules.length > 0) {
       // Default to first lesson of first module if no specific module selected
       const firstModule = course.modules[0];
       if (firstModule.lessons.length > 0) {
@@ -51,7 +56,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
         setExpandedModules([firstModule.id]);
       }
     }
-  }, [course, selectedModule]);
+  }, [course?.id, selectedModule?.id]);
 
   useEffect(() => {
     // Log course started activity and load completion status
@@ -478,7 +483,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : course.videoUrl ? (
                   // Single Video
                   <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.04] border border-white/[0.06]">
                     <div className="mt-1">
@@ -490,6 +495,19 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                       </h4>
                       <span className="text-xs text-[#9CA3AF]/60">{course.duration}</span>
                     </div>
+                  </div>
+                ) : (
+                  // Empty Course - No Content
+                  <div className="flex flex-col items-center justify-center py-12 px-6 bg-white/[0.02] border border-dashed border-white/[0.08] rounded-xl">
+                    <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center mb-4">
+                      <Play size={24} className="text-[#9CA3AF]/50" />
+                    </div>
+                    <h4 className="text-sm font-medium text-[#9CA3AF] mb-1">
+                      Curso em preparação
+                    </h4>
+                    <p className="text-xs text-[#9CA3AF]/60 text-center">
+                      Este curso ainda não possui conteúdo disponível.
+                    </p>
                   </div>
                 )}
               </div>

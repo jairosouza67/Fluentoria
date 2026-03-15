@@ -9,9 +9,10 @@ import AnimatedInput from './ui/AnimatedInput';
 interface MusicListProps {
   onNavigate: (screen: Screen) => void;
   onSelectCourse: (course: Course) => void;
+  courseId?: string | null;
 }
 
-const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse }) => {
+const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, courseId }) => {
   const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +22,12 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse }) => 
     const fetchCourses = async () => {
       if (!user) return;
       setLoading(true);
-      const data = await getMusicForUser(user.uid);
+      const data = await getMusicForUser(user.uid, courseId || undefined);
       setCourses(data);
       setLoading(false);
     };
     fetchCourses();
-  }, [user]);
+  }, [user, courseId]);
 
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

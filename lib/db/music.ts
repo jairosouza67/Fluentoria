@@ -51,13 +51,17 @@ export const deleteMusic = async (id: string): Promise<boolean> => {
     }
 };
 
-export const getMusicForUser = async (userId: string): Promise<Course[]> => {
+export const getMusicForUser = async (userId: string, courseId?: string): Promise<Course[]> => {
     try {
         const { authorized, role } = await checkUserAccess(userId);
         
-        // Admin sees all
+        // Admin sees all (optionally filtered by course)
         if (role === 'admin') {
-            return getMusic();
+            const allMusic = await getMusic();
+            if (courseId) {
+                return allMusic.filter(m => String(m.productId) === courseId);
+            }
+            return allMusic;
         }
         
         // Not authorized = no content
@@ -77,7 +81,7 @@ export const getMusicForUser = async (userId: string): Promise<Course[]> => {
         const allMusic = await getMusic();
         
         // Filter by productId matching user's courses
-        return allMusic.filter(m => {
+        let filtered = allMusic.filter(m => {
             const prodId = m.productId;
             if (!prodId) {
                 // Legacy content belongs to the 'default' product
@@ -85,6 +89,13 @@ export const getMusicForUser = async (userId: string): Promise<Course[]> => {
             }
             return activeCourseIds.includes(String(prodId));
         });
+
+        // Additional filter: scope to specific course if courseId is provided
+        if (courseId) {
+            filtered = filtered.filter(m => String(m.productId) === courseId);
+        }
+
+        return filtered;
     } catch (error) {
         console.error("Error fetching music for user:", error);
         return [];

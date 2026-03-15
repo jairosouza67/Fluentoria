@@ -86,7 +86,12 @@ const AdminCatalog: React.FC = () => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabType)}
+            onClick={() => {
+              setActiveTab(tab.id as TabType);
+              setIsFormOpen(false);
+              setEditingCourse(null);
+              setViewingCourse(null);
+            }}
             className={`
               flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shrink-0
               ${activeTab === tab.id
@@ -233,6 +238,7 @@ const AdminCatalog: React.FC = () => {
 
       {isFormOpen && (
         <CourseForm
+          key={`${activeTab}-${editingCourse?.id || 'new-course'}`}
           course={editingCourse}
           onSave={handleSaveCourse}
           onCancel={() => setIsFormOpen(false)}
@@ -244,6 +250,7 @@ const AdminCatalog: React.FC = () => {
       {viewingCourse && (
         <div className="fixed inset-0 md:left-64 z-[100] bg-[#0B0B0B] overflow-y-auto overscroll-contain">
           <CourseDetail
+            key={viewingCourse.id || 'no-course'}
             course={viewingCourse}
             onBack={() => setViewingCourse(null)}
           />

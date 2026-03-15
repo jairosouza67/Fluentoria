@@ -56,6 +56,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
         coverImage: ''
     });
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [expandedModules, setExpandedModules] = useState<string[]>([]);
     const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
     const [contentMode, setContentMode] = useState<ContentMode>('modules');
@@ -90,6 +91,24 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
                 setContentType('video');
             }
         } else {
+            // Reset form data when creating a new course
+            setFormData({
+                title: '',
+                author: '',
+                duration: '',
+                type: 'video',
+                progress: 0,
+                thumbnail: 'from-orange-900 to-stone-900',
+                launchDate: '',
+                description: '',
+                videoUrl: '',
+                modules: [],
+                galleries: [],
+                coverImage: ''
+            });
+            setExpandedModules([]);
+            setExpandedGalleries([]);
+            setErrorMessage(null);
             // New content: start with module/gallery type by default
             setContentType('module');
             setContentMode('modules');
@@ -98,10 +117,24 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMessage(null);
         setLoading(true);
         try {
-            // Clean up data based on mode
-            const dataToSave = { ...formData };
+            // Check for duplicate title (only when creating new course)
+            if (!course && availableCourses) {
+                const normalizedTitle = formData.title.trim().toLowerCase();
+                const duplicateCourse = availableCourses.find(
+                    c => c.title.trim().toLowerCase() === normalizedTitle
+                );
+                if (duplicateCourse) {
+                    setErrorMessage(`Já existe um curso com o nome "${duplicateCourse.title}". Por favor, escolha um nome diferente.`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Clean up data based on mode - use deep copy to avoid reference issues
+            const dataToSave = JSON.parse(JSON.stringify(formData)) as Course;
             if (contentMode === 'modules') {
                 dataToSave.videoUrl = ''; // Clear root video if in module mode
                 // Clear old modules array if using galleries
@@ -608,6 +641,13 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
             }
         >
             <form id="course-form" onSubmit={handleSubmit} className="space-y-6 p-0">
+                {/* Error Message */}
+                {errorMessage && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm">
+                        {errorMessage}
+                    </div>
+                )}
+
                 {/* MODULE TYPE - Simplified fields */}
                 {contentType === 'module' && (
                     <>
