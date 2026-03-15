@@ -237,6 +237,19 @@ const App: React.FC = () => {
     );
   }
 
+  // Top-level screens that should clear course context when navigated to (e.g. from sidebar)
+  const TOP_LEVEL_SCREENS: Screen[] = ['dashboard', 'courses', 'mindful', 'music', 'achievements', 'leaderboard', 'attendance', 'profile'];
+
+  const handleNavigate = (screen: Screen) => {
+    // Clear course context when navigating to top-level screens (sidebar navigation)
+    if (TOP_LEVEL_SCREENS.includes(screen)) {
+      setSelectedCourse(null);
+      setSelectedGallery(null);
+      setSelectedModule(null);
+    }
+    navigateTo(screen);
+  };
+
   const renderScreen = () => {
     if (viewMode === 'admin') {
       switch (currentScreen) {
@@ -345,7 +358,7 @@ const App: React.FC = () => {
       <Sidebar
         viewMode={viewMode}
         currentScreen={currentScreen}
-        onNavigate={navigateTo}
+        onNavigate={handleNavigate}
         onLogout={handleLogout}
         user={user}
       />
@@ -445,7 +458,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <MobileNav currentScreen={currentScreen} onNavigate={navigateTo} viewMode={viewMode} />
+      <MobileNav currentScreen={currentScreen} onNavigate={handleNavigate} viewMode={viewMode} />
     </div>
   );
 };
