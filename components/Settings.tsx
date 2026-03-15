@@ -355,7 +355,7 @@ const Settings: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       {/* Add Admin Modal */}
       <Modal
         isOpen={showAddAdminModal}
@@ -421,7 +421,7 @@ const Settings: React.FC = () => {
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 p-1.5 bg-[#111111] rounded-xl border border-white/[0.08]">
+      <div className="flex items-center gap-1 p-1 sm:p-1.5 bg-[#111111] rounded-xl border border-white/[0.08] overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -452,7 +452,7 @@ const Settings: React.FC = () => {
               onToggle={() => toggleSection('adminUsers')}
             >
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                   <p className="text-sm text-[#9CA3AF]">
                     {isLoadingAdmins ? 'Carregando...' : `Total de Admins: ${adminEmails.length}`}
                   </p>
@@ -460,6 +460,7 @@ const Settings: React.FC = () => {
                     variant="secondary"
                     size="sm"
                     onClick={() => setShowAddAdminModal(true)}
+                    className="w-full sm:w-auto"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Adicionar Admin
@@ -477,16 +478,16 @@ const Settings: React.FC = () => {
                     adminEmails.map((email, index) => {
                       const isPrimary = isPrimaryAdmin(email);
                       return (
-                        <Card key={index} className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold">
+                        <Card key={index} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold">
                               {email.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <h4 className="text-[#F3F4F6] font-medium flex items-center gap-2">
-                                {email}
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-[#F3F4F6] font-medium flex flex-wrap items-center gap-2">
+                                <span className="truncate text-sm">{email}</span>
                                 {isPrimary && (
-                                  <span className="text-[10px] bg-[#FF6A00]/20 text-[#FF6A00] px-2 py-0.5 rounded-full">
+                                  <span className="text-[10px] bg-[#FF6A00]/20 text-[#FF6A00] px-2 py-0.5 rounded-full shrink-0">
                                     Principal
                                   </span>
                                 )}
@@ -494,11 +495,11 @@ const Settings: React.FC = () => {
                               <p className="text-xs text-[#9CA3AF]">Administrador</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-end gap-4">
                             {!isPrimary && (
                               <button 
                                 onClick={() => handleRemoveAdmin(email)}
-                                className="text-[#9CA3AF] hover:text-red-500 transition-colors"
+                                className="text-[#9CA3AF] hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-500/10"
                                 title="Remover administrador"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -586,10 +587,10 @@ const Settings: React.FC = () => {
             >
               <div className="space-y-6">
                 {/* Sync Button */}
-                <Card className="flex items-center justify-between p-4 bg-gradient-to-r from-[#FF6A00]/05 to-transparent border-[#FF6A00]/20">
-                  <div>
+                <Card className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gradient-to-r from-[#FF6A00]/05 to-transparent border-[#FF6A00]/20">
+                  <div className="flex-1">
                     <h4 className="text-[#F3F4F6] font-medium mb-1 flex items-center gap-2">
-                      <RefreshCw className="w-4 h-4 text-orange-400" />
+                      <RefreshCw className="w-4 h-4 text-orange-400 shrink-0" />
                       Sincronização Automática com Asaas
                     </h4>
                     <p className="text-sm text-[#9CA3AF]">
@@ -600,6 +601,7 @@ const Settings: React.FC = () => {
                     onClick={handleSyncAsaas}
                     disabled={isSyncingAsaas}
                     isLoading={isSyncingAsaas}
+                    className="w-full sm:w-auto shrink-0"
                   >
                     {!isSyncingAsaas && <RefreshCw className="w-4 h-4 mr-2" />}
                     Sincronizar Agora
@@ -607,10 +609,10 @@ const Settings: React.FC = () => {
                 </Card>
 
                 {/* Migration Button */}
-                <Card className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500/05 to-transparent border-blue-500/20 mt-4">
-                  <div>
+                <Card className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-gradient-to-r from-blue-500/05 to-transparent border-blue-500/20 mt-4">
+                  <div className="flex-1">
                     <h4 className="text-[#F3F4F6] font-medium mb-1 flex items-center gap-2">
-                      <SettingsIcon className="w-4 h-4 text-blue-400" />
+                      <SettingsIcon className="w-4 h-4 text-blue-400 shrink-0" />
                       Migração de Dados Antigos (Fase 6)
                     </h4>
                     <p className="text-sm text-[#9CA3AF]">
@@ -622,6 +624,7 @@ const Settings: React.FC = () => {
                     onClick={handleMigration}
                     disabled={isMigrating}
                     isLoading={isMigrating}
+                    className="w-full sm:w-auto shrink-0"
                   >
                     {!isMigrating && <RefreshCw className="w-4 h-4 mr-2" />}
                     Executar Migração
@@ -681,23 +684,23 @@ const Settings: React.FC = () => {
                             key={student.id}
                             className="p-4 hover:border-white/[0.1] transition-all"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 flex-1">
-                                <div className="w-12 h-12 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 bg-gradient-to-br from-[#FF6A00] to-[#E15B00] rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg">
                                   {student.name?.charAt(0).toUpperCase() || 'A'}
                                 </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="text-[#F3F4F6] font-medium">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h4 className="text-[#F3F4F6] font-medium text-sm sm:text-base">
                                       {student.name || student.displayName || 'Sem nome'}
                                     </h4>
                                     {student.manualAuthorization && (
-                                      <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                                      <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full shrink-0">
                                         Manual
                                       </span>
                                     )}
                                   </div>
-                                  <p className="text-sm text-[#9CA3AF] line-clamp-1">{student.email}</p>
+                                  <p className="text-xs sm:text-sm text-[#9CA3AF] truncate">{student.email}</p>
                                   <div className="flex flex-wrap items-center gap-2 mt-1">
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusInfo.bg} ${statusInfo.color}`}>
                                       {statusInfo.label}
@@ -711,7 +714,7 @@ const Settings: React.FC = () => {
                                 </div>
                               </div>
 
-                              <div className="flex flex-col items-end gap-2 ml-4">
+                              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:ml-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-white/[0.06]">
                                 <span className={`text-[10px] font-medium ${student.accessAuthorized ? 'text-green-400' : 'text-red-400'}`}>
                                   {student.accessAuthorized ? 'AUTORIZADO' : 'BLOQUEADO'}
                                 </span>
@@ -733,24 +736,24 @@ const Settings: React.FC = () => {
 
                 {/* Stats Summary */}
                 {!isLoadingStudents && students.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/[0.06]">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-[#F3F4F6]">
+                  <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-white/[0.06]">
+                    <div className="text-center p-3 bg-white/[0.02] rounded-xl">
+                      <p className="text-xl sm:text-2xl font-bold text-[#F3F4F6]">
                         {students.filter(s => s.accessAuthorized).length}
                       </p>
-                      <p className="text-xs text-[#9CA3AF]">Autorizados</p>
+                      <p className="text-[10px] sm:text-xs text-[#9CA3AF] mt-0.5">Autorizados</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-[#F3F4F6]">
+                    <div className="text-center p-3 bg-white/[0.02] rounded-xl">
+                      <p className="text-xl sm:text-2xl font-bold text-[#F3F4F6]">
                         {students.filter(s => s.paymentStatus === 'active').length}
                       </p>
-                      <p className="text-xs text-[#9CA3AF]">Pagamentos Ativos</p>
+                      <p className="text-[10px] sm:text-xs text-[#9CA3AF] mt-0.5">Pagamentos Ativos</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-[#F3F4F6]">
+                    <div className="text-center p-3 bg-white/[0.02] rounded-xl">
+                      <p className="text-xl sm:text-2xl font-bold text-[#F3F4F6]">
                         {students.filter(s => s.manualAuthorization).length}
                       </p>
-                      <p className="text-xs text-[#9CA3AF]">Autorizações Manuais</p>
+                      <p className="text-[10px] sm:text-xs text-[#9CA3AF] mt-0.5">Manuais</p>
                     </div>
                   </div>
                 )}

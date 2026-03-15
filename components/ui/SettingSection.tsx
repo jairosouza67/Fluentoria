@@ -26,15 +26,15 @@ export const SettingSection: React.FC<SettingSectionProps> = ({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+        className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg bg-[#FF6A00]/10 flex items-center justify-center text-[#FF6A00]">
-            <Icon className="w-6 h-6" />
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-lg bg-[#FF6A00]/10 flex items-center justify-center text-[#FF6A00]">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="text-left">
-            <h3 className="text-lg font-bold text-[#F3F4F6]">{title}</h3>
-            <p className="text-sm text-[#9CA3AF] mt-1">{description}</p>
+            <h3 className="text-base sm:text-lg font-bold text-[#F3F4F6]">{title}</h3>
+            <p className="text-xs sm:text-sm text-[#9CA3AF] mt-0.5 sm:mt-1">{description}</p>
           </div>
         </div>
         {expanded ? (
@@ -44,7 +44,7 @@ export const SettingSection: React.FC<SettingSectionProps> = ({
         )}
       </button>
       {expanded && (
-        <div className="p-6 border-t border-white/[0.06] bg-[#0B0B0B]/50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="p-4 sm:p-6 border-t border-white/[0.06] bg-[#0B0B0B]/50 animate-in fade-in slide-in-from-top-2 duration-200">
           {children}
         </div>
       )}
