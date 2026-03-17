@@ -49,8 +49,11 @@ export const useCatalogData = () => {
   }, []);
 
   useEffect(() => {
+    // Always fetch courses for linking in mindful/music tabs
+    fetchCourses();
+    
     if (activeTab === 'courses' || activeTab === 'gallery') {
-      fetchCourses();
+      // Courses already fetched above
     } else if (activeTab === 'mindful') {
       fetchMindfulFlows();
     } else if (activeTab === 'music') {

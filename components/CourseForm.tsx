@@ -109,11 +109,17 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
             setExpandedModules([]);
             setExpandedGalleries([]);
             setErrorMessage(null);
-            // New content: start with module/gallery type by default
-            setContentType('module');
-            setContentMode('modules');
+            // For mindful and music tabs, start with simple video mode
+            // For courses/gallery, start with module/gallery type
+            if (activeTab === 'mindful' || activeTab === 'music') {
+                setContentType('video');
+                setContentMode('single');
+            } else {
+                setContentType('module');
+                setContentMode('modules');
+            }
         }
-    }, [course]);
+    }, [course, activeTab]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -589,9 +595,9 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
         <Modal
             isOpen={true}
             onClose={onCancel}
-            title={course ? 'Editar Conteúdo' : contentType === 'video' ? 'Novo Vídeo Solto' : 'Criar Galerias'}
+            title={course ? 'Editar Conteúdo' : activeTab === 'mindful' ? 'Novo Mindful Flow' : activeTab === 'music' ? 'Nova Música' : contentType === 'video' ? 'Novo Vídeo Solto' : 'Criar Galerias'}
             description={
-                !course ? (
+                !course && activeTab !== 'mindful' && activeTab !== 'music' ? (
                     contentType === 'module' ? (
                         <button
                             type="button"
