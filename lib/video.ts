@@ -31,7 +31,7 @@ export const extractYouTubeId = (url: string): string | null => {
  * Get YouTube embed URL from video ID
  */
 export const getYouTubeEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
+    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&fs=1&playsinline=1`;
 };
 
 /**

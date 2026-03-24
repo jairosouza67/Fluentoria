@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
@@ -23,7 +23,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [lessonDurations, setLessonDurations] = useState<{ [key: string]: string }>({});
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -161,6 +163,140 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const hasDriveVideo = isGoogleDriveUrl(currentVideoUrl || '');
   const embedUrl = getEmbedUrl(currentVideoUrl || '');
 
+  const lockOrientationForFullscreen = async () => {
+    if (!window.matchMedia('(max-width: 1024px)').matches) return;
+
+    try {
+      const orientationApi = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: 'any' | 'natural' | 'landscape' | 'portrait' | 'portrait-primary' | 'portrait-secondary' | 'landscape-primary' | 'landscape-secondary') => Promise<void>;
+      };
+
+      if (orientationApi?.lock) {
+        await orientationApi.lock('landscape');
+      }
+    } catch {
+      // Some browsers (especially iOS Safari) block orientation lock.
+    }
+  };
+
+  const unlockOrientation = () => {
+    try {
+      const orientationApi = screen.orientation as ScreenOrientation & {
+        unlock?: () => void;
+      };
+
+      if (orientationApi?.unlock) {
+        orientationApi.unlock();
+      }
+    } catch {
+      // Ignore unlock failures.
+    }
+  };
+
+  const requestElementFullscreen = async (element: HTMLElement | null) => {
+    if (!element) return false;
+
+    const el = element as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+      msRequestFullscreen?: () => Promise<void> | void;
+    };
+
+    if (el.requestFullscreen) {
+      await el.requestFullscreen();
+      return true;
+    }
+
+    if (el.webkitRequestFullscreen) {
+      await el.webkitRequestFullscreen();
+      return true;
+    }
+
+    if (el.msRequestFullscreen) {
+      await el.msRequestFullscreen();
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleFullscreenToggle = async () => {
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+
+    if (document.fullscreenElement || doc.webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+      }
+      return;
+    }
+
+    const isDirectVideo = Boolean(currentVideoUrl) && !embedUrl;
+
+    try {
+      const requested = await requestElementFullscreen(
+        isDirectVideo ? videoRef.current : iframeRef.current || playerContainerRef.current
+      );
+
+      if (!requested && isDirectVideo && videoRef.current) {
+        const video = videoRef.current as HTMLVideoElement & {
+          webkitEnterFullscreen?: () => void;
+        };
+
+        if (video.webkitEnterFullscreen) {
+          video.webkitEnterFullscreen();
+        }
+      }
+    } catch {
+      // Fullscreen requests can fail without a direct user gesture.
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const doc = document as Document & {
+        webkitFullscreenElement?: Element | null;
+      };
+      const isFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
+
+      if (isFullscreen) {
+        void lockOrientationForFullscreen();
+      } else {
+        unlockOrientation();
+      }
+    };
+
+    const handleVideoWebkitBegin = () => {
+      void lockOrientationForFullscreen();
+    };
+
+    const handleVideoWebkitEnd = () => {
+      unlockOrientation();
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
+
+    const videoElement = videoRef.current as (HTMLVideoElement & {
+      onwebkitbeginfullscreen?: ((this: HTMLVideoElement, ev: Event) => void) | null;
+      onwebkitendfullscreen?: ((this: HTMLVideoElement, ev: Event) => void) | null;
+    }) | null;
+
+    videoElement?.addEventListener('webkitbeginfullscreen', handleVideoWebkitBegin as EventListener);
+    videoElement?.addEventListener('webkitendfullscreen', handleVideoWebkitEnd as EventListener);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
+      videoElement?.removeEventListener('webkitbeginfullscreen', handleVideoWebkitBegin as EventListener);
+      videoElement?.removeEventListener('webkitendfullscreen', handleVideoWebkitEnd as EventListener);
+      unlockOrientation();
+    };
+  }, [currentVideoUrl, embedUrl]);
+
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev =>
       prev.includes(moduleId)
@@ -220,23 +356,35 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
         {/* Main Content Area (Player) */}
         <div className="flex-1 p-6 space-y-6">
           {/* Video Player */}
-          <div className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
+          <div ref={playerContainerRef} className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
+            {(embedUrl || currentVideoUrl) && (
+              <button
+                type="button"
+                onClick={handleFullscreenToggle}
+                className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                aria-label="Abrir vídeo em tela cheia"
+                title="Tela cheia"
+              >
+                <Maximize size={16} />
+              </button>
+            )}
             {embedUrl ? (
               <iframe
+                ref={iframeRef}
                 className="w-full h-full"
                 src={embedUrl}
                 title={currentTitle}
                 frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
-            ) : course.videoUrl ? (
+            ) : currentVideoUrl ? (
               <div className="w-full h-full flex items-center justify-center">
                 <video
                   ref={videoRef}
                   className="w-full h-full"
                   controls
-                  src={course.videoUrl}
+                  src={currentVideoUrl}
                   poster={course.coverImage}
                 >
                   Seu navegador não suporta a tag de vídeo.
