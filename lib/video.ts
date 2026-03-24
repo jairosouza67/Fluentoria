@@ -31,7 +31,7 @@ export const extractYouTubeId = (url: string): string | null => {
  * Get YouTube embed URL from video ID
  */
 export const getYouTubeEmbedUrl = (videoId: string): string => {
-    return `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&fs=1&playsinline=1`;
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&fs=1&playsinline=1&modestbranding=1&iv_load_policy=3`;
 };
 
 /**
@@ -84,7 +84,7 @@ export const getGoogleDriveEmbedUrl = (url: string): string | null => {
     }
 
     if (fileId) {
-        return `https://drive.google.com/file/d/${fileId}/preview`;
+        return `https://drive.google.com/file/d/${fileId}/preview?rm=minimal`;
     }
 
     return null;
