@@ -27,6 +27,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const footerHideTimeoutRef = useRef<number | null>(null);
   const user = auth.currentUser;
 
   const isIOSDevice = (() => {
@@ -205,16 +206,43 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     }
   };
 
+  const setFooterVisibility = (active: boolean, visible: boolean) => {
+    window.dispatchEvent(new CustomEvent('immersive-nav-visibility', {
+      detail: { active, visible }
+    }));
+  };
+
+  const clearFooterHideTimeout = () => {
+    if (footerHideTimeoutRef.current) {
+      window.clearTimeout(footerHideTimeoutRef.current);
+      footerHideTimeoutRef.current = null;
+    }
+  };
+
+  const showFooterTemporarily = () => {
+    if (!isImmersiveMode) return;
+
+    setFooterVisibility(true, true);
+    clearFooterHideTimeout();
+
+    footerHideTimeoutRef.current = window.setTimeout(() => {
+      setFooterVisibility(true, false);
+    }, 1800);
+  };
+
   const toggleImmersiveMode = () => {
     if (isImmersiveMode) {
       setIsImmersiveMode(false);
       setImmersiveNotice(null);
+      clearFooterHideTimeout();
+      setFooterVisibility(false, true);
       unlockOrientation();
       return;
     }
 
     setIsImmersiveMode(true);
     setImmersiveNotice(null);
+    setFooterVisibility(true, false);
     void lockOrientationForImmersive();
   };
 
@@ -235,6 +263,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', onEscape);
+      clearFooterHideTimeout();
+      setFooterVisibility(false, true);
       unlockOrientation();
     };
   }, [isImmersiveMode]);
@@ -314,6 +344,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
           <div
             ref={playerContainerRef}
             className={`aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card ${isImmersiveMode ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none rounded-none border-0' : ''}`}
+            onPointerMove={showFooterTemporarily}
+            onTouchStart={showFooterTemporarily}
           >
             {(embedUrl || currentVideoUrl) && (
               <button

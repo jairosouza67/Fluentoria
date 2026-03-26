@@ -6,13 +6,14 @@ interface MobileNavProps {
     currentScreen: Screen;
     onNavigate: (screen: Screen) => void;
     viewMode: ViewMode;
+    hidden?: boolean;
 }
 
-const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMode }) => {
+const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMode, hidden = false }) => {
     // Admin navigation
     if (viewMode === 'admin') {
         return (
-            <div className="fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 grid grid-cols-5 items-center z-50 md:hidden pb-safe shadow-elevated">
+            <div className={`fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 grid grid-cols-5 items-center z-50 md:hidden pb-safe shadow-elevated transition-all duration-300 ${hidden ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
                 <NavItem
                     icon={<LayoutDashboard size={20} />}
                     label="Painel"
@@ -49,7 +50,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
 
     // Student navigation
     return (
-        <div className="fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 flex justify-around items-center z-50 md:hidden pb-safe shadow-elevated">
+        <div className={`fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 flex justify-around items-center z-50 md:hidden pb-safe shadow-elevated transition-all duration-300 ${hidden ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
             <NavItem
                 icon={<LayoutDashboard size={20} />}
                 label="Início"

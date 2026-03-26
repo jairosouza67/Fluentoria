@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, Suspense } from 'react';
+import React, { useEffect, useRef, Suspense, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -38,6 +38,8 @@ const LoadingSpinner = () => (
 );
 
 const App: React.FC = () => {
+  const [immersiveNavState, setImmersiveNavState] = useState({ active: false, visible: true });
+
   // --- Zustand stores ---
   const {
     user, setUser,
@@ -147,6 +149,24 @@ const App: React.FC = () => {
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    const handleImmersiveNavVisibility = (event: Event) => {
+      const customEvent = event as CustomEvent<{ active: boolean; visible: boolean }>;
+      if (!customEvent.detail) return;
+
+      setImmersiveNavState({
+        active: Boolean(customEvent.detail.active),
+        visible: Boolean(customEvent.detail.visible)
+      });
+    };
+
+    window.addEventListener('immersive-nav-visibility', handleImmersiveNavVisibility as EventListener);
+
+    return () => {
+      window.removeEventListener('immersive-nav-visibility', handleImmersiveNavVisibility as EventListener);
+    };
+  }, []);
 
   const handleLogin = () => {
     // Handled by onAuthStateChanged
@@ -458,7 +478,12 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <MobileNav currentScreen={currentScreen} onNavigate={handleNavigate} viewMode={viewMode} />
+      <MobileNav
+        currentScreen={currentScreen}
+        onNavigate={handleNavigate}
+        viewMode={viewMode}
+        hidden={immersiveNavState.active && !immersiveNavState.visible}
+      />
     </div>
   );
 };
