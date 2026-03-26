@@ -307,6 +307,19 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   }, [isInlineFullscreen]);
 
   useEffect(() => {
+    const iframeElement = iframeRef.current;
+
+    if (!iframeElement || !embedUrl) {
+      return;
+    }
+
+    // Add legacy fullscreen attributes for older iOS/WebView engines.
+    iframeElement.setAttribute('allowfullscreen', '');
+    iframeElement.setAttribute('webkitallowfullscreen', '');
+    iframeElement.setAttribute('mozallowfullscreen', '');
+  }, [embedUrl]);
+
+  useEffect(() => {
     const handleFullscreenChange = () => {
       const doc = document as Document & {
         webkitFullscreenElement?: Element | null;
