@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize, Minimize } from 'lucide-react';
 import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
 import { formatFileSize } from '../lib/media';
@@ -21,10 +21,27 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [isImmersiveMode, setIsImmersiveMode] = useState(false);
+  const [immersiveNotice, setImmersiveNotice] = useState<string | null>(null);
   const [lessonDurations, setLessonDurations] = useState<{ [key: string]: string }>({});
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const user = auth.currentUser;
+
+  const isIOSDevice = (() => {
+    if (typeof navigator === 'undefined') return false;
+
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  })();
+
+  const isStandaloneMode = (() => {
+    if (typeof window === 'undefined') return false;
+
+    const nav = navigator as Navigator & { standalone?: boolean };
+    return window.matchMedia('(display-mode: standalone)').matches || Boolean(nav.standalone);
+  })();
 
   useEffect(() => {
     // Reset state when course changes
@@ -158,6 +175,70 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   // Extract YouTube video ID if available or check for Drive URL
   const embedUrl = getEmbedUrl(currentVideoUrl || '');
 
+  const lockOrientationForImmersive = async () => {
+    if (!window.matchMedia('(max-width: 1024px)').matches) return;
+
+    try {
+      const orientationApi = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: 'any' | 'natural' | 'landscape' | 'portrait' | 'portrait-primary' | 'portrait-secondary' | 'landscape-primary' | 'landscape-secondary') => Promise<void>;
+      };
+
+      if (orientationApi?.lock) {
+        await orientationApi.lock('landscape');
+      }
+    } catch {
+      setImmersiveNotice('No iOS, a rotação automática pode ser bloqueada. Gire o aparelho manualmente para paisagem.');
+    }
+  };
+
+  const unlockOrientation = () => {
+    try {
+      const orientationApi = screen.orientation as ScreenOrientation & {
+        unlock?: () => void;
+      };
+
+      if (orientationApi?.unlock) {
+        orientationApi.unlock();
+      }
+    } catch {
+      // Ignore unlock failures.
+    }
+  };
+
+  const toggleImmersiveMode = () => {
+    if (isImmersiveMode) {
+      setIsImmersiveMode(false);
+      setImmersiveNotice(null);
+      unlockOrientation();
+      return;
+    }
+
+    setIsImmersiveMode(true);
+    setImmersiveNotice(null);
+    void lockOrientationForImmersive();
+  };
+
+  useEffect(() => {
+    if (!isImmersiveMode) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsImmersiveMode(false);
+      }
+    };
+
+    document.addEventListener('keydown', onEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onEscape);
+      unlockOrientation();
+    };
+  }, [isImmersiveMode]);
+
   useEffect(() => {
     const iframeElement = iframeRef.current;
 
@@ -230,7 +311,21 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
         {/* Main Content Area (Player) */}
         <div className="flex-1 p-6 space-y-6">
           {/* Video Player */}
-          <div className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
+          <div
+            ref={playerContainerRef}
+            className={`aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card ${isImmersiveMode ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none rounded-none border-0' : ''}`}
+          >
+            {(embedUrl || currentVideoUrl) && (
+              <button
+                type="button"
+                onClick={toggleImmersiveMode}
+                className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                aria-label={isImmersiveMode ? 'Sair do modo imersivo' : 'Entrar no modo imersivo'}
+                title={isImmersiveMode ? 'Sair do modo imersivo' : 'Modo imersivo'}
+              >
+                {isImmersiveMode ? <Minimize size={16} /> : <Maximize size={16} />}
+              </button>
+            )}
             {embedUrl ? (
               <iframe
                 ref={iframeRef}
@@ -270,6 +365,14 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               </div>
             )}
           </div>
+          {isImmersiveMode && isIOSDevice && isStandaloneMode && (
+            <p className="text-xs text-[#F59E0B]">
+              Em iOS/PWA, se não girar automaticamente, vire o aparelho manualmente para paisagem.
+            </p>
+          )}
+          {immersiveNotice && (
+            <p className="text-xs text-[#F59E0B]">{immersiveNotice}</p>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex gap-4">
