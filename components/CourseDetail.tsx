@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize, Minimize } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
@@ -22,11 +22,27 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [fullscreenNotice, setFullscreenNotice] = useState<string | null>(null);
+  const [isInlineFullscreen, setIsInlineFullscreen] = useState(false);
   const [lessonDurations, setLessonDurations] = useState<{ [key: string]: string }>({});
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const user = auth.currentUser;
+
+  const isIOSDevice = (() => {
+    if (typeof navigator === 'undefined') return false;
+
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  })();
+
+  const isStandaloneMode = (() => {
+    if (typeof window === 'undefined') return false;
+
+    const nav = navigator as Navigator & { standalone?: boolean };
+    return window.matchMedia('(display-mode: standalone)').matches || Boolean(nav.standalone);
+  })();
 
   useEffect(() => {
     // Reset state when course changes
@@ -159,8 +175,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
 
   // Extract YouTube video ID if available or check for Drive URL
   const videoId = currentVideoUrl ? extractYouTubeId(currentVideoUrl) : null;
-  const hasYouTubeVideo = videoId && isYouTubeUrl(currentVideoUrl || '');
-  const hasDriveVideo = isGoogleDriveUrl(currentVideoUrl || '');
   const embedUrl = getEmbedUrl(currentVideoUrl || '');
 
   const lockOrientationForFullscreen = async () => {
@@ -220,10 +234,18 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   };
 
   const handleFullscreenToggle = async () => {
+    setFullscreenNotice(null);
+
     const doc = document as Document & {
       webkitFullscreenElement?: Element | null;
       webkitExitFullscreen?: () => Promise<void> | void;
     };
+
+    if (isInlineFullscreen) {
+      setIsInlineFullscreen(false);
+      unlockOrientation();
+      return;
+    }
 
     if (document.fullscreenElement || doc.webkitFullscreenElement) {
       if (document.exitFullscreen) {
@@ -248,12 +270,41 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
 
         if (video.webkitEnterFullscreen) {
           video.webkitEnterFullscreen();
+          return;
         }
       }
+
+      if (!requested) {
+        setIsInlineFullscreen(true);
+        void lockOrientationForFullscreen();
+        setFullscreenNotice('Tela cheia nativa indisponível neste navegador. Ativamos o modo imersivo no app.');
+      }
     } catch {
-      // Fullscreen requests can fail without a direct user gesture.
+      setIsInlineFullscreen(true);
+      void lockOrientationForFullscreen();
+      setFullscreenNotice('Tela cheia nativa bloqueada. Ativamos o modo imersivo no app.');
     }
   };
+
+  useEffect(() => {
+    if (!isInlineFullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsInlineFullscreen(false);
+      }
+    };
+
+    document.addEventListener('keydown', onEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, [isInlineFullscreen]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -356,17 +407,25 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
         {/* Main Content Area (Player) */}
         <div className="flex-1 p-6 space-y-6">
           {/* Video Player */}
-          <div ref={playerContainerRef} className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
+          <div
+            ref={playerContainerRef}
+            className={`aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card ${isInlineFullscreen ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none rounded-none border-0 shadow-none' : ''}`}
+          >
             {(embedUrl || currentVideoUrl) && (
               <button
                 type="button"
                 onClick={handleFullscreenToggle}
                 className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
-                aria-label="Abrir vídeo em tela cheia"
-                title="Tela cheia"
+                aria-label={isInlineFullscreen ? 'Sair do modo imersivo' : 'Abrir vídeo em tela cheia'}
+                title={isInlineFullscreen ? 'Sair do modo imersivo' : 'Tela cheia'}
               >
-                <Maximize size={16} />
+                {isInlineFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
+            )}
+            {embedUrl && isIOSDevice && isStandaloneMode && (
+              <div className="absolute left-3 bottom-3 z-10 rounded-lg bg-black/65 px-3 py-2 text-xs text-white/90">
+                No iOS em modo app, o player usa modo imersivo quando tela cheia nativa falha.
+              </div>
             )}
             {embedUrl ? (
               <iframe
@@ -407,6 +466,9 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               </div>
             )}
           </div>
+          {fullscreenNotice && (
+            <p className="text-sm text-[#F59E0B]">{fullscreenNotice}</p>
+          )}
 
           <div className="flex items-center justify-between">
             <div className="flex gap-4">
