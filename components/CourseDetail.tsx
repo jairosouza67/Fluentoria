@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize, Minimize } from 'lucide-react';
-import { Screen } from '../types';
+import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File } from 'lucide-react';
 import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
 import { formatFileSize } from '../lib/media';
@@ -22,27 +21,10 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [fullscreenNotice, setFullscreenNotice] = useState<string | null>(null);
-  const [isInlineFullscreen, setIsInlineFullscreen] = useState(false);
   const [lessonDurations, setLessonDurations] = useState<{ [key: string]: string }>({});
-  const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const user = auth.currentUser;
-
-  const isIOSDevice = (() => {
-    if (typeof navigator === 'undefined') return false;
-
-    return /iPad|iPhone|iPod/.test(navigator.userAgent)
-      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  })();
-
-  const isStandaloneMode = (() => {
-    if (typeof window === 'undefined') return false;
-
-    const nav = navigator as Navigator & { standalone?: boolean };
-    return window.matchMedia('(display-mode: standalone)').matches || Boolean(nav.standalone);
-  })();
 
   useEffect(() => {
     // Reset state when course changes
@@ -174,137 +156,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const currentVideoUrl = activeLesson ? activeLesson.videoUrl : course?.videoUrl;
 
   // Extract YouTube video ID if available or check for Drive URL
-  const videoId = currentVideoUrl ? extractYouTubeId(currentVideoUrl) : null;
   const embedUrl = getEmbedUrl(currentVideoUrl || '');
-
-  const lockOrientationForFullscreen = async () => {
-    if (!window.matchMedia('(max-width: 1024px)').matches) return;
-
-    try {
-      const orientationApi = screen.orientation as ScreenOrientation & {
-        lock?: (orientation: 'any' | 'natural' | 'landscape' | 'portrait' | 'portrait-primary' | 'portrait-secondary' | 'landscape-primary' | 'landscape-secondary') => Promise<void>;
-      };
-
-      if (orientationApi?.lock) {
-        await orientationApi.lock('landscape');
-      }
-    } catch {
-      // Some browsers (especially iOS Safari) block orientation lock.
-    }
-  };
-
-  const unlockOrientation = () => {
-    try {
-      const orientationApi = screen.orientation as ScreenOrientation & {
-        unlock?: () => void;
-      };
-
-      if (orientationApi?.unlock) {
-        orientationApi.unlock();
-      }
-    } catch {
-      // Ignore unlock failures.
-    }
-  };
-
-  const requestElementFullscreen = async (element: HTMLElement | null) => {
-    if (!element) return false;
-
-    const el = element as HTMLElement & {
-      webkitRequestFullscreen?: () => Promise<void> | void;
-      msRequestFullscreen?: () => Promise<void> | void;
-    };
-
-    if (el.requestFullscreen) {
-      await el.requestFullscreen();
-      return true;
-    }
-
-    if (el.webkitRequestFullscreen) {
-      await el.webkitRequestFullscreen();
-      return true;
-    }
-
-    if (el.msRequestFullscreen) {
-      await el.msRequestFullscreen();
-      return true;
-    }
-
-    return false;
-  };
-
-  const handleFullscreenToggle = async () => {
-    setFullscreenNotice(null);
-
-    const doc = document as Document & {
-      webkitFullscreenElement?: Element | null;
-      webkitExitFullscreen?: () => Promise<void> | void;
-    };
-
-    if (isInlineFullscreen) {
-      setIsInlineFullscreen(false);
-      unlockOrientation();
-      return;
-    }
-
-    if (document.fullscreenElement || doc.webkitFullscreenElement) {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      } else if (doc.webkitExitFullscreen) {
-        await doc.webkitExitFullscreen();
-      }
-      return;
-    }
-
-    const isDirectVideo = Boolean(currentVideoUrl) && !embedUrl;
-
-    try {
-      const requested = await requestElementFullscreen(
-        isDirectVideo ? videoRef.current : iframeRef.current || playerContainerRef.current
-      );
-
-      if (!requested && isDirectVideo && videoRef.current) {
-        const video = videoRef.current as HTMLVideoElement & {
-          webkitEnterFullscreen?: () => void;
-        };
-
-        if (video.webkitEnterFullscreen) {
-          video.webkitEnterFullscreen();
-          return;
-        }
-      }
-
-      if (!requested) {
-        setIsInlineFullscreen(true);
-        void lockOrientationForFullscreen();
-        setFullscreenNotice('Tela cheia nativa indisponível neste navegador. Ativamos o modo imersivo no app.');
-      }
-    } catch {
-      setIsInlineFullscreen(true);
-      void lockOrientationForFullscreen();
-      setFullscreenNotice('Tela cheia nativa bloqueada. Ativamos o modo imersivo no app.');
-    }
-  };
-
-  useEffect(() => {
-    if (!isInlineFullscreen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsInlineFullscreen(false);
-      }
-    };
-
-    document.addEventListener('keydown', onEscape);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', onEscape);
-    };
-  }, [isInlineFullscreen]);
 
   useEffect(() => {
     const iframeElement = iframeRef.current;
@@ -318,48 +170,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     iframeElement.setAttribute('webkitallowfullscreen', '');
     iframeElement.setAttribute('mozallowfullscreen', '');
   }, [embedUrl]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const doc = document as Document & {
-        webkitFullscreenElement?: Element | null;
-      };
-      const isFullscreen = Boolean(document.fullscreenElement || doc.webkitFullscreenElement);
-
-      if (isFullscreen) {
-        void lockOrientationForFullscreen();
-      } else {
-        unlockOrientation();
-      }
-    };
-
-    const handleVideoWebkitBegin = () => {
-      void lockOrientationForFullscreen();
-    };
-
-    const handleVideoWebkitEnd = () => {
-      unlockOrientation();
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
-
-    const videoElement = videoRef.current as (HTMLVideoElement & {
-      onwebkitbeginfullscreen?: ((this: HTMLVideoElement, ev: Event) => void) | null;
-      onwebkitendfullscreen?: ((this: HTMLVideoElement, ev: Event) => void) | null;
-    }) | null;
-
-    videoElement?.addEventListener('webkitbeginfullscreen', handleVideoWebkitBegin as EventListener);
-    videoElement?.addEventListener('webkitendfullscreen', handleVideoWebkitEnd as EventListener);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as EventListener);
-      videoElement?.removeEventListener('webkitbeginfullscreen', handleVideoWebkitBegin as EventListener);
-      videoElement?.removeEventListener('webkitendfullscreen', handleVideoWebkitEnd as EventListener);
-      unlockOrientation();
-    };
-  }, [currentVideoUrl, embedUrl]);
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev =>
@@ -420,26 +230,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
         {/* Main Content Area (Player) */}
         <div className="flex-1 p-6 space-y-6">
           {/* Video Player */}
-          <div
-            ref={playerContainerRef}
-            className={`aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card ${isInlineFullscreen ? 'fixed inset-0 z-50 h-[100dvh] w-screen max-w-none rounded-none border-0 shadow-none' : ''}`}
-          >
-            {(embedUrl || currentVideoUrl) && (
-              <button
-                type="button"
-                onClick={handleFullscreenToggle}
-                className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
-                aria-label={isInlineFullscreen ? 'Sair do modo imersivo' : 'Abrir vídeo em tela cheia'}
-                title={isInlineFullscreen ? 'Sair do modo imersivo' : 'Tela cheia'}
-              >
-                {isInlineFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-              </button>
-            )}
-            {embedUrl && isIOSDevice && isStandaloneMode && (
-              <div className="absolute left-3 bottom-3 z-10 rounded-lg bg-black/65 px-3 py-2 text-xs text-white/90">
-                No iOS em modo app, o player usa modo imersivo quando tela cheia nativa falha.
-              </div>
-            )}
+          <div className="aspect-video w-full bg-[#111111] rounded-xl overflow-hidden relative group border border-white/[0.06] shadow-card">
             {embedUrl ? (
               <iframe
                 ref={iframeRef}
@@ -479,9 +270,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               </div>
             )}
           </div>
-          {fullscreenNotice && (
-            <p className="text-sm text-[#F59E0B]">{fullscreenNotice}</p>
-          )}
 
           <div className="flex items-center justify-between">
             <div className="flex gap-4">
