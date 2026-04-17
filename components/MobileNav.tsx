@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, Trophy, Edit3, Activity, Music as MusicIcon, Users, Settings, FileText } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Trophy, Edit3, Activity, Music as MusicIcon, Bell, Users, Settings, FileText } from 'lucide-react';
 import { Screen, ViewMode } from '../types';
 
 interface MobileNavProps {
@@ -50,7 +50,7 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
 
     // Student navigation
     return (
-        <div className={`fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 flex justify-around items-center z-50 md:hidden pb-safe shadow-elevated transition-all duration-300 ${hidden ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
+        <div className={`fixed bottom-0 left-0 w-full bg-sidebar/95 backdrop-blur-xl border-t border-sidebar-border px-1 py-2 grid grid-cols-6 items-center z-50 md:hidden pb-safe shadow-elevated transition-all duration-300 ${hidden ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
             <NavItem
                 icon={<LayoutDashboard size={20} />}
                 label="Início"
@@ -83,6 +83,12 @@ const MobileNav: React.FC<MobileNavProps> = ({ currentScreen, onNavigate, viewMo
                 label="Músicas"
                 active={currentScreen === 'music'}
                 onClick={() => onNavigate('music')}
+            />
+            <NavItem
+                icon={<Bell size={20} />}
+                label="Lembretes"
+                active={currentScreen === 'reminders' || currentScreen === 'reminder-detail'}
+                onClick={() => onNavigate('reminders')}
             />
             <NavItem
                 icon={<Trophy size={20} />}

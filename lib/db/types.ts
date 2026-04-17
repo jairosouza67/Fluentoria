@@ -50,6 +50,23 @@ export interface Course {
     productId?: string; // ID do curso ao qual este conteúdo (mindful/music) pertence
 }
 
+export interface Reminder {
+    id?: string;
+    title: string;
+    message: string;
+    videoUrl: string;
+    coverImage?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface ReminderRead {
+    id?: string;
+    userId: string;
+    reminderId: string;
+    readAt: Date;
+}
+
 export interface UserCourse {
     id: string;
     userId: string;

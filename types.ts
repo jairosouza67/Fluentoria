@@ -14,6 +14,8 @@ export type Screen =
   | 'mindful-detail'
   | 'music'
   | 'music-detail'
+  | 'reminders'
+  | 'reminder-detail'
   | 'profile'
   | 'achievements'
   | 'leaderboard'

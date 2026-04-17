@@ -10,6 +10,7 @@ import {
   Edit3,
   Trophy,
   Activity,
+  Bell,
   Music,
   Settings
 } from 'lucide-react';
@@ -73,6 +74,12 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
                 label="Músicas"
                 active={currentScreen === 'music'}
                 onClick={() => onNavigate('music')}
+              />
+              <NavItem
+                icon={<Bell size={20} />}
+                label="Lembretes"
+                active={currentScreen === 'reminders' || currentScreen === 'reminder-detail'}
+                onClick={() => onNavigate('reminders')}
               />
               <NavItem
                 icon={<Trophy size={20} />}

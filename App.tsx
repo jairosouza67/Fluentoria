@@ -16,6 +16,8 @@ const CourseDetail = React.lazy(() => import('./components/CourseDetail'));
 const ModuleSelection = React.lazy(() => import('./components/ModuleSelection'));
 const MindfulFlowList = React.lazy(() => import('./components/MindfulFlowList'));
 const MusicList = React.lazy(() => import('./components/MusicList'));
+const ReminderList = React.lazy(() => import('./components/ReminderList'));
+const ReminderDetail = React.lazy(() => import('./components/ReminderDetail'));
 const Profile = React.lazy(() => import('./components/Profile'));
 const Achievements = React.lazy(() => import('./components/Achievements'));
 const Leaderboard = React.lazy(() => import('./components/Leaderboard'));
@@ -27,6 +29,7 @@ import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
 import { getUserRole, forceUpdateUserRole, checkUserAccess, isAdminEmail } from './lib/db';
+import type { Reminder } from './lib/db';
 import { useAppStore } from './lib/stores/appStore';
 import { useCourseStore } from './lib/stores/courseStore';
 
@@ -39,6 +42,8 @@ const LoadingSpinner = () => (
 
 const App: React.FC = () => {
   const [immersiveNavState, setImmersiveNavState] = useState({ active: false, visible: true });
+  const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
+  const [selectedReminderRead, setSelectedReminderRead] = useState(false);
 
   // --- Zustand stores ---
   const {
@@ -258,7 +263,7 @@ const App: React.FC = () => {
   }
 
   // Top-level screens that should clear course context when navigated to (e.g. from sidebar)
-  const TOP_LEVEL_SCREENS: Screen[] = ['dashboard', 'courses', 'mindful', 'music', 'achievements', 'leaderboard', 'attendance', 'profile'];
+  const TOP_LEVEL_SCREENS: Screen[] = ['dashboard', 'courses', 'mindful', 'music', 'reminders', 'achievements', 'leaderboard', 'attendance', 'profile'];
 
   const handleNavigate = (screen: Screen) => {
     // Clear course context when navigating to top-level screens (sidebar navigation)
@@ -266,6 +271,8 @@ const App: React.FC = () => {
       setSelectedCourse(null);
       setSelectedGallery(null);
       setSelectedModule(null);
+      setSelectedReminder(null);
+      setSelectedReminderRead(false);
     }
     navigateTo(screen);
   };
@@ -346,6 +353,26 @@ const App: React.FC = () => {
           onBack={() => navigateTo('music')} 
           course={selectedCourse}
           selectedModule={null}
+        />;
+      case 'reminders':
+        return <ReminderList
+          onNavigate={navigateTo}
+          onSelectReminder={(reminder, isRead) => {
+            setSelectedReminder(reminder);
+            setSelectedReminderRead(isRead);
+            navigateTo('reminder-detail');
+          }}
+        />;
+      case 'reminder-detail':
+        return <ReminderDetail
+          onBack={() => navigateTo('reminders')}
+          reminder={selectedReminder}
+          isRead={selectedReminderRead}
+          onMarkedRead={(reminderId) => {
+            if (selectedReminder?.id === reminderId) {
+              setSelectedReminderRead(true);
+            }
+          }}
         />;
       case 'profile':
         return <Profile />;

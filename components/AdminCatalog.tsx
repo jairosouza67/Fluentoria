@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Film,
   Music,
+  Bell,
   Zap,
   MoreVertical
 } from 'lucide-react';
@@ -32,6 +33,7 @@ const tabs = [
   { id: 'gallery', label: 'Galerias', icon: LayoutGrid },
   { id: 'mindful', label: 'Mindful Flow', icon: Zap },
   { id: 'music', label: 'Músicas', icon: Music },
+  { id: 'reminders', label: 'Lembretes', icon: Bell },
 ];
 
 const AdminCatalog: React.FC = () => {
@@ -68,15 +70,20 @@ const AdminCatalog: React.FC = () => {
     clearFilters,
   } = useCatalogFilters({ getCurrentList });
 
+  const createLabel = activeTab === 'reminders' ? 'Novo Lembrete' : 'Novo Conteudo';
+  const headerDescription = activeTab === 'reminders'
+    ? 'Gerencie lembretes globais para os alunos autorizados.'
+    : 'Gerencie seus cursos, aulas, galerias e materiais audiovisuais.';
+
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
       <PageHeader
         title="Catálogo de Conteúdo"
-        description="Gerencie seus cursos, aulas, galerias e materiais audiovisuais."
+        description={headerDescription}
         action={
           <Button onClick={() => { setEditingCourse(null); setIsFormOpen(true); }} className="gap-2 w-full sm:w-auto">
             <Plus size={20} />
-            Novo Conteúdo
+            {createLabel}
           </Button>
         }
       />
@@ -111,7 +118,7 @@ const AdminCatalog: React.FC = () => {
           <div className="flex-1">
             <Input
               type="search"
-              placeholder={activeTab === 'gallery' ? 'Buscar galerias...' : 'Buscar conteúdo...'}
+              placeholder={activeTab === 'gallery' ? 'Buscar galerias...' : activeTab === 'reminders' ? 'Buscar lembretes...' : 'Buscar conteudo...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               icon={<Search className="text-[#9CA3AF]" size={18} />}
@@ -215,12 +222,14 @@ const AdminCatalog: React.FC = () => {
             <Search className="text-[#9CA3AF]/50" size={32} />
           </div>
           <h3 className="text-lg font-semibold text-[#F3F4F6] mb-1">
-            {activeTab === 'gallery' ? 'Nenhuma galeria encontrada' : 'Nenhum conteúdo encontrado'}
+            {activeTab === 'gallery' ? 'Nenhuma galeria encontrada' : activeTab === 'reminders' ? 'Nenhum lembrete encontrado' : 'Nenhum conteudo encontrado'}
           </h3>
           <p className="text-[#9CA3AF] text-center max-w-xs mb-6">
             {activeTab === 'gallery'
               ? 'Tente ajustar sua busca ou crie uma nova galeria para começar.'
-              : 'Comece criando novos conteúdos para popular sua plataforma.'}
+              : activeTab === 'reminders'
+                ? 'Crie seu primeiro lembrete para comunicar avisos globais aos alunos.'
+                : 'Comece criando novos conteudos para popular sua plataforma.'}
           </p>
           <Button variant="outline" onClick={clearFilters}>
             Limpar Filtros
@@ -230,7 +239,7 @@ const AdminCatalog: React.FC = () => {
         <CatalogGrid
           courses={filteredCourses}
           activeTab={activeTab}
-          onView={handleViewCourse}
+          onView={activeTab === 'reminders' ? handleEditCourse : handleViewCourse}
           onEdit={handleEditCourse}
           onDelete={handleDeleteCourse}
         />
@@ -247,7 +256,7 @@ const AdminCatalog: React.FC = () => {
         />
       )}
 
-      {viewingCourse && (
+      {viewingCourse && activeTab !== 'reminders' && (
         <div className="fixed inset-0 md:left-64 z-[100] bg-[#0B0B0B] overflow-y-auto overscroll-contain">
           <CourseDetail
             key={viewingCourse.id || 'no-course'}
@@ -308,18 +317,26 @@ const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, o
 
               {/* Top Badges */}
               <div className="absolute top-3 left-3 flex gap-2 flex-wrap max-w-full pr-3">
-                <span className="bg-black/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-white/10 shadow-sm">
-                  {course.type}
-                </span>
-                {course.productId === '1' && (
-                  <span className="bg-[#FF6A00]/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-[#FF6A00]/20 shadow-sm">
-                    Mindful
+                {activeTab === 'reminders' ? (
+                  <span className="bg-[#FF6A00]/90 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-[#FF6A00]/20 shadow-sm">
+                    Lembrete Global
                   </span>
-                )}
-                {course.productId === '2' && (
-                  <span className="bg-[#8B5CF6]/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-[#8B5CF6]/20 shadow-sm">
-                    Music
-                  </span>
+                ) : (
+                  <>
+                    <span className="bg-black/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-white/10 shadow-sm">
+                      {course.type}
+                    </span>
+                    {course.productId === '1' && (
+                      <span className="bg-[#FF6A00]/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-[#FF6A00]/20 shadow-sm">
+                        Mindful
+                      </span>
+                    )}
+                    {course.productId === '2' && (
+                      <span className="bg-[#8B5CF6]/80 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded text-white border border-[#8B5CF6]/20 shadow-sm">
+                        Music
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -397,6 +414,17 @@ const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, o
                       {totalModules} {totalModules === 1 ? 'módulo' : 'módulos'}
                     </div>
                   </>
+                ) : activeTab === 'reminders' ? (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <Bell size={13} className="text-[#FF6A00]/70" />
+                      Global
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={13} className="text-primary/70" />
+                      {course.launchDate || 'Sem data'}
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div className="flex items-center gap-1.5">
@@ -412,7 +440,9 @@ const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, o
               </div>
 
               <p className="text-sm text-[#9CA3AF] mb-5 line-clamp-2">
-                {course.description || `Conteúdo produzido por ${course.author}`}
+                {activeTab === 'reminders'
+                  ? (course.description || 'Lembrete sem mensagem definida.')
+                  : (course.description || `Conteudo produzido por ${course.author}`)}
               </p>
 
               <div className="mt-auto pt-4 border-t border-white/[0.06] flex items-center justify-center">
@@ -422,7 +452,13 @@ const CatalogGrid: React.FC<CatalogGridProps> = ({ courses, activeTab, onView, o
                   className="text-[#FF6A00] hover:bg-[#FF6A00]/10"
                   onClick={() => onView(course)}
                 >
-                  {activeTab === 'courses' ? 'Acessar Curso' : activeTab === 'gallery' ? 'Ver Galerias' : 'Visualizar'}
+                  {activeTab === 'courses'
+                    ? 'Acessar Curso'
+                    : activeTab === 'gallery'
+                      ? 'Ver Galerias'
+                      : activeTab === 'reminders'
+                        ? 'Editar Lembrete'
+                        : 'Visualizar'}
                 </Button>
               </div>
             </div>

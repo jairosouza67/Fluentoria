@@ -33,7 +33,7 @@ interface CourseFormProps {
     course?: Course | null;
     onSave: (course: Course) => Promise<void>;
     onCancel: () => void;
-    activeTab?: 'courses' | 'gallery' | 'mindful' | 'music';
+    activeTab?: 'courses' | 'gallery' | 'mindful' | 'music' | 'reminders';
     availableCourses?: Course[];
 }
 
@@ -64,6 +64,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
     const [coverType, setCoverType] = useState<'link' | 'upload'>('link');
     const [uploadingCover, setUploadingCover] = useState(false);
     const [uploadingMaterial, setUploadingMaterial] = useState<{ [key: string]: boolean }>({});
+    const isReminderTab = activeTab === 'reminders';
 
     useEffect(() => {
         if (course) {
@@ -109,9 +110,9 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
             setExpandedModules([]);
             setExpandedGalleries([]);
             setErrorMessage(null);
-            // For mindful and music tabs, start with simple video mode
+            // For mindful, music and reminders tabs, start with simple video mode
             // For courses/gallery, start with module/gallery type
-            if (activeTab === 'mindful' || activeTab === 'music') {
+            if (activeTab === 'mindful' || activeTab === 'music' || activeTab === 'reminders') {
                 setContentType('video');
                 setContentMode('single');
             } else {
@@ -127,7 +128,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
         setLoading(true);
         try {
             // Check for duplicate title (only when creating new course)
-            if (!course && availableCourses) {
+            if (!course && availableCourses && activeTab !== 'mindful' && activeTab !== 'music' && activeTab !== 'reminders') {
                 const normalizedTitle = formData.title.trim().toLowerCase();
                 const duplicateCourse = availableCourses.find(
                     c => c.title.trim().toLowerCase() === normalizedTitle
@@ -158,6 +159,26 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
                 dataToSave.modules = []; // Clear modules if in single mode
                 dataToSave.galleries = []; // Clear galleries if in single mode
             }
+
+            if (activeTab === 'reminders') {
+                if (!dataToSave.videoUrl?.trim()) {
+                    setErrorMessage('Informe a URL do video do lembrete.');
+                    setLoading(false);
+                    return;
+                }
+
+                if (!dataToSave.description?.trim()) {
+                    setErrorMessage('Informe a mensagem do lembrete.');
+                    setLoading(false);
+                    return;
+                }
+
+                dataToSave.author = dataToSave.author?.trim() || 'Equipe Fluentoria';
+                dataToSave.duration = dataToSave.duration?.trim() || '00:00';
+                dataToSave.type = 'video';
+                delete dataToSave.productId;
+            }
+
             if (dataToSave.productId === undefined) {
                 delete dataToSave.productId;
             }
@@ -595,9 +616,21 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
         <Modal
             isOpen={true}
             onClose={onCancel}
-            title={course ? 'Editar Conteúdo' : activeTab === 'mindful' ? 'Novo Mindful Flow' : activeTab === 'music' ? 'Nova Música' : contentType === 'video' ? 'Novo Vídeo Solto' : 'Criar Galerias'}
+            title={
+                course
+                    ? (isReminderTab ? 'Editar Lembrete' : 'Editar Conteúdo')
+                    : activeTab === 'mindful'
+                        ? 'Novo Mindful Flow'
+                        : activeTab === 'music'
+                            ? 'Nova Música'
+                            : isReminderTab
+                                ? 'Novo Lembrete'
+                                : contentType === 'video'
+                                    ? 'Novo Vídeo Solto'
+                                    : 'Criar Galerias'
+            }
             description={
-                !course && activeTab !== 'mindful' && activeTab !== 'music' ? (
+                !course && activeTab !== 'mindful' && activeTab !== 'music' && !isReminderTab ? (
                     contentType === 'module' ? (
                         <button
                             type="button"
@@ -1048,107 +1081,113 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
                     <div className="grid gap-6">
                         <div className="flex items-center gap-2 border-b border-border pb-2">
                             <Film size={18} className="text-primary" />
-                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Informações do Vídeo</h3>
+                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">
+                                {isReminderTab ? 'Informações do Lembrete' : 'Informações do Vídeo'}
+                            </h3>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-6">
                             <Input
-                                label="Título do Vídeo *"
+                                label={isReminderTab ? 'Título do Lembrete *' : 'Título do Vídeo *'}
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 required
-                                placeholder="Ex: Introdução ao Curso"
+                                placeholder={isReminderTab ? 'Ex: Aviso importante da semana' : 'Ex: Introdução ao Curso'}
                                 icon={<Type size={18} className="text-muted-foreground" />}
                             />
 
-                            <Input
-                                label="Autor / Instrutor *"
-                                type="text"
-                                value={formData.author}
-                                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                                required
-                                placeholder="Nome do autor"
-                                icon={<Type size={18} className="text-muted-foreground" />}
-                            />
+                            {!isReminderTab && (
+                                <Input
+                                    label="Autor / Instrutor *"
+                                    type="text"
+                                    value={formData.author}
+                                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                                    required
+                                    placeholder="Nome do autor"
+                                    icon={<Type size={18} className="text-muted-foreground" />}
+                                />
+                            )}
 
                             <div className="md:col-span-2">
                                 <Input
-                                    label="Link do Vídeo *"
+                                    label={isReminderTab ? 'URL do Vídeo *' : 'Link do Vídeo *'}
                                     type="text"
                                     value={formData.videoUrl || ''}
                                     onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                                     required
-                                    placeholder="YouTube link ou link direto (.mp4)"
+                                    placeholder={isReminderTab ? 'Cole a URL do vídeo do lembrete' : 'YouTube link ou link direto (.mp4)'}
                                     icon={<Film size={18} className="text-muted-foreground" />}
                                     className="font-mono text-sm"
                                 />
                             </div>
 
-                            <div className="md:col-span-2 grid md:grid-cols-2 gap-6">
-                                <Input
-                                    label="Duração"
-                                    type="text"
-                                    value={formData.duration}
-                                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                                    placeholder="Ex: 15:00"
-                                    icon={<Clock size={18} className="text-muted-foreground" />}
-                                />
+                            {!isReminderTab && (
+                                <div className="md:col-span-2 grid md:grid-cols-2 gap-6">
+                                    <Input
+                                        label="Duração"
+                                        type="text"
+                                        value={formData.duration}
+                                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                                        placeholder="Ex: 15:00"
+                                        icon={<Clock size={18} className="text-muted-foreground" />}
+                                    />
 
-                                {(activeTab === 'mindful' || activeTab === 'music') ? (
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
-                                            Curso Vinculado *
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={formData.productId || ''}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === '' ? undefined : e.target.value }))}
-                                                required
-                                                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
-                                            >
-                                                <option value="" disabled className="bg-stone-900">Selecione um curso</option>
-                                                {availableCourses?.map(c => (
-                                                    <option key={c.id} value={c.id} className="bg-stone-900">
-                                                        {c.title}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
-                                                <ChevronDown size={16} />
+                                    {(activeTab === 'mindful' || activeTab === 'music') ? (
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                                                Curso Vinculado *
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    value={formData.productId || ''}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === '' ? undefined : e.target.value }))}
+                                                    required
+                                                    className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
+                                                >
+                                                    <option value="" disabled className="bg-stone-900">Selecione um curso</option>
+                                                    {availableCourses?.map(c => (
+                                                        <option key={c.id} value={c.id} className="bg-stone-900">
+                                                            {c.title}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
+                                                    <ChevronDown size={16} />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
-                                            Produto (Opcional)
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={formData.productId || 'all'}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === 'all' ? undefined : e.target.value }))}
-                                                className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
-                                            >
-                                                <option value="all" className="bg-stone-900">Todos os Produtos</option>
-                                                <option value="1" className="bg-stone-900">Fluentoria Mindful (ID 1)</option>
-                                                <option value="2" className="bg-stone-900">Fluentoria Music (ID 2)</option>
-                                            </select>
-                                            <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
-                                                <ChevronDown size={16} />
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                                                Produto (Opcional)
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    value={formData.productId || 'all'}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value === 'all' ? undefined : e.target.value }))}
+                                                    className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
+                                                >
+                                                    <option value="all" className="bg-stone-900">Todos os Produtos</option>
+                                                    <option value="1" className="bg-stone-900">Fluentoria Mindful (ID 1)</option>
+                                                    <option value="2" className="bg-stone-900">Fluentoria Music (ID 2)</option>
+                                                </select>
+                                                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
+                                                    <ChevronDown size={16} />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="md:col-span-2">
                                 <Input
-                                    label="Capa do Vídeo"
+                                    label={isReminderTab ? 'Capa do Lembrete' : 'Capa do Vídeo'}
                                     type="text"
                                     value={formData.coverImage || ''}
                                     onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                                    placeholder="URL da imagem customizada"
+                                    placeholder={isReminderTab ? 'URL da imagem (opcional)' : 'URL da imagem customizada'}
                                     icon={<ImageIcon size={18} className="text-muted-foreground" />}
                                 />
                                 <div className="mt-3">
@@ -1169,13 +1208,14 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-2">
                                 <AlignLeft size={14} />
-                                Descrição
+                                {isReminderTab ? 'Mensagem *' : 'Descrição'}
                             </label>
                             <textarea
                                 value={formData.description || ''}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                required={isReminderTab}
                                 className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm p-4 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] resize-none h-32"
-                                placeholder="Detalhes sobre este conteúdo..."
+                                placeholder={isReminderTab ? 'Digite a mensagem completa do lembrete' : 'Detalhes sobre este conteúdo...'}
                             />
                         </div>
                     </div>

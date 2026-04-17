@@ -22,6 +22,16 @@ describe('appStore', () => {
     expect(useAppStore.getState().currentScreen).toBe('dashboard');
   });
 
+  it('should navigate to reminders list screen', () => {
+    useAppStore.getState().navigateTo('reminders');
+    expect(useAppStore.getState().currentScreen).toBe('reminders');
+  });
+
+  it('should navigate to reminder detail screen', () => {
+    useAppStore.getState().navigateTo('reminder-detail');
+    expect(useAppStore.getState().currentScreen).toBe('reminder-detail');
+  });
+
   it('should not toggle view mode for non-admin users', () => {
     // Mock alert
     const originalAlert = globalThis.alert;

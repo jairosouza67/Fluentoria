@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Course,
+  Reminder,
   getCourses,
   addCourse,
   updateCourse,
@@ -13,15 +14,66 @@ import {
   addMusic,
   updateMusic,
   deleteMusic,
+  getReminders,
+  addReminder,
+  updateReminder,
+  deleteReminder,
 } from '../lib/db';
 
-export type TabType = 'courses' | 'gallery' | 'mindful' | 'music';
+export type TabType = 'courses' | 'gallery' | 'mindful' | 'music' | 'reminders';
+
+const REMINDER_FALLBACK_AUTHOR = 'Equipe Fluentoria';
+const REMINDER_FALLBACK_THUMBNAIL = 'from-orange-900 to-stone-900';
+
+const toDateInputValue = (value: unknown): string => {
+  if (!value) return '';
+
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0];
+  }
+
+  if (typeof value === 'object' && value !== null && 'toDate' in value) {
+    const dateValue = (value as { toDate?: () => Date }).toDate?.();
+    if (dateValue instanceof Date) {
+      return dateValue.toISOString().split('T')[0];
+    }
+  }
+
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  return parsed.toISOString().split('T')[0];
+};
+
+const reminderToCourse = (reminder: Reminder): Course => ({
+  id: reminder.id,
+  title: reminder.title,
+  author: REMINDER_FALLBACK_AUTHOR,
+  duration: '',
+  type: 'video',
+  progress: 0,
+  thumbnail: REMINDER_FALLBACK_THUMBNAIL,
+  launchDate: toDateInputValue(reminder.updatedAt || reminder.createdAt),
+  description: reminder.message,
+  videoUrl: reminder.videoUrl,
+  coverImage: reminder.coverImage || '',
+});
+
+const courseToReminder = (course: Course): Reminder => ({
+  title: course.title,
+  message: course.description?.trim() || '',
+  videoUrl: course.videoUrl?.trim() || '',
+  coverImage: course.coverImage?.trim() || '',
+});
 
 export const useCatalogData = () => {
   const [activeTab, setActiveTab] = useState<TabType>('courses');
   const [courses, setCourses] = useState<Course[]>([]);
   const [mindfulFlows, setMindfulFlows] = useState<Course[]>([]);
   const [musicList, setMusicList] = useState<Course[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -48,6 +100,13 @@ export const useCatalogData = () => {
     setLoading(false);
   }, []);
 
+  const fetchReminders = useCallback(async () => {
+    setLoading(true);
+    const data = await getReminders();
+    setReminders(data);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     // Always fetch courses for linking in mindful/music tabs
     fetchCourses();
@@ -58,16 +117,19 @@ export const useCatalogData = () => {
       fetchMindfulFlows();
     } else if (activeTab === 'music') {
       fetchMusic();
+    } else if (activeTab === 'reminders') {
+      fetchReminders();
     }
-  }, [activeTab, fetchCourses, fetchMindfulFlows, fetchMusic]);
+  }, [activeTab, fetchCourses, fetchMindfulFlows, fetchMusic, fetchReminders]);
 
   const getCurrentList = useCallback(() => {
     if (activeTab === 'courses') return courses;
     if (activeTab === 'gallery') return courses.filter(c => c.galleries && c.galleries.length > 0);
     if (activeTab === 'mindful') return mindfulFlows;
     if (activeTab === 'music') return musicList;
+    if (activeTab === 'reminders') return reminders.map(reminderToCourse);
     return [];
-  }, [activeTab, courses, mindfulFlows, musicList]);
+  }, [activeTab, courses, mindfulFlows, musicList, reminders]);
 
   const handleSaveCourse = useCallback(async (course: Course) => {
     if (activeTab === 'courses' || activeTab === 'gallery') {
@@ -92,10 +154,18 @@ export const useCatalogData = () => {
         await addMusic(course);
       }
       await fetchMusic();
+    } else if (activeTab === 'reminders') {
+      const reminder = courseToReminder(course);
+      if (editingCourse && editingCourse.id) {
+        await updateReminder(editingCourse.id, reminder);
+      } else {
+        await addReminder(reminder);
+      }
+      await fetchReminders();
     }
     setIsFormOpen(false);
     setEditingCourse(null);
-  }, [activeTab, editingCourse, fetchCourses, fetchMindfulFlows, fetchMusic]);
+  }, [activeTab, editingCourse, fetchCourses, fetchMindfulFlows, fetchMusic, fetchReminders]);
 
   const handleDeleteCourse = useCallback(async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este conteúdo?')) {
@@ -108,9 +178,12 @@ export const useCatalogData = () => {
       } else if (activeTab === 'music') {
         await deleteMusic(id);
         await fetchMusic();
+      } else if (activeTab === 'reminders') {
+        await deleteReminder(id);
+        await fetchReminders();
       }
     }
-  }, [activeTab, fetchCourses, fetchMindfulFlows, fetchMusic]);
+  }, [activeTab, fetchCourses, fetchMindfulFlows, fetchMusic, fetchReminders]);
 
   const handleEditCourse = useCallback((course: Course) => {
     // Deep copy to avoid reference mutations

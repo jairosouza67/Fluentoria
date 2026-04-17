@@ -1,7 +1,7 @@
 // Barrel re-exports — maintains backward compatibility with `import { ... } from './lib/db'`
 
 // Types
-export type { Course, CourseLesson, CourseModule, CourseGallery, SupportMaterial, StudentCompletion, Student, UserCourse } from './types';
+export type { Course, CourseLesson, CourseModule, CourseGallery, SupportMaterial, StudentCompletion, Student, UserCourse, Reminder, ReminderRead } from './types';
 
 // Config
 export { PRIMARY_ADMIN_EMAIL, ADMIN_EMAILS, isAdminEmail, isPrimaryAdmin } from './config';
@@ -14,6 +14,9 @@ export { getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, 
 
 // Music
 export { getMusic, addMusic, updateMusic, deleteMusic, getMusicForUser } from './music';
+
+// Reminders
+export { getReminders, addReminder, updateReminder, deleteReminder, getRemindersForUser, getReminderReadsForUser, markReminderAsRead } from './reminders';
 
 // Completions
 export { getStudentCompletion, markContentComplete } from './completions';

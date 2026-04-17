@@ -52,6 +52,32 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Reminders - global content for authenticated users, admin write only
+    match /reminders/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Reminder reads - one read marker per user/reminder pair
+    match /reminder_reads/{docId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId is string &&
+        request.resource.data.reminderId is string &&
+        request.resource.data.readAt is timestamp &&
+        docId == (request.resource.data.userId + '_' + request.resource.data.reminderId) &&
+        (
+          isAdmin() ||
+          request.resource.data.userId == request.auth.uid
+        );
+
+      allow update, delete: if false;
+    }
+
     // Student completions
     match /student_completions/{docId} {
       allow read: if isAuthenticated();
