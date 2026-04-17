@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, CheckCircle2, Clock3, Loader2, PlayCircle } from 'lucide-react';
 import { Screen } from '../types';
-import { Reminder, getReminderReadsForUser, getRemindersForUser, markReminderAsRead } from '../lib/db';
+import { Reminder, getReminderReadsForUser, getRemindersForUser, markReminderAsRead, unmarkReminderAsRead } from '../lib/db';
 import { useAppStore } from '../lib/stores/appStore';
 import { getYouTubeThumbnail } from '../lib/video';
 import AnimatedInput from './ui/AnimatedInput';
@@ -89,18 +89,24 @@ const ReminderList: React.FC<ReminderListProps> = ({ onNavigate, onSelectReminde
     });
   }, [reminders, readReminderIds, searchTerm]);
 
-  const handleMarkAsRead = async (reminderId: string) => {
-    if (!user || !reminderId || readReminderIds.has(reminderId)) {
+  const handleToggleRead = async (reminderId: string, isRead: boolean) => {
+    if (!user || !reminderId) {
       return;
     }
 
     setMarkingId(reminderId);
-    const saved = await markReminderAsRead(user.uid, reminderId);
+    const saved = isRead
+      ? await unmarkReminderAsRead(user.uid, reminderId)
+      : await markReminderAsRead(user.uid, reminderId);
 
     if (saved) {
       setReadReminderIds(prev => {
         const next = new Set(prev);
-        next.add(reminderId);
+        if (isRead) {
+          next.delete(reminderId);
+        } else {
+          next.add(reminderId);
+        }
         return next;
       });
     }
@@ -213,27 +219,23 @@ const ReminderList: React.FC<ReminderListProps> = ({ onNavigate, onSelectReminde
                       Ver detalhes
                     </button>
 
-                    {isRead ? (
-                      <span className="inline-flex items-center gap-1.5 text-sm text-[#23D18B]">
-                        <CheckCircle2 size={14} />
-                        Lido
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={!reminderId || markingId === reminderId}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (reminderId) {
-                            void handleMarkAsRead(reminderId);
-                          }
-                        }}
-                        className="inline-flex items-center gap-1.5 text-sm text-[#FF6A00] hover:text-[#FFB37A] transition-colors disabled:opacity-60"
-                      >
-                        {markingId === reminderId ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                        Marcar como lido
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      disabled={!reminderId || markingId === reminderId}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (reminderId) {
+                          void handleToggleRead(reminderId, isRead);
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1.5 text-sm transition-colors disabled:opacity-60 ${isRead
+                        ? 'text-[#23D18B] hover:text-[#8EF0C2]'
+                        : 'text-[#FF6A00] hover:text-[#FFB37A]'
+                        }`}
+                    >
+                      {markingId === reminderId ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                      {isRead ? 'Marcar como nao lido' : 'Marcar como lido'}
+                    </button>
                   </div>
                 </div>
               </div>

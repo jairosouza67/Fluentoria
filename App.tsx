@@ -368,9 +368,9 @@ const App: React.FC = () => {
           onBack={() => navigateTo('reminders')}
           reminder={selectedReminder}
           isRead={selectedReminderRead}
-          onMarkedRead={(reminderId) => {
+          onReadStatusChange={(reminderId, isRead) => {
             if (selectedReminder?.id === reminderId) {
-              setSelectedReminderRead(true);
+              setSelectedReminderRead(isRead);
             }
           }}
         />;

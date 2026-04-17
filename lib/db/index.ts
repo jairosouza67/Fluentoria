@@ -16,7 +16,7 @@ export { getMindfulFlows, addMindfulFlow, updateMindfulFlow, deleteMindfulFlow, 
 export { getMusic, addMusic, updateMusic, deleteMusic, getMusicForUser } from './music';
 
 // Reminders
-export { getReminders, addReminder, updateReminder, deleteReminder, getRemindersForUser, getReminderReadsForUser, markReminderAsRead } from './reminders';
+export { getReminders, addReminder, updateReminder, deleteReminder, getRemindersForUser, getReminderReadsForUser, markReminderAsRead, unmarkReminderAsRead } from './reminders';
 
 // Completions
 export { getStudentCompletion, markContentComplete } from './completions';

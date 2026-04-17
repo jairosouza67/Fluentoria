@@ -133,3 +133,25 @@ export const markReminderAsRead = async (userId: string, reminderId: string): Pr
         return false;
     }
 };
+
+export const unmarkReminderAsRead = async (userId: string, reminderId: string): Promise<boolean> => {
+    try {
+        if (!userId || !reminderId) {
+            return false;
+        }
+
+        const { authorized, role } = await checkUserAccess(userId);
+
+        if (role !== 'admin' && !authorized) {
+            return false;
+        }
+
+        const docId = `${userId}_${reminderId}`;
+        const readRef = doc(db, REMINDER_READS_COLLECTION, docId);
+        await deleteDoc(readRef);
+        return true;
+    } catch (error) {
+        console.error('Error unmarking reminder as read:', error);
+        return false;
+    }
+};

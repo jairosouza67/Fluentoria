@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Loader2, PlayCircle } from 'lucide-react';
-import { Reminder, markReminderAsRead } from '../lib/db';
+import { Reminder, markReminderAsRead, unmarkReminderAsRead } from '../lib/db';
 import { getEmbedUrl } from '../lib/video';
 import { useAppStore } from '../lib/stores/appStore';
 
@@ -8,10 +8,10 @@ interface ReminderDetailProps {
   onBack: () => void;
   reminder: Reminder | null;
   isRead: boolean;
-  onMarkedRead?: (reminderId: string) => void;
+  onReadStatusChange?: (reminderId: string, isRead: boolean) => void;
 }
 
-const ReminderDetail: React.FC<ReminderDetailProps> = ({ onBack, reminder, isRead, onMarkedRead }) => {
+const ReminderDetail: React.FC<ReminderDetailProps> = ({ onBack, reminder, isRead, onReadStatusChange }) => {
   const user = useAppStore(state => state.user);
   const [marking, setMarking] = useState(false);
   const [localRead, setLocalRead] = useState(isRead);
@@ -38,17 +38,20 @@ const ReminderDetail: React.FC<ReminderDetailProps> = ({ onBack, reminder, isRea
 
   const embedUrl = getEmbedUrl(reminder.videoUrl);
 
-  const handleMarkAsRead = async () => {
-    if (!user || !reminder.id || localRead) {
+  const handleToggleRead = async () => {
+    if (!user || !reminder.id) {
       return;
     }
 
     setMarking(true);
-    const saved = await markReminderAsRead(user.uid, reminder.id);
+    const saved = localRead
+      ? await unmarkReminderAsRead(user.uid, reminder.id)
+      : await markReminderAsRead(user.uid, reminder.id);
 
     if (saved) {
-      setLocalRead(true);
-      onMarkedRead?.(reminder.id);
+      const nextStatus = !localRead;
+      setLocalRead(nextStatus);
+      onReadStatusChange?.(reminder.id, nextStatus);
     }
 
     setMarking(false);
@@ -66,21 +69,17 @@ const ReminderDetail: React.FC<ReminderDetailProps> = ({ onBack, reminder, isRea
           <p className="text-xs text-[#9CA3AF]">Lembrete global</p>
         </div>
 
-        {localRead ? (
-          <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-[#23D18B]/20 text-[#23D18B] border border-[#23D18B]/30">
-            <CheckCircle2 size={14} />
-            Lido
-          </span>
-        ) : (
-          <button
-            onClick={handleMarkAsRead}
-            disabled={marking}
-            className="px-3 md:px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 shrink-0 bg-[#FF6A00]/20 text-[#FFB37A] border border-[#FF6A00]/30 hover:bg-[#FF6A00]/30 disabled:opacity-60"
-          >
-            {marking ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-            Marcar como lido
-          </button>
-        )}
+        <button
+          onClick={handleToggleRead}
+          disabled={marking}
+          className={`px-3 md:px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 shrink-0 disabled:opacity-60 ${localRead
+            ? 'bg-[#23D18B]/20 text-[#23D18B] border border-[#23D18B]/30 hover:bg-[#23D18B]/30'
+            : 'bg-[#FF6A00]/20 text-[#FFB37A] border border-[#FF6A00]/30 hover:bg-[#FF6A00]/30'
+            }`}
+        >
+          {marking ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+          {localRead ? 'Marcar como nao lido' : 'Marcar como lido'}
+        </button>
       </div>
 
       <div className="flex-1 p-6 lg:p-8 space-y-6 max-w-5xl w-full mx-auto">
