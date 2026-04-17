@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlayCircle, FileText, Mic, Clock, Filter, Loader2, BookOpen } from 'lucide-react';
+import { PlayCircle, FileText, Mic, Filter, Loader2, BookOpen } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, getCoursesForUser } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/video';
@@ -116,10 +116,6 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                       <div className="p-5 space-y-4">
                         <div className="flex justify-between items-start">
                           <span className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">{course.type}</span>
-                          <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
-                            <Clock size={12} className="text-primary/70" />
-                            <span>{course.duration}</span>
-                          </div>
                         </div>
 
                         <div>

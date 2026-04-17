@@ -31,7 +31,7 @@ import { cn } from '../lib/utils';
 
 interface CourseFormProps {
     course?: Course | null;
-    onSave: (course: Course) => Promise<void>;
+    onSave: (course: Course) => Promise<{ success: boolean; error?: string }>;
     onCancel: () => void;
     activeTab?: 'courses' | 'gallery' | 'mindful' | 'music' | 'reminders';
     availableCourses?: Course[];
@@ -39,6 +39,16 @@ interface CourseFormProps {
 
 type ContentMode = 'modules' | 'single';
 type ContentType = 'module' | 'video' | null;
+
+const getDefaultContentConfig = (
+    tab?: CourseFormProps['activeTab']
+): { mode: ContentMode; type: Exclude<ContentType, null> } => {
+    if (tab === 'mindful' || tab === 'music' || tab === 'reminders') {
+        return { mode: 'single', type: 'video' };
+    }
+
+    return { mode: 'modules', type: 'module' };
+};
 
 const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activeTab, availableCourses }) => {
     const [formData, setFormData] = useState<Course>({
@@ -67,29 +77,48 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
     const isReminderTab = activeTab === 'reminders';
 
     useEffect(() => {
+        const defaultContentConfig = getDefaultContentConfig(activeTab);
+
         if (course) {
+            const normalizedModules = Array.isArray(course.modules) ? course.modules : [];
+            const normalizedGalleries = Array.isArray(course.galleries) ? course.galleries : [];
+            const normalizedVideoUrl = typeof course.videoUrl === 'string' ? course.videoUrl.trim() : '';
+
             setFormData({
                 ...course,
-                modules: course.modules || [],
-                galleries: course.galleries || []
+                videoUrl: normalizedVideoUrl,
+                modules: normalizedModules,
+                galleries: normalizedGalleries
             });
+            setExpandedModules([]);
+            setExpandedGalleries([]);
+            setErrorMessage(null);
+
             // Handle new gallery structure
-            if (course.galleries && course.galleries.length > 0) {
-                setExpandedGalleries([course.galleries[0].id]);
-                if (course.galleries[0].modules && course.galleries[0].modules.length > 0) {
-                    setExpandedModules([course.galleries[0].modules[0].id]);
+            if (normalizedGalleries.length > 0) {
+                setExpandedGalleries([normalizedGalleries[0].id]);
+
+                const galleryModules = Array.isArray(normalizedGalleries[0].modules)
+                    ? normalizedGalleries[0].modules
+                    : [];
+
+                if (galleryModules.length > 0) {
+                    setExpandedModules([galleryModules[0].id]);
                 }
                 setContentMode('modules');
                 setContentType('module');
             }
             // Handle old module structure (backward compatibility)
-            else if (course.modules && course.modules.length > 0) {
-                setExpandedModules([course.modules[0].id]);
+            else if (normalizedModules.length > 0) {
+                setExpandedModules([normalizedModules[0].id]);
                 setContentMode('modules');
                 setContentType('module');
-            } else if (course.videoUrl) {
+            } else if (normalizedVideoUrl) {
                 setContentMode('single');
                 setContentType('video');
+            } else {
+                setContentMode(defaultContentConfig.mode);
+                setContentType(defaultContentConfig.type);
             }
         } else {
             // Reset form data when creating a new course
@@ -110,15 +139,9 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
             setExpandedModules([]);
             setExpandedGalleries([]);
             setErrorMessage(null);
-            // For mindful, music and reminders tabs, start with simple video mode
-            // For courses/gallery, start with module/gallery type
-            if (activeTab === 'mindful' || activeTab === 'music' || activeTab === 'reminders') {
-                setContentType('video');
-                setContentMode('single');
-            } else {
-                setContentType('module');
-                setContentMode('modules');
-            }
+
+            setContentMode(defaultContentConfig.mode);
+            setContentType(defaultContentConfig.type);
         }
     }, [course, activeTab]);
 
@@ -182,9 +205,20 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
             if (dataToSave.productId === undefined) {
                 delete dataToSave.productId;
             }
-            await onSave(dataToSave);
+
+            const saveResult = await onSave(dataToSave);
+            if (!saveResult.success) {
+                setErrorMessage(saveResult.error || 'Nao foi possivel salvar o conteudo. Tente novamente.');
+                return;
+            }
         } catch (error) {
-            console.error("Error saving course:", error);
+            console.error('Error saving course form data', {
+                activeTab,
+                operation: course?.id ? 'update' : 'create',
+                courseId: course?.id ?? null,
+                error,
+            });
+            setErrorMessage('Nao foi possivel salvar o conteudo. Tente novamente.');
         } finally {
             setLoading(false);
         }

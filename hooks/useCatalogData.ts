@@ -22,6 +22,11 @@ import {
 
 export type TabType = 'courses' | 'gallery' | 'mindful' | 'music' | 'reminders';
 
+export interface SaveCourseResult {
+  success: boolean;
+  error?: string;
+}
+
 const REMINDER_FALLBACK_AUTHOR = 'Equipe Fluentoria';
 const REMINDER_FALLBACK_THUMBNAIL = 'from-orange-900 to-stone-900';
 
@@ -131,40 +136,62 @@ export const useCatalogData = () => {
     return [];
   }, [activeTab, courses, mindfulFlows, musicList, reminders]);
 
-  const handleSaveCourse = useCallback(async (course: Course) => {
-    if (activeTab === 'courses' || activeTab === 'gallery') {
-      if (editingCourse && editingCourse.id) {
-        await updateCourse(editingCourse.id, course);
+  const handleSaveCourse = useCallback(async (course: Course): Promise<SaveCourseResult> => {
+    const operation = editingCourse?.id ? 'update' : 'create';
+
+    try {
+      if (activeTab === 'courses' || activeTab === 'gallery') {
+        if (editingCourse && editingCourse.id) {
+          await updateCourse(editingCourse.id, course);
+        } else {
+          // Always create a new course - no merging logic
+          await addCourse(course);
+        }
+        await fetchCourses();
+      } else if (activeTab === 'mindful') {
+        if (editingCourse && editingCourse.id) {
+          await updateMindfulFlow(editingCourse.id, course);
+        } else {
+          await addMindfulFlow(course);
+        }
+        await fetchMindfulFlows();
+      } else if (activeTab === 'music') {
+        if (editingCourse && editingCourse.id) {
+          await updateMusic(editingCourse.id, course);
+        } else {
+          await addMusic(course);
+        }
+        await fetchMusic();
+      } else if (activeTab === 'reminders') {
+        const reminder = courseToReminder(course);
+        if (editingCourse && editingCourse.id) {
+          await updateReminder(editingCourse.id, reminder);
+        } else {
+          await addReminder(reminder);
+        }
+        await fetchReminders();
       } else {
-        // Always create a new course - no merging logic
-        await addCourse(course);
+        return { success: false, error: 'Aba de catalogo invalida para salvar.' };
       }
-      await fetchCourses();
-    } else if (activeTab === 'mindful') {
-      if (editingCourse && editingCourse.id) {
-        await updateMindfulFlow(editingCourse.id, course);
-      } else {
-        await addMindfulFlow(course);
-      }
-      await fetchMindfulFlows();
-    } else if (activeTab === 'music') {
-      if (editingCourse && editingCourse.id) {
-        await updateMusic(editingCourse.id, course);
-      } else {
-        await addMusic(course);
-      }
-      await fetchMusic();
-    } else if (activeTab === 'reminders') {
-      const reminder = courseToReminder(course);
-      if (editingCourse && editingCourse.id) {
-        await updateReminder(editingCourse.id, reminder);
-      } else {
-        await addReminder(reminder);
-      }
-      await fetchReminders();
+
+      setIsFormOpen(false);
+      setEditingCourse(null);
+      return { success: true };
+    } catch (error) {
+      console.error('[useCatalogData] failed to save catalog content', {
+        activeTab,
+        operation,
+        editingCourseId: editingCourse?.id ?? null,
+        submittedCourseId: course.id ?? null,
+        error,
+      });
+
+      const message = error instanceof Error && error.message
+        ? error.message
+        : 'Nao foi possivel salvar o conteudo. Tente novamente.';
+
+      return { success: false, error: message };
     }
-    setIsFormOpen(false);
-    setEditingCourse(null);
   }, [activeTab, editingCourse, fetchCourses, fetchMindfulFlows, fetchMusic, fetchReminders]);
 
   const handleDeleteCourse = useCallback(async (id: string) => {
