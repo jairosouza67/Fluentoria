@@ -32,6 +32,25 @@ describe('appStore', () => {
     expect(useAppStore.getState().currentScreen).toBe('reminder-detail');
   });
 
+  it('should go back to the previous screen using history', () => {
+    useAppStore.getState().navigateTo('dashboard');
+    useAppStore.getState().navigateTo('courses');
+    useAppStore.getState().goBack();
+
+    const state = useAppStore.getState();
+    expect(state.currentScreen).toBe('dashboard');
+    expect(state.navigationHistory).toEqual(['auth']);
+  });
+
+  it('should go to fallback screen when history is empty', () => {
+    useAppStore.getState().setCurrentScreen('profile');
+    useAppStore.getState().goBack('dashboard');
+
+    const state = useAppStore.getState();
+    expect(state.currentScreen).toBe('dashboard');
+    expect(state.navigationHistory).toEqual([]);
+  });
+
   it('should not toggle view mode for non-admin users', () => {
     // Mock alert
     const originalAlert = globalThis.alert;

@@ -24,7 +24,7 @@ const Leaderboard = React.lazy(() => import('./components/Leaderboard'));
 const AttendanceTracker = React.lazy(() => import('./components/AttendanceTracker'));
 
 import { Screen } from './types';
-import { Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
@@ -55,9 +55,11 @@ const App: React.FC = () => {
     paymentStatus, setPaymentStatus,
     loading, setLoading,
     currentScreen, setCurrentScreen,
+    navigationHistory,
     viewMode,
     showProfileMenu, setShowProfileMenu,
     navigateTo,
+    goBack,
     toggleViewMode,
   } = useAppStore();
 
@@ -277,6 +279,14 @@ const App: React.FC = () => {
     navigateTo(screen);
   };
 
+  const defaultBackScreen: Screen = viewMode === 'admin' ? 'admin-reports' : 'dashboard';
+  const showBackButton = navigationHistory.length > 0 || currentScreen !== defaultBackScreen;
+
+  const handleGoBack = () => {
+    setShowProfileMenu(false);
+    goBack(defaultBackScreen);
+  };
+
   const renderScreen = () => {
     if (viewMode === 'admin') {
       switch (currentScreen) {
@@ -315,7 +325,7 @@ const App: React.FC = () => {
         />;
       case 'module-selection':
         return <ModuleSelection 
-          onBack={() => navigateTo('gallery')} 
+          onBack={() => goBack('gallery')} 
           course={selectedCourse}
           gallery={selectedGallery}
           onSelectModule={(module) => {
@@ -326,7 +336,7 @@ const App: React.FC = () => {
       case 'course-detail':
         return <CourseDetail 
           key={selectedCourse?.id || 'no-course'}
-          onBack={() => navigateTo('module-selection')} 
+          onBack={() => goBack('module-selection')} 
           course={selectedCourse}
           selectedModule={selectedModule}
         />;
@@ -338,7 +348,7 @@ const App: React.FC = () => {
       case 'mindful-detail':
         return <CourseDetail 
           key={selectedCourse?.id || 'no-course'}
-          onBack={() => navigateTo('mindful')} 
+          onBack={() => goBack('mindful')} 
           course={selectedCourse}
           selectedModule={null}
         />;
@@ -350,7 +360,7 @@ const App: React.FC = () => {
       case 'music-detail':
         return <CourseDetail 
           key={selectedCourse?.id || 'no-course'}
-          onBack={() => navigateTo('music')} 
+          onBack={() => goBack('music')} 
           course={selectedCourse}
           selectedModule={null}
         />;
@@ -365,7 +375,7 @@ const App: React.FC = () => {
         />;
       case 'reminder-detail':
         return <ReminderDetail
-          onBack={() => navigateTo('reminders')}
+          onBack={() => goBack('reminders')}
           reminder={selectedReminder}
           isRead={selectedReminderRead}
           onReadStatusChange={(reminderId, isRead) => {
@@ -413,7 +423,20 @@ const App: React.FC = () => {
       <main className="w-full min-h-screen relative z-10 pb-20 md:pb-0 md:pl-64 transition-all duration-300 pt-20">
         {/* Top Header with Avatar */}
         <div className="absolute top-0 left-0 w-full z-40 px-4 md:px-8 py-4 pointer-events-none">
-          <div className="max-w-7xl mx-auto flex items-center justify-end pointer-events-auto">
+          <div className="max-w-7xl mx-auto flex items-center justify-between pointer-events-auto">
+            <div className="w-10 h-10 flex items-center">
+              {showBackButton && (
+                <button
+                  onClick={handleGoBack}
+                  className="w-9 h-9 rounded-full border border-white/[0.08] bg-[#111111]/80 text-[#9CA3AF] hover:text-[#F3F4F6] hover:border-[#FF6A00]/40 transition-all duration-200 flex items-center justify-center"
+                  aria-label="Voltar para a tela anterior"
+                  title="Voltar"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+              )}
+            </div>
+
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}

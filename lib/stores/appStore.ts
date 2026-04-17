@@ -13,6 +13,7 @@ interface AppState {
   loading: boolean;
   // Navigation
   currentScreen: Screen;
+  navigationHistory: Screen[];
   viewMode: ViewMode;
   // UI
   showProfileMenu: boolean;
@@ -28,6 +29,7 @@ interface AppState {
   setViewMode: (mode: ViewMode) => void;
   setShowProfileMenu: (show: boolean) => void;
   navigateTo: (screen: Screen) => void;
+  goBack: (fallbackScreen?: Screen) => void;
   toggleViewMode: () => void;
   reset: () => void;
 }
@@ -41,6 +43,7 @@ const initialState = {
   paymentStatus: 'pending',
   loading: true,
   currentScreen: 'auth' as Screen,
+  navigationHistory: [] as Screen[],
   viewMode: 'student' as ViewMode,
   showProfileMenu: false,
 };
@@ -55,12 +58,45 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAccessChecked: (accessChecked) => set({ accessChecked }),
   setPaymentStatus: (paymentStatus) => set({ paymentStatus }),
   setLoading: (loading) => set({ loading }),
-  setCurrentScreen: (currentScreen) => set({ currentScreen }),
+  setCurrentScreen: (currentScreen) => set({ currentScreen, navigationHistory: [] }),
   setViewMode: (viewMode) => set({ viewMode }),
   setShowProfileMenu: (showProfileMenu) => set({ showProfileMenu }),
 
   navigateTo: (screen) => {
-    set({ currentScreen: screen });
+    set((state) => {
+      if (state.currentScreen === screen) {
+        return {};
+      }
+
+      return {
+        currentScreen: screen,
+        navigationHistory: [...state.navigationHistory, state.currentScreen].slice(-30),
+      };
+    });
+    window.scrollTo(0, 0);
+  },
+
+  goBack: (fallbackScreen = 'dashboard') => {
+    set((state) => {
+      if (state.navigationHistory.length === 0) {
+        if (state.currentScreen === fallbackScreen) {
+          return {};
+        }
+
+        return {
+          currentScreen: fallbackScreen,
+          navigationHistory: [],
+        };
+      }
+
+      const nextHistory = [...state.navigationHistory];
+      const previousScreen = nextHistory.pop() as Screen;
+
+      return {
+        currentScreen: previousScreen,
+        navigationHistory: nextHistory,
+      };
+    });
     window.scrollTo(0, 0);
   },
 
@@ -71,9 +107,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
     if (viewMode === 'student') {
-      set({ viewMode: 'admin', currentScreen: 'admin-reports' });
+      set({ viewMode: 'admin', currentScreen: 'admin-reports', navigationHistory: [] });
     } else {
-      set({ viewMode: 'student', currentScreen: 'dashboard' });
+      set({ viewMode: 'student', currentScreen: 'dashboard', navigationHistory: [] });
     }
   },
 
