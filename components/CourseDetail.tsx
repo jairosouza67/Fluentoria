@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize, Minimize } from 'lucide-react';
 import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail } from '../lib/db';
-import { extractYouTubeId, getEmbedUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
+import { extractYouTubeId, getEmbedUrl, getGoogleDriveDirectVideoUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
 import { formatFileSize } from '../lib/media';
 import CourseChat from './CourseChat';
 import MediaUpload from './MediaUpload';
@@ -24,6 +24,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
   const [immersiveNotice, setImmersiveNotice] = useState<string | null>(null);
   const [lessonDurations, setLessonDurations] = useState<{ [key: string]: string }>({});
+  const [driveVideoFailed, setDriveVideoFailed] = useState(false);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -49,6 +50,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     setActiveLesson(null);
     setExpandedModules([]);
     setExpandedGalleries([]);
+    setDriveVideoFailed(false);
 
     // Handle new gallery structure
     if (course?.galleries && course.galleries.length > 0) {
@@ -175,6 +177,8 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
 
   // Extract YouTube video ID if available or check for Drive URL
   const embedUrl = getEmbedUrl(currentVideoUrl || '');
+  const isGoogleDriveVideo = activeLesson?.type === 'video' && isGoogleDriveUrl(currentVideoUrl || '');
+  const googleDriveVideoUrl = isGoogleDriveVideo && !driveVideoFailed ? getGoogleDriveDirectVideoUrl(currentVideoUrl || '') : null;
 
   const lockOrientationForImmersive = async () => {
     if (!window.matchMedia('(max-width: 1024px)').matches) return;
@@ -269,19 +273,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     };
   }, [isImmersiveMode]);
 
-  useEffect(() => {
-    const iframeElement = iframeRef.current;
-
-    if (!iframeElement || !embedUrl) {
-      return;
-    }
-
-    // Add legacy fullscreen attributes for older iOS/WebView engines.
-    iframeElement.setAttribute('allowfullscreen', '');
-    iframeElement.setAttribute('webkitallowfullscreen', '');
-    iframeElement.setAttribute('mozallowfullscreen', '');
-  }, [embedUrl]);
-
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev =>
       prev.includes(moduleId)
@@ -351,28 +342,41 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               <button
                 type="button"
                 onClick={toggleImmersiveMode}
-                className="absolute top-3 right-3 z-10 p-2 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                className="absolute bottom-3 right-3 z-10 p-2 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
                 aria-label={isImmersiveMode ? 'Sair do modo imersivo' : 'Entrar no modo imersivo'}
                 title={isImmersiveMode ? 'Sair do modo imersivo' : 'Modo imersivo'}
               >
                 {isImmersiveMode ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
             )}
-            {embedUrl ? (
+            {googleDriveVideoUrl ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full block"
+                  controls
+                  playsInline
+                  src={googleDriveVideoUrl}
+                  poster={course.coverImage}
+                  onError={() => setDriveVideoFailed(true)}
+                >
+                  Seu navegador não suporta a tag de vídeo.
+                </video>
+              </div>
+            ) : embedUrl ? (
               <iframe
                 ref={iframeRef}
-                className="w-full h-full"
+                className="w-full h-full block"
                 src={embedUrl}
                 title={currentTitle}
                 frameBorder="0"
                 allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
               />
             ) : currentVideoUrl ? (
               <div className="w-full h-full flex items-center justify-center">
                 <video
                   ref={videoRef}
-                  className="w-full h-full"
+                  className="w-full h-full block"
                   controls
                   src={currentVideoUrl}
                   poster={course.coverImage}

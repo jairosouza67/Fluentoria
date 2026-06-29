@@ -62,29 +62,47 @@ export const isGoogleDriveUrl = (url: string): boolean => {
 };
 
 /**
- * Get Google Drive embed URL
- * Converts /view or /edit URLs to /preview
+ * Extract Google Drive file ID from various URL formats
  */
-export const getGoogleDriveEmbedUrl = (url: string): string | null => {
+export const extractGoogleDriveFileId = (url: string): string | null => {
     if (!url) return null;
 
-    // Extract file ID
     const patterns = [
         /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/,
         /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/
     ];
 
-    let fileId = null;
     for (const pattern of patterns) {
         const match = url.match(pattern);
         if (match && match[1]) {
-            fileId = match[1];
-            break;
+            return match[1];
         }
     }
 
+    return null;
+};
+
+/**
+ * Get Google Drive embed URL
+ * Converts /view or /edit URLs to /preview
+ */
+export const getGoogleDriveEmbedUrl = (url: string): string | null => {
+    const fileId = extractGoogleDriveFileId(url);
     if (fileId) {
         return `https://drive.google.com/file/d/${fileId}/preview?rm=minimal`;
+    }
+
+    return null;
+};
+
+/**
+ * Get Google Drive direct video stream URL.
+ * Works for publicly shared Drive videos; falls back to preview iframe if blocked.
+ */
+export const getGoogleDriveDirectVideoUrl = (url: string): string | null => {
+    const fileId = extractGoogleDriveFileId(url);
+    if (fileId) {
+        return `https://drive.google.com/uc?export=download&id=${fileId}`;
     }
 
     return null;

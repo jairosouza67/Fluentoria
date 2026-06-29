@@ -8,16 +8,18 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  retries: number;
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   override state: ErrorBoundaryState = {
     hasError: false,
     error: null,
+    retries: 0,
   };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+    return { hasError: true, error, retries: 0 };
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -25,7 +27,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null });
+    if (this.state.retries >= 2) {
+      window.location.reload();
+      return;
+    }
+
+    this.setState(prev => ({ hasError: false, error: null, retries: prev.retries + 1 }));
   };
 
   override render() {
@@ -53,7 +60,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 onClick={this.handleRetry}
                 className="px-6 py-2.5 bg-[#FF6A00] text-white rounded-xl font-medium hover:bg-[#E15B00] transition-all duration-200"
               >
-                Tentar novamente
+                {this.state.retries >= 2 ? 'Recarregar página' : 'Tentar novamente'}
               </button>
               <button
                 onClick={() => window.location.reload()}
