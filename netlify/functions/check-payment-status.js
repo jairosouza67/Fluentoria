@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const { jwtVerify, createRemoteJWKSet } = require('jose');
 
 const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/robot/v1/metadata/jwk/securetoken@system.gserviceaccount.com'));

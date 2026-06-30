@@ -86,26 +86,4 @@ export const revokeCourseAccess = async (userId: string, courseId: string): Prom
     }
 };
 
-export const hasAnyCourseAccess = async (userId: string): Promise<boolean> => {
-    try {
-        const userCoursesRef = collection(db, USER_COURSES_COLLECTION);
-        const q = query(userCoursesRef, where('userId', '==', userId), where('status', '==', 'active'));
-        const querySnapshot = await getDocs(q);
-        return !querySnapshot.empty;
-    } catch (error) {
-        console.error("Error checking course access:", error);
-        return false;
-    }
-};
 
-export const hasCourseAccess = async (userId: string, courseId: string): Promise<boolean> => {
-    try {
-        const userCoursesRef = collection(db, USER_COURSES_COLLECTION);
-        const q = query(userCoursesRef, where('userId', '==', userId), where('courseId', '==', courseId), where('status', '==', 'active'));
-        const querySnapshot = await getDocs(q);
-        return !querySnapshot.empty;
-    } catch (error) {
-        console.error("Error checking specific course access:", error);
-        return false;
-    }
-};

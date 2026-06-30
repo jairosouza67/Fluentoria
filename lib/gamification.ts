@@ -128,38 +128,6 @@ export const addXP = async (
   }
 };
 
-export const updateStreak = async (studentId: string, newStreak: number): Promise<boolean> => {
-  try {
-    const progress = await getStudentProgress(studentId);
-    
-    if (!progress) {
-      return false;
-    }
-    
-    const updateData: any = {
-      currentStreak: newStreak,
-      updatedAt: Timestamp.now(),
-      lastActivityDate: Timestamp.now(),
-    };
-    
-    if (newStreak > progress.longestStreak) {
-      updateData.longestStreak = newStreak;
-    }
-    
-    // Award streak bonus every 7 days
-    if (newStreak % 7 === 0 && newStreak > 0) {
-      await addXP(studentId, XP_REWARDS.streak_bonus, `${newStreak} day streak bonus`);
-    }
-    
-    await updateDoc(doc(db, PROGRESS_COLLECTION, studentId), updateData);
-    
-    return true;
-  } catch (error) {
-    console.error("Error updating streak:", error);
-    return false;
-  }
-};
-
 export const unlockAchievement = async (studentId: string, achievementId: string): Promise<boolean> => {
   try {
     const progress = await getStudentProgress(studentId);
@@ -226,51 +194,6 @@ export const getAchievement = async (achievementId: string): Promise<Achievement
   } catch (error) {
     console.error("Error fetching achievement:", error);
     return null;
-  }
-};
-
-export const checkAndUnlockAchievements = async (
-  studentId: string,
-  progress: StudentProgress
-): Promise<string[]> => {
-  try {
-    const achievements = await getAchievements();
-    const newlyUnlocked: string[] = [];
-    
-    for (const achievement of achievements) {
-      if (progress.unlockedAchievements.includes(achievement.id)) {
-        continue;
-      }
-      
-      let shouldUnlock = false;
-      
-      switch (achievement.condition.type) {
-        case 'course_count':
-          shouldUnlock = progress.totalCoursesCompleted >= achievement.condition.threshold;
-          break;
-        case 'streak_days':
-          shouldUnlock = progress.currentStreak >= achievement.condition.threshold;
-          break;
-        case 'hours_studied':
-          shouldUnlock = progress.totalHoursStudied >= achievement.condition.threshold;
-          break;
-        case 'first_course':
-          shouldUnlock = progress.totalCoursesCompleted >= 1;
-          break;
-      }
-      
-      if (shouldUnlock) {
-        const unlocked = await unlockAchievement(studentId, achievement.id);
-        if (unlocked) {
-          newlyUnlocked.push(achievement.id);
-        }
-      }
-    }
-    
-    return newlyUnlocked;
-  } catch (error) {
-    console.error("Error checking achievements:", error);
-    return [];
   }
 };
 

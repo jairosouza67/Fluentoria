@@ -34,7 +34,7 @@ export { subscribeToStudents, subscribeToCourses, subscribeToRecentCompletions, 
 export { syncStudentWithAsaas, checkAsaasPaymentStatus, syncAllStudentsWithAsaas } from './asaas';
 
 // User Courses
-export { getUserCourses, grantCourseAccess, revokeCourseAccess, hasCourseAccess, hasAnyCourseAccess } from './userCourses';
+export { getUserCourses, grantCourseAccess, revokeCourseAccess } from './userCourses';
 
 // Migration
 export { runAccessMigration } from './migration';

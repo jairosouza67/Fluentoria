@@ -84,33 +84,6 @@ export const subscribeToCourseMessages = (
   }
 };
 
-export const getUnreadMessageCount = async (courseId: string, userId: string, lastReadTimestamp?: Date): Promise<number> => {
-  try {
-    const q = query(
-      collection(db, MESSAGES_COLLECTION),
-      where('courseId', '==', courseId),
-      where('userId', '!=', userId)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    if (!lastReadTimestamp) {
-      return querySnapshot.size;
-    }
-    
-    const unreadMessages = querySnapshot.docs.filter(doc => {
-      const data = doc.data();
-      const messageTime = data.timestamp?.toDate() || new Date(0);
-      return messageTime > lastReadTimestamp;
-    });
-    
-    return unreadMessages.length;
-  } catch (error) {
-    console.error("Error getting unread count:", error);
-    return 0;
-  }
-};
-
 export const deleteMessage = async (messageId: string): Promise<boolean> => {
   try {
     await deleteDoc(doc(db, MESSAGES_COLLECTION, messageId));

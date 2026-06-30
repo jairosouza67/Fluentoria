@@ -22,7 +22,7 @@ export async function runAccessMigration() {
         }
 
         const idToken = await user.getIdToken(true);
-        const projectId = user.auth.app.options.projectId;
+        const projectId = auth.app.options.projectId;
         const url = `https://us-central1-${projectId}.cloudfunctions.net/runAccessMigrationHttp`;
 
         const response = await fetch(url, {

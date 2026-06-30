@@ -61,64 +61,6 @@ export const getStudentActivities = async (
   }
 };
 
-export const getCourseActivities = async (courseId: string): Promise<StudentActivity[]> => {
-  try {
-    const q = query(
-      collection(db, ACTIVITIES_COLLECTION),
-      where('courseId', '==', courseId),
-      orderBy('timestamp', 'desc')
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        studentId: data.studentId,
-        activityType: data.activityType,
-        courseId: data.courseId,
-        courseName: data.courseName,
-        timestamp: data.timestamp?.toDate() || new Date(),
-        metadata: data.metadata || {},
-      } as StudentActivity;
-    });
-  } catch (error) {
-    console.error("Error fetching course activities:", error);
-    return [];
-  }
-};
-
-export const getActivitiesByType = async (
-  studentId: string,
-  activityType: StudentActivity['activityType']
-): Promise<StudentActivity[]> => {
-  try {
-    const q = query(
-      collection(db, ACTIVITIES_COLLECTION),
-      where('studentId', '==', studentId),
-      where('activityType', '==', activityType),
-      orderBy('timestamp', 'desc')
-    );
-
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        studentId: data.studentId,
-        activityType: data.activityType,
-        courseId: data.courseId,
-        courseName: data.courseName,
-        timestamp: data.timestamp?.toDate() || new Date(),
-        metadata: data.metadata || {},
-      } as StudentActivity;
-    });
-  } catch (error) {
-    console.error("Error fetching activities by type:", error);
-    return [];
-  }
-};
-
 export const calculateAttendanceStats = (activities: StudentActivity[]) => {
   const completedCourses = activities.filter(a => a.activityType === 'course_completed').length;
   const dailyContacts = activities.filter(a => a.activityType === 'daily_contact').length;
