@@ -24,7 +24,6 @@
 const fs = require('fs');
 const path = require('path');
 const { google } = require('googleapis');
-const { authenticate } = require('@google-cloud/local-auth');
 const admin = require('firebase-admin');
 
 // ─── CONFIGURAÇÃO ──────────────────────────────────────────────
@@ -38,15 +37,15 @@ const COURSES_COLLECTION = 'courses';
 const MAX_RETRIES = 3;
 const DELAY_BETWEEN_UPLOADS_MS = 5000;
 
-// ─── YOUTUBE AUTH ──────────────────────────────────────────────
-async function getYouTubeClient() {
+// ─── GOOGLE AUTH ──────────────────────────────────────────────
+async function getAuth() {
   const auth = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     'http://localhost:3000/oauth2callback'
   );
   
-  // Se não tiver env vars, carrega do credentials.json
+  // Carrega do credentials.json se não tiver env vars
   if (!process.env.GOOGLE_CLIENT_ID && fs.existsSync(CREDENTIALS_PATH)) {
     const creds = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
     const { client_id, client_secret } = creds.installed || creds.web || {};
@@ -58,36 +57,48 @@ async function getYouTubeClient() {
   if (fs.existsSync(TOKEN_PATH)) {
     const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
     auth.setCredentials(token);
+    // Verifica se o token ainda é válido e tem os escopos certos
+    try {
+      const { data } = await auth.getAccessToken();
+      if (!data) throw new Error('token expirado');
+    } catch {
+      console.log('⚠️  Token expirado, reautorizando...');
+      return await reauthorize(auth);
+    }
   } else {
-    // Gera URL de autorização
-    const authUrl = auth.generateAuthUrl({
-      access_type: 'offline',
-      scope: SCOPES,
-      prompt: 'consent',
-    });
-    console.log('\n🔐 Autorize o acesso ao YouTube abrindo este link:\n');
-    console.log(authUrl);
-    console.log('\nCole o código de autorização aqui:');
-    
-    const readline = require('readline').createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    
-    const code = await new Promise(resolve => {
-      readline.question('> ', answer => {
-        readline.close();
-        resolve(answer.trim());
-      });
-    });
-    
-    const { tokens } = await auth.getToken(code);
-    auth.setCredentials(tokens);
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
-    console.log('✅ Token salvo em token.json\n');
+    return await reauthorize(auth);
   }
 
-  return google.youtube({ version: 'v3', auth });
+  return auth;
+}
+
+async function reauthorize(auth) {
+  const authUrl = auth.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+    prompt: 'consent',
+  });
+  console.log('\n🔐 Autorize abrindo este link:\n');
+  console.log(authUrl);
+  console.log('\nCole o código aqui:');
+  
+  const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  
+  const code = await new Promise(resolve => {
+    readline.question('> ', answer => {
+      readline.close();
+      resolve(answer.trim());
+    });
+  });
+  
+  const { tokens } = await auth.getToken(code);
+  auth.setCredentials(tokens);
+  fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+  console.log('✅ Token salvo em token.json\n');
+  return auth;
 }
 
 // ─── FIREBASE INIT ─────────────────────────────────────────────
@@ -179,12 +190,7 @@ async function findAllDriveLessons(db) {
 }
 
 // ─── BAIXAR VÍDEO DO DRIVE ─────────────────────────────────────
-async function downloadFromDrive(driveId, outputPath) {
-  const drive = google.drive({ version: 'v3', auth: null }); // auth separado
-  // Usa o mesmo client OAuth do YouTube, mas com escopo drive.readonly
-  const auth = new google.auth.OAuth2();
-  const tokenJson = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-  auth.setCredentials(tokenJson);
+async function downloadFromDrive(auth, driveId, outputPath) {
   const driveClient = google.drive({ version: 'v3', auth });
   
   console.log(`   📥 Baixando do Drive: ${driveId}`);
@@ -303,7 +309,8 @@ async function main() {
   console.log('🚀 FLUENTORIA — Migração Google Drive → YouTube');
   console.log('═'.repeat(60));
   
-  const youtube = await getYouTubeClient();
+  const auth = await getAuth();
+  const youtube = google.youtube({ version: 'v3', auth });
   const db = getFirestore();
   
   // 0. Backup
@@ -339,7 +346,7 @@ async function main() {
       // Download do Drive
       const ext = '.mp4';
       const outputPath = path.join(tempDir, `${lesson.driveId}${ext}`);
-      await downloadFromDrive(lesson.driveId, outputPath);
+      await downloadFromDrive(auth, lesson.driveId, outputPath);
       
       // Upload para YouTube
       const { youtubeUrl } = await uploadToYouTube(youtube, outputPath, {

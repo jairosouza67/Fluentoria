@@ -33,7 +33,7 @@
 
 ```bash
 cd scripts
-npm install firebase-admin googleapis google-auth-library
+npm install firebase-admin googleapis
 ```
 
 ## 5. Executar migração
