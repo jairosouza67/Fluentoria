@@ -3,7 +3,9 @@ import { ArrowLeft, Image as ImageIcon, BookOpen, PlayCircle, Filter, Loader2, C
 import { Screen } from '../types';
 import { Course, getCoursesForUser, CourseGallery } from '../lib/db';
 import { useAppStore } from '../lib/stores/appStore';
+import { useCourseStore } from '../lib/stores/courseStore';
 import AnimatedInput from './ui/AnimatedInput';
+import { Breadcrumbs } from './ui/Breadcrumbs';
 
 interface GalleryListProps {
   onNavigate: (screen: Screen) => void;
@@ -13,9 +15,19 @@ interface GalleryListProps {
 
 const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery, selectedCourse }) => {
   const user = useAppStore(state => state.user);
+  const setSelectedCourse = useCourseStore(state => state.setSelectedCourse);
+  const setSelectedGallery = useCourseStore(state => state.setSelectedGallery);
+  const setSelectedModule = useCourseStore(state => state.setSelectedModule);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleBreadcrumbToCourses = () => {
+    setSelectedCourse(null);
+    setSelectedGallery(null);
+    setSelectedModule(null);
+    onNavigate('courses');
+  };
 
   useEffect(() => {
     // If a course is already selected, no need to fetch all courses
@@ -54,6 +66,15 @@ const GalleryList: React.FC<GalleryListProps> = ({ onNavigate, onSelectGallery, 
     <div className="p-8 max-w-container mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
+          {selectedCourse && (
+            <Breadcrumbs
+              items={[
+                { label: 'Aulas', onClick: handleBreadcrumbToCourses },
+                { label: selectedCourse.title },
+              ]}
+              className="mb-2"
+            />
+          )}
           <h1 className="text-[44px] leading-[1.05] font-bold text-[#F3F4F6]">Galeria de Aulas</h1>
           <p className="text-[#9CA3AF] mt-1">Explore as galerias disponíveis e escolha seus módulos.</p>
         </div>

@@ -1,26 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize, Minimize } from 'lucide-react';
-import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail } from '../lib/db';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize, Minimize, Circle } from 'lucide-react';
+import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail, getLessonProgress, setLastLesson, countLessons } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, getGoogleDriveDirectVideoUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
 import { formatFileSize } from '../lib/media';
 import CourseChat from './CourseChat';
 import MediaUpload from './MediaUpload';
 import { logActivity } from '../lib/attendance';
-import { addXP, XP_REWARDS } from '../lib/gamification';
+import { addXP, XP_REWARDS, markLessonCompleteWithXP } from '../lib/gamification';
 import { auth } from '../lib/firebase';
+import { useAppStore } from '../lib/stores/appStore';
+import { useCourseStore } from '../lib/stores/courseStore';
+import { Breadcrumbs } from './ui/Breadcrumbs';
 
 interface CourseDetailProps {
   onBack: () => void;
   course: Course | null;
   selectedModule?: CourseModule | null;
+  contentType?: 'course' | 'mindful' | 'music';
 }
 
-const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedModule }) => {
+const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedModule, contentType = 'course' }) => {
+  const isCourseContent = contentType === 'course';
   const [activeTab, setActiveTab] = useState<'content' | 'media' | 'chat'>('content');
   const [activeLesson, setActiveLesson] = useState<CourseLesson | null>(null);
   const [expandedModules, setExpandedModules] = useState<string[]>([]);
   const [expandedGalleries, setExpandedGalleries] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [isImmersiveMode, setIsImmersiveMode] = useState(false);
   const [immersiveNotice, setImmersiveNotice] = useState<string | null>(null);
   const [lessonDurations, setLessonDurations] = useState<{ [key: string]: string }>({});
@@ -30,6 +36,67 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const footerHideTimeoutRef = useRef<number | null>(null);
   const user = auth.currentUser;
+
+  const handleToggleLessonComplete = useCallback(async (lessonId: string, completed: boolean) => {
+    if (!user || !course?.id) return;
+    const newCompleted = await markLessonCompleteWithXP(user.uid, course.id, lessonId, completed);
+    setCompletedLessonIds(prev => newCompleted
+      ? Array.from(new Set([...prev, lessonId]))
+      : prev.filter(id => id !== lessonId)
+    );
+  }, [user, course?.id]);
+
+  const flatLessons = useMemo(() => {
+    if (!course) return [] as Array<{ lesson: CourseLesson; galleryId?: string; moduleId: string }>;
+    const out: Array<{ lesson: CourseLesson; galleryId?: string; moduleId: string }> = [];
+    if (course.galleries && course.galleries.length > 0) {
+      course.galleries.forEach(g => (g.modules || []).forEach(m =>
+        (m.lessons || []).forEach(l => out.push({ lesson: l, galleryId: g.id, moduleId: m.id }))
+      ));
+    } else if (course.modules && course.modules.length > 0) {
+      course.modules.forEach(m => (m.lessons || []).forEach(l => out.push({ lesson: l, moduleId: m.id })));
+    } else if (course.videoUrl) {
+      out.push({ lesson: { id: 'default', title: course.title, duration: course.duration, type: 'video', videoUrl: course.videoUrl }, moduleId: 'default' });
+    }
+    return out;
+  }, [course]);
+
+  const totalLessons = useMemo(() => (course ? countLessons(course) : 0), [course]);
+  const courseProgress = totalLessons > 0 ? Math.round((completedLessonIds.length / totalLessons) * 100) : 0;
+
+  const goToLessonByIndex = useCallback((index: number) => {
+    const entry = flatLessons[index];
+    if (!entry) return;
+    setActiveLesson(entry.lesson);
+    if (user && course?.id && isCourseContent) {
+      setLastLesson(user.uid, course.id, entry.lesson.id, entry.galleryId, entry.moduleId);
+    }
+  }, [flatLessons, user, course?.id, isCourseContent]);
+
+  const activeLessonIndex = useMemo(() => {
+    if (!activeLesson) return -1;
+    return flatLessons.findIndex(e => e.lesson.id === activeLesson.id);
+  }, [flatLessons, activeLesson]);
+
+  const hasNextLesson = activeLessonIndex >= 0 && activeLessonIndex < flatLessons.length - 1;
+  const hasPrevLesson = activeLessonIndex > 0;
+
+  const handleNext = useCallback(() => {
+    if (hasNextLesson) goToLessonByIndex(activeLessonIndex + 1);
+  }, [hasNextLesson, activeLessonIndex, goToLessonByIndex]);
+
+  const handlePrev = useCallback(() => {
+    if (hasPrevLesson) goToLessonByIndex(activeLessonIndex - 1);
+  }, [hasPrevLesson, activeLessonIndex, goToLessonByIndex]);
+
+  const handleCompleteAndAdvance = useCallback(async () => {
+    if (!activeLesson) return;
+    const isLast = !hasNextLesson;
+    await handleToggleLessonComplete(activeLesson.id, true);
+    if (!isLast) {
+      handleNext();
+    }
+  }, [activeLesson, hasNextLesson, handleToggleLessonComplete, handleNext]);
 
   const isIOSDevice = (() => {
     if (typeof navigator === 'undefined') return false;
@@ -46,37 +113,57 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   })();
 
   useEffect(() => {
-    // Reset state when course changes
+    if (!course) return;
+
     setActiveLesson(null);
     setExpandedModules([]);
     setExpandedGalleries([]);
     setDriveVideoFailed(false);
+    setCompletedLessonIds([]);
 
-    // Handle new gallery structure
-    if (course?.galleries && course.galleries.length > 0) {
-      const firstGallery = course.galleries[0];
-      if (firstGallery.modules && firstGallery.modules.length > 0) {
-        const firstModule = firstGallery.modules[0];
-        if (firstModule.lessons && firstModule.lessons.length > 0) {
-          setActiveLesson(firstModule.lessons[0]);
+    const applyInitialLesson = async () => {
+      if (isCourseContent && user && course.id) {
+        const progress = await getLessonProgress(user.uid, course.id);
+        setCompletedLessonIds(progress?.completedLessonIds || []);
+
+        const lastId = progress?.lastLessonId;
+        const lastEntry = lastId ? flatLessons.find(e => e.lesson.id === lastId) : null;
+        const entry = lastEntry || flatLessons[0];
+
+        if (entry) {
+          setActiveLesson(entry.lesson);
+          if (entry.galleryId) {
+            setExpandedGalleries(prev => Array.from(new Set([...prev, entry.galleryId!])));
+          }
+          setExpandedModules(prev => Array.from(new Set([...prev, entry.moduleId])));
+        }
+        return;
+      }
+
+      // Mindful/Music: original flow (first lesson of first module/gallery)
+      if (course.galleries && course.galleries.length > 0) {
+        const firstGallery = course.galleries[0];
+        const firstModule = firstGallery.modules?.[0];
+        const firstLesson = firstModule?.lessons?.[0];
+        if (firstLesson) {
+          setActiveLesson(firstLesson);
           setExpandedGalleries([firstGallery.id]);
+          if (firstModule) setExpandedModules([firstModule.id]);
+        }
+      } else if (selectedModule && selectedModule.lessons?.length) {
+        setActiveLesson(selectedModule.lessons[0]);
+        setExpandedModules([selectedModule.id]);
+      } else if (course.modules?.length) {
+        const firstModule = course.modules[0];
+        if (firstModule.lessons.length > 0) {
+          setActiveLesson(firstModule.lessons[0]);
           setExpandedModules([firstModule.id]);
         }
       }
-    }
-    // Handle old module structure or selected module
-    else if (selectedModule && selectedModule.lessons && selectedModule.lessons.length > 0) {
-      setActiveLesson(selectedModule.lessons[0]);
-      setExpandedModules([selectedModule.id]);
-    } else if (course?.modules && course.modules.length > 0) {
-      // Default to first lesson of first module if no specific module selected
-      const firstModule = course.modules[0];
-      if (firstModule.lessons.length > 0) {
-        setActiveLesson(firstModule.lessons[0]);
-        setExpandedModules([firstModule.id]);
-      }
-    }
-  }, [course?.id, selectedModule?.id]);
+    };
+
+    applyInitialLesson();
+  }, [course?.id, selectedModule?.id, isCourseContent, user, flatLessons]);
 
   useEffect(() => {
     // Log course started activity and load completion status
@@ -84,16 +171,17 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
       if (user && course?.id) {
         await logActivity(user.uid, 'course_started', course.id, course.title);
 
-        // Load completion status
-        const completion = await getStudentCompletion(user.uid, course.id, 'course');
-        if (completion) {
-          setIsCompleted(completion.completed);
+        if (!isCourseContent) {
+          const completion = await getStudentCompletion(user.uid, course.id, contentType);
+          if (completion) {
+            setIsCompleted(completion.completed);
+          }
         }
       }
     };
 
     initializeCourse();
-  }, [user, course?.id]);
+  }, [user, course?.id, isCourseContent, contentType]);
 
   // Capture video duration when video loads
   useEffect(() => {
@@ -156,19 +244,23 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     const newStatus = !isCompleted;
 
     if (newStatus) {
-      // Save completion status
-      await markContentComplete(user.uid, course.id, 'course', true);
-      // Log course completion
+      await markContentComplete(user.uid, course.id, contentType, true);
       await logActivity(user.uid, 'course_completed', course.id, course.title);
-      // Award XP
       await addXP(user.uid, XP_REWARDS.course_completed, `Completed: ${course.title}`);
       setIsCompleted(true);
     } else {
-      // Allow unchecking
-      await markContentComplete(user.uid, course.id, 'course', false);
+      await markContentComplete(user.uid, course.id, contentType, false);
       setIsCompleted(false);
     }
   };
+
+  // Persist last watched lesson when active lesson changes (course content only)
+  useEffect(() => {
+    if (!isCourseContent || !user || !course?.id || !activeLesson) return;
+    const entry = flatLessons.find(e => e.lesson.id === activeLesson.id);
+    if (!entry) return;
+    setLastLesson(user.uid, course.id, activeLesson.id, entry.galleryId, entry.moduleId);
+  }, [activeLesson?.id, isCourseContent, user, course?.id, flatLessons]);
 
   // Determine what to show: active lesson or course default
   const currentTitle = activeLesson ? activeLesson.title : course?.title;
@@ -289,6 +381,81 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     );
   };
 
+  const renderLessonCheck = (lesson: CourseLesson) => {
+    if (!isCourseContent) return null;
+    const done = completedLessonIds.includes(lesson.id);
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggleLessonComplete(lesson.id, !done);
+        }}
+        className={`shrink-0 ${done ? 'text-[#23D18B]' : 'text-[#9CA3AF]/60 hover:text-[#9CA3AF]'} transition-colors`}
+        aria-label={done ? 'Desmarcar aula como concluída' : 'Marcar aula como concluída'}
+        title={done ? 'Aula concluída' : 'Marcar como concluída'}
+      >
+        {done ? <CheckCircle size={14} /> : <Circle size={14} />}
+      </button>
+    );
+  };
+
+  const navigateTo = useAppStore(state => state.navigateTo);
+  const setSelectedCourse = useCourseStore(state => state.setSelectedCourse);
+  const setSelectedGallery = useCourseStore(state => state.setSelectedGallery);
+  const setSelectedModule = useCourseStore(state => state.setSelectedModule);
+
+  const breadcrumbToCourses = () => {
+    setSelectedCourse(null);
+    setSelectedGallery(null);
+    setSelectedModule(null);
+    navigateTo('courses');
+  };
+
+  const breadcrumbToGalleries = () => {
+    setSelectedGallery(null);
+    setSelectedModule(null);
+    navigateTo('gallery');
+  };
+
+  const breadcrumbToModules = () => {
+    setSelectedModule(null);
+    navigateTo('module-selection');
+  };
+
+  // Locate the active lesson's parent gallery/module to build the trail
+  const activeBreadcrumbTrail = (() => {
+    if (!course || !isCourseContent) return null;
+    const activeId = activeLesson?.id;
+    let foundGallery: CourseGallery | undefined;
+    let foundModule: CourseModule | undefined;
+    for (const g of course.galleries || []) {
+      for (const m of g.modules || []) {
+        if ((m.lessons || []).some(l => l.id === activeId)) {
+          foundGallery = g;
+          foundModule = m;
+          break;
+        }
+      }
+      if (foundGallery) break;
+    }
+    if (!foundGallery && !foundModule && course.modules) {
+      for (const m of course.modules) {
+        if ((m.lessons || []).some(l => l.id === activeId)) {
+          foundModule = m;
+          break;
+        }
+      }
+    }
+    const items: { label: string; onClick?: () => void }[] = [
+      { label: 'Aulas', onClick: breadcrumbToCourses },
+      { label: course.title, onClick: breadcrumbToGalleries },
+    ];
+    if (foundGallery) items.push({ label: foundGallery.title, onClick: breadcrumbToModules });
+    if (foundModule && foundGallery) items.push({ label: foundModule.title });
+    return items;
+  })();
+
   if (!course) {
     return (
       <div className="max-w-7xl mx-auto min-h-screen bg-[#12100e] flex items-center justify-center">
@@ -313,9 +480,13 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
           <ArrowLeft size={20} />
         </button>
         <div className="flex-1 min-w-0">
+          {activeBreadcrumbTrail && activeBreadcrumbTrail.length > 1 && (
+            <Breadcrumbs items={activeBreadcrumbTrail} className="mb-1 hidden md:flex" />
+          )}
           <h1 className="text-base md:text-lg font-semibold text-[#F3F4F6] truncate">{course.title}</h1>
           <p className="text-xs text-[#9CA3AF]">{course.author} • {course.duration}</p>
         </div>
+        {!isCourseContent && (
         <button
           onClick={handleMarkComplete}
           className={`px-3 md:px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all duration-200 shrink-0 ${isCompleted
@@ -326,7 +497,23 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
           <CheckCircle size={16} />
           <span className="hidden sm:inline">{isCompleted ? 'Concluída' : 'Marcar Concluída'}</span>
         </button>
+      )}
       </div>
+
+      {/* Course progress bar (course content only) */}
+      {isCourseContent && totalLessons > 0 && (
+        <div className="px-4 md:px-6 py-2 border-b border-white/[0.06] bg-[#0B0B0B]/80">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-[#9CA3AF]">{completedLessonIds.length} de {totalLessons} aulas</span>
+              <span className="text-xs font-medium text-[#FF6A00]">{courseProgress}%</span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-full bg-[#FF6A00] transition-all duration-500" style={{ width: `${courseProgress}%` }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Main Content Area (Player) */}
@@ -410,6 +597,40 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
             <p className="text-xs text-[#F59E0B]">{immersiveNotice}</p>
           )}
 
+          {/* Lesson navigation (course content only) */}
+          {isCourseContent && flatLessons.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+              <button
+                onClick={handlePrev}
+                disabled={!hasPrevLesson}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/[0.04] text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/[0.02] disabled:hover:text-[#9CA3AF]"
+              >
+                <ArrowLeft size={16} />
+                <span>Aula anterior</span>
+              </button>
+              <button
+                onClick={handleCompleteAndAdvance}
+                disabled={!activeLesson}
+                className={`flex-1 px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 ${
+                  !hasNextLesson
+                    ? 'bg-[#23D18B]/15 text-[#23D18B] border border-[#23D18B]/30 hover:bg-[#23D18B]/25'
+                    : 'bg-[#FF6A00] text-white hover:bg-[#E15B00]'
+                }`}
+              >
+                <CheckCircle size={16} />
+                <span>{hasNextLesson ? 'Concluir e avançar' : 'Concluir aula'}</span>
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={!hasNextLesson}
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/[0.04] text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/[0.02] disabled:hover:text-[#9CA3AF]"
+              >
+                <span>Próxima aula</span>
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div className="flex gap-4">
               <button className="flex items-center gap-2 text-[#9CA3AF] hover:text-[#F3F4F6] text-sm font-medium transition-colors duration-200">
@@ -483,19 +704,19 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
               onClick={() => setActiveTab('content')}
               className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'content' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
             >
-              Content
+              Conteúdo
             </button>
             <button
               onClick={() => setActiveTab('media')}
               className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'media' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
             >
-              Media
+              Mídia
             </button>
             <button
               onClick={() => setActiveTab('chat')}
               className={`flex-1 py-4 px-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === 'chat' ? 'border-[#FF6A00] text-[#FF6A00]' : 'border-transparent text-[#9CA3AF] hover:text-[#F3F4F6]'}`}
             >
-              Questions
+              Dúvidas
             </button>
           </div>
 
@@ -514,14 +735,19 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                           onClick={() => toggleGallery(gallery.id)}
                           className="w-full flex items-center justify-between p-4 hover:bg-[#FF6A00]/5 transition-colors"
                         >
-                          <div className="flex items-center gap-2">
-                            <ImageIcon size={14} className="text-[#FF6A00]" />
-                            <span className="font-semibold text-[#FF6A00] text-sm text-left">{gallery.title}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ImageIcon size={14} className="text-[#FF6A00] shrink-0" />
+                            <span className="font-semibold text-[#FF6A00] text-sm text-left truncate">{gallery.title}</span>
+                            {isCourseContent && (() => {
+                              const total = (gallery.modules || []).reduce((a, m) => a + (m.lessons?.length || 0), 0);
+                              const done = (gallery.modules || []).reduce((a, m) => a + (m.lessons?.filter(l => completedLessonIds.includes(l.id)).length || 0), 0);
+                              return total > 0 ? <span className="text-xs text-[#9CA3AF]/70 ml-1 shrink-0">{done}/{total}</span> : null;
+                            })()}
                           </div>
                           {expandedGalleries.includes(gallery.id) ? (
-                            <ChevronDown size={16} className="text-[#FF6A00]" />
+                            <ChevronDown size={16} className="text-[#FF6A00] shrink-0" />
                           ) : (
-                            <ChevronRight size={16} className="text-[#FF6A00]" />
+                            <ChevronRight size={16} className="text-[#FF6A00] shrink-0" />
                           )}
                         </button>
 
@@ -534,11 +760,16 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                                   onClick={() => toggleModule(module.id)}
                                   className="w-full flex items-center justify-between p-3 hover:bg-white/[0.02] transition-colors"
                                 >
-                                  <span className="font-medium text-[#F3F4F6] text-sm text-left">{module.title}</span>
+                                  <span className="font-medium text-[#F3F4F6] text-sm text-left flex items-center gap-2">
+                                    <span className="truncate">{module.title}</span>
+                                    {isCourseContent && module.lessons && module.lessons.length > 0 && (
+                                      <span className="text-xs text-[#9CA3AF]/70">{module.lessons.filter(l => completedLessonIds.includes(l.id)).length}/{module.lessons.length}</span>
+                                    )}
+                                  </span>
                                   {expandedModules.includes(module.id) ? (
-                                    <ChevronDown size={14} className="text-[#9CA3AF]" />
+                                    <ChevronDown size={14} className="text-[#9CA3AF] shrink-0" />
                                   ) : (
-                                    <ChevronRight size={14} className="text-[#9CA3AF]" />
+                                    <ChevronRight size={14} className="text-[#9CA3AF] shrink-0" />
                                   )}
                                 </button>
 
@@ -548,28 +779,33 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                                       const isActive = activeLesson?.id === lesson.id;
                                       const displayDuration = lessonDurations[lesson.id] || lesson.duration || '00:00';
                                       return (
-                                        <button
+                                        <div
                                           key={lesson.id}
-                                          onClick={() => setActiveLesson(lesson)}
                                           className={`w-full flex items-center gap-2 p-2 pl-3 transition-all duration-200 border-l-2 ${isActive
                                             ? 'bg-[#FF6A00]/10 border-[#FF6A00]'
                                             : 'hover:bg-white/[0.02] border-transparent'
                                             }`}
                                         >
-                                          <div className={`mt-0.5 ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
-                                            {lesson.type === 'video' && <PlayCircle size={14} />}
-                                            {lesson.type === 'audio' && <Mic size={14} />}
-                                            {lesson.type === 'pdf' && <FileText size={14} />}
-                                          </div>
-                                          <div className="text-left flex-1">
-                                            <h4 className={`text-xs font-medium ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
-                                              {lesson.title}
-                                            </h4>
-                                            {displayDuration !== '00:00' && (
-                                              <span className="text-xs text-[#9CA3AF]/60">{displayDuration}</span>
-                                            )}
-                                          </div>
-                                        </button>
+                                          {renderLessonCheck(lesson)}
+                                          <button
+                                            onClick={() => setActiveLesson(lesson)}
+                                            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                                          >
+                                            <div className={`mt-0.5 ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
+                                              {lesson.type === 'video' && <PlayCircle size={14} />}
+                                              {lesson.type === 'audio' && <Mic size={14} />}
+                                              {lesson.type === 'pdf' && <FileText size={14} />}
+                                            </div>
+                                            <div className="text-left flex-1 min-w-0">
+                                              <h4 className={`text-xs font-medium truncate ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
+                                                {lesson.title}
+                                              </h4>
+                                              {displayDuration !== '00:00' && (
+                                                <span className="text-xs text-[#9CA3AF]/60">{displayDuration}</span>
+                                              )}
+                                            </div>
+                                          </button>
+                                        </div>
                                       );
                                     })}
                                   </div>
@@ -590,11 +826,16 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                           onClick={() => toggleModule(module.id)}
                           className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
                         >
-                          <span className="font-medium text-[#F3F4F6] text-sm text-left">{module.title}</span>
+                          <span className="font-medium text-[#F3F4F6] text-sm text-left flex items-center gap-2">
+                            <span className="truncate">{module.title}</span>
+                            {isCourseContent && module.lessons && module.lessons.length > 0 && (
+                              <span className="text-xs text-[#9CA3AF]/70">{module.lessons.filter(l => completedLessonIds.includes(l.id)).length}/{module.lessons.length}</span>
+                            )}
+                          </span>
                           {expandedModules.includes(module.id) ? (
-                            <ChevronDown size={16} className="text-[#9CA3AF]" />
+                            <ChevronDown size={16} className="text-[#9CA3AF] shrink-0" />
                           ) : (
-                            <ChevronRight size={16} className="text-[#9CA3AF]" />
+                            <ChevronRight size={16} className="text-[#9CA3AF] shrink-0" />
                           )}
                         </button>
 
@@ -604,28 +845,33 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
                               const isActive = activeLesson?.id === lesson.id;
                               const displayDuration = lessonDurations[lesson.id] || lesson.duration || '00:00';
                               return (
-                                <button
+                                <div
                                   key={lesson.id}
-                                  onClick={() => setActiveLesson(lesson)}
                                   className={`w-full flex items-center gap-3 p-3 pl-4 transition-all duration-200 border-l-2 ${isActive
                                     ? 'bg-[#FF6A00]/10 border-[#FF6A00]'
                                     : 'hover:bg-white/[0.02] border-transparent'
                                     }`}
                                 >
-                                  <div className={`mt-0.5 ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
-                                    {lesson.type === 'video' && <PlayCircle size={16} />}
-                                    {lesson.type === 'audio' && <Mic size={16} />}
-                                    {lesson.type === 'pdf' && <FileText size={16} />}
-                                  </div>
-                                  <div className="text-left flex-1">
-                                    <h4 className={`text-sm font-medium ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF] group-hover:text-[#F3F4F6]'}`}>
-                                      {lesson.title}
-                                    </h4>
-                                    {displayDuration !== '00:00' && (
-                                      <span className="text-xs text-[#9CA3AF]/60">{displayDuration}</span>
-                                    )}
-                                  </div>
-                                </button>
+                                  {renderLessonCheck(lesson)}
+                                  <button
+                                    onClick={() => setActiveLesson(lesson)}
+                                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                                  >
+                                    <div className={`mt-0.5 ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF]'}`}>
+                                      {lesson.type === 'video' && <PlayCircle size={16} />}
+                                      {lesson.type === 'audio' && <Mic size={16} />}
+                                      {lesson.type === 'pdf' && <FileText size={16} />}
+                                    </div>
+                                    <div className="text-left flex-1 min-w-0">
+                                      <h4 className={`text-sm font-medium truncate ${isActive ? 'text-[#FF6A00]' : 'text-[#9CA3AF] group-hover:text-[#F3F4F6]'}`}>
+                                        {lesson.title}
+                                      </h4>
+                                      {displayDuration !== '00:00' && (
+                                        <span className="text-xs text-[#9CA3AF]/60">{displayDuration}</span>
+                                      )}
+                                    </div>
+                                  </button>
+                                </div>
                               );
                             })}
                           </div>

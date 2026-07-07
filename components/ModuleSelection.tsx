@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, PlayCircle, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { Course, CourseModule, CourseGallery } from '../lib/db';
+import { useAppStore } from '../lib/stores/appStore';
+import { useCourseStore } from '../lib/stores/courseStore';
+import { Breadcrumbs, BreadcrumbItem } from './ui/Breadcrumbs';
 
 interface ModuleSelectionProps {
   onBack: () => void;
@@ -10,6 +13,30 @@ interface ModuleSelectionProps {
 }
 
 const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, gallery, onSelectModule }) => {
+  const navigateTo = useAppStore(state => state.navigateTo);
+  const setSelectedCourse = useCourseStore(state => state.setSelectedCourse);
+  const setCourseGallery = useCourseStore(state => state.setSelectedGallery);
+  const setCourseModule = useCourseStore(state => state.setSelectedModule);
+
+  const goToCourses = () => {
+    setSelectedCourse(null);
+    setCourseGallery(null);
+    setCourseModule(null);
+    navigateTo('courses');
+  };
+
+  const goToGalleries = () => {
+    setCourseGallery(null);
+    setCourseModule(null);
+    navigateTo('gallery');
+  };
+
+  const buildBreadcrumbs = (finalLabel: string): BreadcrumbItem[] => {
+    const items: BreadcrumbItem[] = [{ label: 'Aulas', onClick: goToCourses }];
+    if (course) items.push({ label: course.title, onClick: goToGalleries });
+    items.push({ label: finalLabel });
+    return items;
+  };
   const [selectedGallery, setSelectedGallery] = useState<CourseGallery | null>(gallery || null);
 
   // Update selectedGallery when gallery prop changes
@@ -63,6 +90,7 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
             )}
 
             <div className="flex-1">
+              <Breadcrumbs items={buildBreadcrumbs(course.title)} className="mb-2" />
               <h1 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-2">{course.title}</h1>
               <p className="text-[#9CA3AF] mb-4">{course.description}</p>
               <div className="flex flex-wrap gap-4 text-sm text-[#9CA3AF]">
@@ -188,6 +216,10 @@ const ModuleSelection: React.FC<ModuleSelectionProps> = ({ onBack, course, galle
           )}
 
           <div className="flex-1">
+            <Breadcrumbs
+              items={buildBreadcrumbs(selectedGallery ? selectedGallery.title : (course?.title || ''))}
+              className="mb-2"
+            />
             <h1 className="text-3xl md:text-4xl font-bold text-[#F3F4F6] mb-2">{selectedGallery ? selectedGallery.title : course.title}</h1>
             <p className="text-[#9CA3AF] mb-4">{selectedGallery ? selectedGallery.description : course.description}</p>
             <div className="flex flex-wrap gap-4 text-sm text-[#9CA3AF]">

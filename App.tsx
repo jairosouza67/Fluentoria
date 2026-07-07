@@ -312,6 +312,9 @@ const App: React.FC = () => {
         return <CourseList onNavigate={navigateTo} onSelectCourse={(course) => {
           setSelectedCourse(course);
           navigateTo('gallery');
+        }} onContinueCourse={(course) => {
+          setSelectedCourse(course);
+          navigateTo('course-detail');
         }} />;
       case 'gallery':
         return <GalleryList 
@@ -334,11 +337,12 @@ const App: React.FC = () => {
           }}
         />;
       case 'course-detail':
-        return <CourseDetail 
+        return <CourseDetail
           key={selectedCourse?.id || 'no-course'}
-          onBack={() => goBack('module-selection')} 
+          onBack={() => goBack('module-selection')}
           course={selectedCourse}
           selectedModule={selectedModule}
+          contentType="course"
         />;
       case 'mindful':
         return <MindfulFlowList onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={(course) => {
@@ -346,11 +350,12 @@ const App: React.FC = () => {
           navigateTo('mindful-detail');
         }} />;
       case 'mindful-detail':
-        return <CourseDetail 
+        return <CourseDetail
           key={selectedCourse?.id || 'no-course'}
-          onBack={() => goBack('mindful')} 
+          onBack={() => goBack('mindful')}
           course={selectedCourse}
           selectedModule={null}
+          contentType="mindful"
         />;
       case 'music':
         return <MusicList onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={(course) => {
@@ -358,11 +363,12 @@ const App: React.FC = () => {
           navigateTo('music-detail');
         }} />;
       case 'music-detail':
-        return <CourseDetail 
+        return <CourseDetail
           key={selectedCourse?.id || 'no-course'}
-          onBack={() => goBack('music')} 
+          onBack={() => goBack('music')}
           course={selectedCourse}
           selectedModule={null}
+          contentType="music"
         />;
       case 'reminders':
         return <ReminderList

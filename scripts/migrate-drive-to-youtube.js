@@ -39,19 +39,26 @@ const DELAY_BETWEEN_UPLOADS_MS = 5000;
 
 // ─── GOOGLE AUTH ──────────────────────────────────────────────
 async function getAuth() {
-  const auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    'http://localhost:3000/oauth2callback'
-  );
-  
-  // Carrega do credentials.json se não tiver env vars
-  if (!process.env.GOOGLE_CLIENT_ID && fs.existsSync(CREDENTIALS_PATH)) {
-    const creds = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
-    const { client_id, client_secret } = creds.installed || creds.web || {};
-    auth._clientId = client_id;
-    auth._clientSecret = client_secret;
+  // Carrega credenciais do arquivo
+  if (!fs.existsSync(CREDENTIALS_PATH)) {
+    console.error('❌ credentials.json não encontrado!');
+    process.exit(1);
   }
+  const creds = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
+  const { client_id, client_secret, redirect_uris } = creds.installed || creds.web || {};
+  
+  if (!client_id || !client_secret) {
+    console.error('❌ credentials.json inválido!');
+    process.exit(1);
+  }
+  
+  const redirectUri = (redirect_uris && redirect_uris[0]) || 'http://localhost';
+  
+  const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID || client_id,
+    process.env.GOOGLE_CLIENT_SECRET || client_secret,
+    process.env.GOOGLE_REDIRECT_URI || redirectUri
+  );
 
   // Tenta carregar token salvo
   if (fs.existsSync(TOKEN_PATH)) {

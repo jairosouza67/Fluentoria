@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { PlayCircle, FileText, Mic, Filter, Loader2, BookOpen } from 'lucide-react';
+import { PlayCircle, FileText, Mic, Filter, Loader2, BookOpen, Layers, CheckCircle2 } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, getCoursesForUser } from '../lib/db';
+import { Course, getCoursesForUser, getAllLessonProgress, countLessons, CourseLessonProgress } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/video';
 import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
@@ -12,11 +12,13 @@ import { Button } from './ui/Button';
 interface CourseListProps {
   onNavigate: (screen: Screen) => void;
   onSelectCourse: (course: Course) => void;
+  onContinueCourse?: (course: Course) => void;
 }
 
-const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) => {
+const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse, onContinueCourse }) => {
   const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<string, CourseLessonProgress>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -24,12 +26,26 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
     const fetchCourses = async () => {
       if (!user) return;
       setLoading(true);
-      const data = await getCoursesForUser(user.uid);
+      const [data, progress] = await Promise.all([
+        getCoursesForUser(user.uid),
+        getAllLessonProgress(user.uid),
+      ]);
       setCourses(data);
+      const map: Record<string, CourseLessonProgress> = {};
+      progress.forEach(p => { if (p.courseId) map[p.courseId] = p; });
+      setProgressMap(map);
       setLoading(false);
     };
     fetchCourses();
   }, [user]);
+
+  const getCourseProgress = (course: Course): { completed: number; total: number; percentage: number } => {
+    const total = countLessons(course);
+    const p = course.id ? progressMap[course.id] : undefined;
+    const completed = p?.completedLessonIds?.length || 0;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : (course.progress || 0);
+    return { completed, total, percentage };
+  };
 
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -80,6 +96,20 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                   const coverImage = course.coverImage;
                   const thumbnailUrl = !coverImage && course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
                   const displayImage = coverImage || thumbnailUrl;
+                  const { completed, total, percentage } = getCourseProgress(course);
+                  const isCompletedCourse = total > 0 && percentage === 100;
+                  const galleryCount = course.galleries?.length || 0;
+                  const moduleCount = (course.galleries?.reduce((a, g) => a + (g.modules?.length || 0), 0) || 0)
+                    + (course.modules?.length || 0);
+
+                  const handlePrimaryAction = (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    if (percentage > 0 && percentage < 100 && onContinueCourse) {
+                      onContinueCourse(course);
+                    } else {
+                      onSelectCourse(course);
+                    }
+                  };
 
                   return (
                     <Card
@@ -107,15 +137,25 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                           {course.type === 'audio' && <Mic size={24} />}
                         </div>
 
+                        {isCompletedCourse && (
+                          <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded-full bg-[#23D18B]/20 backdrop-blur-sm border border-[#23D18B]/40 text-[#23D18B] text-[10px] font-bold uppercase tracking-wider">
+                            <CheckCircle2 size={12} />
+                            Concluído
+                          </div>
+                        )}
+
                         {/* Progress Bar overlay */}
                         <div className="absolute bottom-0 left-0 w-full h-1.5 bg-black/30 z-10">
-                          <div className="h-full bg-primary transition-all duration-500" style={{ width: `${course.progress}%` }}></div>
+                          <div className="h-full bg-primary transition-all duration-500" style={{ width: `${percentage}%` }}></div>
                         </div>
                       </div>
 
                       <div className="p-5 space-y-4">
                         <div className="flex justify-between items-start">
                           <span className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">{course.type}</span>
+                          {total > 0 && (
+                            <span className="text-xs text-muted-foreground">{completed} de {total} aulas • {percentage}%</span>
+                          )}
                         </div>
 
                         <div>
@@ -123,11 +163,35 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                           <p className="text-sm text-muted-foreground font-medium">{course.author}</p>
                         </div>
 
+                        {(galleryCount > 0 || moduleCount > 0) && (
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            {galleryCount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Layers size={14} />
+                                {galleryCount} {galleryCount === 1 ? 'galeria' : 'galerias'}
+                              </span>
+                            )}
+                            {moduleCount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <BookOpen size={14} />
+                                {moduleCount} {moduleCount === 1 ? 'módulo' : 'módulos'}
+                              </span>
+                            )}
+                            {total > 0 && (
+                              <span className="flex items-center gap-1">
+                                <PlayCircle size={14} />
+                                {total} {total === 1 ? 'aula' : 'aulas'}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         <Button
-                          variant={course.progress === 100 ? "outline" : "primary"}
+                          variant={isCompletedCourse ? "outline" : "primary"}
+                          onClick={handlePrimaryAction}
                           className="w-full group-hover:shadow-[0_0_15px_rgba(255,106,0,0.3)]"
                         >
-                          {course.progress === 0 ? 'Iniciar Aula' : course.progress === 100 ? 'Rever Aula' : 'Continuar'}
+                          {percentage === 0 ? 'Iniciar Aula' : isCompletedCourse ? 'Rever Aula' : 'Continuar'}
                         </Button>
                       </div>
                     </Card>

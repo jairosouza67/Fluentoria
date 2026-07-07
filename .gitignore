@@ -35,3 +35,10 @@ docs
 
 # Local Netlify folder
 .netlify
+
+# Fluentoria scripts: credentials and migration outputs
+scripts/service-account-key.json
+scripts/credentials.json
+scripts/token.json
+scripts/backup-antes-da-migracao.json
+scripts/resultado-migracao.json

@@ -18,3 +18,4 @@ export const ADMIN_EMAILS_COLLECTION = 'adminEmails';
 export const USER_COURSES_COLLECTION = 'user_courses';
 export const REMINDERS_COLLECTION = 'reminders';
 export const REMINDER_READS_COLLECTION = 'reminder_reads';
+export const LESSON_PROGRESS_COLLECTION = 'lesson_progress';

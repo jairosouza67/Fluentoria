@@ -131,9 +131,9 @@ def autenticar_google():
             print("   e o canal do YouTube.\n")
 
             flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_PATH), SCOPES)
-            # Abre o navegador automaticamente
-            webbrowser.open("http://localhost:8080/")
-            creds = flow.run_local_server(port=8080, open_browser=True)
+            # Usa porta aleatória e não abre navegador automaticamente para evitar
+            # erro de CSRF/state quando há abas de OAuth anteriores abertas.
+            creds = flow.run_local_server(port=0, open_browser=False)
 
         TOKEN_PATH.write_text(creds.to_json())
         print("✅ Autorizado com sucesso!\n")

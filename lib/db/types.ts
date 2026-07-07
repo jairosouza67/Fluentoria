@@ -85,6 +85,16 @@ export interface StudentCompletion {
     completedAt?: Date;
 }
 
+export interface CourseLessonProgress {
+    studentId: string;
+    courseId: string;
+    completedLessonIds: string[];
+    lastLessonId?: string;
+    lastGalleryId?: string;
+    lastModuleId?: string;
+    updatedAt?: Date;
+}
+
 export interface Student {
     id: string;
     name: string;

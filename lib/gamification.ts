@@ -1,6 +1,8 @@
 import { db } from './firebase';
 import { collection, doc, getDoc, setDoc, updateDoc, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { Achievement, StudentProgress } from '../types';
+import { getLessonProgress, toggleLessonComplete } from './db/lessonProgress';
+import { logActivity } from './attendance';
 
 const PROGRESS_COLLECTION = 'student_progress';
 const ACHIEVEMENTS_COLLECTION = 'achievements';
@@ -268,4 +270,24 @@ export const getDefaultAchievements = (): Achievement[] => {
       condition: { type: 'course_count', threshold: 50 },
     },
   ];
+};
+
+// Idempotent lesson completion: only award XP the FIRST time a lesson is marked complete.
+// Re-marking an already-completed lesson is a no-op for XP; unmarking never removes XP.
+export const markLessonCompleteWithXP = async (
+  studentId: string,
+  courseId: string,
+  lessonId: string,
+  completed: boolean
+): Promise<boolean> => {
+  const progress = await getLessonProgress(studentId, courseId);
+  const alreadyCompleted = !!progress?.completedLessonIds?.includes(lessonId);
+
+  // Only award XP on the genuine transition false -> true.
+  if (completed && !alreadyCompleted) {
+    await addXP(studentId, XP_REWARDS.lesson_completed, `Lesson completed: ${lessonId}`);
+    await logActivity(studentId, 'lesson_completed', courseId, undefined, { lessonId });
+  }
+
+  return toggleLessonComplete(studentId, courseId, lessonId, completed);
 };
