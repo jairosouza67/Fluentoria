@@ -5,11 +5,7 @@ export type Screen =
   | 'auth'
   | 'dashboard'
   | 'courses'
-  | 'gallery'
-  | 'module-selection'
   | 'course-detail'
-  // | 'daily' // Daily Contact disabled
-  // | 'daily-detail' // Daily Contact disabled
   | 'mindful'
   | 'mindful-detail'
   | 'music'
@@ -18,8 +14,6 @@ export type Screen =
   | 'reminder-detail'
   | 'profile'
   | 'achievements'
-  | 'leaderboard'
-  | 'attendance'
   | 'admin-catalog'
   | 'admin-students'
   | 'admin-reports'

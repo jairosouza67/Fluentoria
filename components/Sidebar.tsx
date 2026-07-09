@@ -1,18 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
   Users,
   User,
-  Home,
   BarChart3,
   LogOut,
-  Edit3,
   Trophy,
   Activity,
   Bell,
   Music,
-  Settings
+  Settings,
+  Layers,
+  ChevronDown
 } from 'lucide-react';
 import { ViewMode, Screen } from '../types';
 import { User as FirebaseUser } from 'firebase/auth';
@@ -25,8 +25,12 @@ interface SidebarProps {
   user?: FirebaseUser | null;
 }
 
+const EXTRAS_SCREENS: Screen[] = ['mindful', 'mindful-detail', 'music', 'music-detail', 'achievements'];
+
 const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, onLogout, user }) => {
   const isStudent = viewMode === 'student';
+  // Auto-expande o grupo Extras se a tela ativa pertence ao grupo
+  const [extrasOpen, setExtrasOpen] = useState(EXTRAS_SCREENS.includes(currentScreen));
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-[#111111]/95 backdrop-blur-xl border-r border-white/[0.06] flex-col justify-between p-6 z-20 shadow-elevated overflow-y-auto">
@@ -42,6 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
         <nav className="space-y-2">
           {isStudent ? (
             <>
+              {/* Seção Principal */}
               <NavItem
                 icon={<LayoutDashboard size={20} />}
                 label="Dashboard"
@@ -51,42 +56,66 @@ const Sidebar: React.FC<SidebarProps> = ({ viewMode, currentScreen, onNavigate, 
               <NavItem
                 icon={<BookOpen size={20} />}
                 label="Aulas"
-                active={currentScreen === 'courses' || currentScreen === 'gallery' || currentScreen === 'module-selection' || currentScreen === 'course-detail'}
+                active={currentScreen === 'courses' || currentScreen === 'course-detail'}
                 onClick={() => onNavigate('courses')}
               />
-              {/* Daily Contact disabled */}
-              {/*
-              <NavItem
-                icon={<Edit3 size={20} />}
-                label="Daily Contact"
-                active={currentScreen === 'daily'}
-                onClick={() => onNavigate('daily')}
-              />
-              */}
-              <NavItem
-                icon={<Activity size={20} />}
-                label="Fluxo Mental"
-                active={currentScreen === 'mindful'}
-                onClick={() => onNavigate('mindful')}
-              />
-              <NavItem
-                icon={<Music size={20} />}
-                label="Músicas"
-                active={currentScreen === 'music'}
-                onClick={() => onNavigate('music')}
-              />
-              <NavItem
-                icon={<Bell size={20} />}
-                label="Lembretes"
-                active={currentScreen === 'reminders' || currentScreen === 'reminder-detail'}
-                onClick={() => onNavigate('reminders')}
-              />
-              <NavItem
-                icon={<Trophy size={20} />}
-                label="Conquistas"
-                active={currentScreen === 'achievements'}
-                onClick={() => onNavigate('achievements')}
-              />
+
+              {/* Extras (Plus) — botão que expande os boxes */}
+              <div className="pt-4">
+                <button
+                  onClick={() => setExtrasOpen(o => !o)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${EXTRAS_SCREENS.includes(currentScreen)
+                    ? 'bg-[#FF6A00]/10 text-[#FF6A00] shadow-[0_0_20px_rgba(255,106,0,0.1)] border border-[#FF6A00]/20'
+                    : 'text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/[0.02]'
+                    }`}
+                  aria-expanded={extrasOpen}
+                  aria-controls="sidebar-extras-group"
+                >
+                  {EXTRAS_SCREENS.includes(currentScreen) && <div className="absolute left-0 top-0 h-full w-1 bg-[#FF6A00] rounded-r-full" />}
+                  <span className={`relative z-10 transition-transform duration-200 ${EXTRAS_SCREENS.includes(currentScreen) ? 'scale-110' : 'group-hover:scale-110'}`}>
+                    <Layers size={20} />
+                  </span>
+                  <span className="font-medium text-sm relative z-10 flex-1 text-left">Extras</span>
+                  <ChevronDown
+                    size={16}
+                    className={`relative z-10 transition-transform duration-200 ${extrasOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+
+                {extrasOpen && (
+                  <div id="sidebar-extras-group" className="mt-2 ml-3 pl-3 border-l border-white/[0.06] space-y-1">
+                    <NavItem
+                      icon={<Activity size={18} />}
+                      label="Fluxo Mental"
+                      active={currentScreen === 'mindful' || currentScreen === 'mindful-detail'}
+                      onClick={() => onNavigate('mindful')}
+                    />
+                    <NavItem
+                      icon={<Music size={18} />}
+                      label="Músicas"
+                      active={currentScreen === 'music' || currentScreen === 'music-detail'}
+                      onClick={() => onNavigate('music')}
+                    />
+                    <NavItem
+                      icon={<Trophy size={18} />}
+                      label="Conquistas"
+                      active={currentScreen === 'achievements'}
+                      onClick={() => onNavigate('achievements')}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Lembretes fica no nível principal */}
+              <div className="pt-4">
+                <NavItem
+                  icon={<Bell size={20} />}
+                  label="Lembretes"
+                  active={currentScreen === 'reminders' || currentScreen === 'reminder-detail'}
+                  onClick={() => onNavigate('reminders')}
+                />
+              </div>
+
               <div className="h-px bg-white/[0.06] my-4 mx-2" />
               <NavItem
                 icon={<User size={20} />}

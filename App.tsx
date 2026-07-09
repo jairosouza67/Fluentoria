@@ -11,17 +11,12 @@ const Reports = React.lazy(() => import('./components/Reports'));
 const FinancialReports = React.lazy(() => import('./components/FinancialReports'));
 const Settings = React.lazy(() => import('./components/Settings'));
 const CourseList = React.lazy(() => import('./components/CourseList'));
-const GalleryList = React.lazy(() => import('./components/GalleryList'));
 const CourseDetail = React.lazy(() => import('./components/CourseDetail'));
-const ModuleSelection = React.lazy(() => import('./components/ModuleSelection'));
-const MindfulFlowList = React.lazy(() => import('./components/MindfulFlowList'));
-const MusicList = React.lazy(() => import('./components/MusicList'));
+const MediaLibraryList = React.lazy(() => import('./components/MediaLibraryList'));
 const ReminderList = React.lazy(() => import('./components/ReminderList'));
 const ReminderDetail = React.lazy(() => import('./components/ReminderDetail'));
 const Profile = React.lazy(() => import('./components/Profile'));
 const Achievements = React.lazy(() => import('./components/Achievements'));
-const Leaderboard = React.lazy(() => import('./components/Leaderboard'));
-const AttendanceTracker = React.lazy(() => import('./components/AttendanceTracker'));
 
 import { Screen } from './types';
 import { ArrowLeft, Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
@@ -29,7 +24,6 @@ import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
 import { getUserRole, forceUpdateUserRole, checkUserAccess, isAdminEmail } from './lib/db';
-import type { Reminder } from './lib/db';
 import { useAppStore } from './lib/stores/appStore';
 import { useCourseStore } from './lib/stores/courseStore';
 
@@ -42,8 +36,6 @@ const LoadingSpinner = () => (
 
 const App: React.FC = () => {
   const [immersiveNavState, setImmersiveNavState] = useState({ active: false, visible: true });
-  const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
-  const [selectedReminderRead, setSelectedReminderRead] = useState(false);
 
   // --- Zustand stores ---
   const {
@@ -58,6 +50,8 @@ const App: React.FC = () => {
     navigationHistory,
     viewMode,
     showProfileMenu, setShowProfileMenu,
+    selectedReminder, setSelectedReminder,
+    selectedReminderRead, setSelectedReminderRead,
     navigateTo,
     goBack,
     toggleViewMode,
@@ -66,7 +60,6 @@ const App: React.FC = () => {
   const {
     selectedCourse, setSelectedCourse,
     selectedGallery, setSelectedGallery,
-    selectedModule, setSelectedModule,
   } = useCourseStore();
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -265,14 +258,13 @@ const App: React.FC = () => {
   }
 
   // Top-level screens that should clear course context when navigated to (e.g. from sidebar)
-  const TOP_LEVEL_SCREENS: Screen[] = ['dashboard', 'courses', 'mindful', 'music', 'reminders', 'achievements', 'leaderboard', 'attendance', 'profile'];
+  const TOP_LEVEL_SCREENS: Screen[] = ['dashboard', 'courses', 'mindful', 'music', 'reminders', 'achievements', 'profile'];
 
   const handleNavigate = (screen: Screen) => {
     // Clear course context when navigating to top-level screens (sidebar navigation)
     if (TOP_LEVEL_SCREENS.includes(screen)) {
       setSelectedCourse(null);
       setSelectedGallery(null);
-      setSelectedModule(null);
       setSelectedReminder(null);
       setSelectedReminderRead(false);
     }
@@ -311,63 +303,31 @@ const App: React.FC = () => {
       case 'courses':
         return <CourseList onNavigate={navigateTo} onSelectCourse={(course) => {
           setSelectedCourse(course);
-          navigateTo('gallery');
-        }} onContinueCourse={(course) => {
-          setSelectedCourse(course);
           navigateTo('course-detail');
         }} />;
-      case 'gallery':
-        return <GalleryList 
-          onNavigate={navigateTo}
-          selectedCourse={selectedCourse}
-          onSelectGallery={(gallery, course) => {
-            setSelectedGallery(gallery);
-            setSelectedCourse(course);
-            navigateTo('module-selection');
-          }}
-        />;
-      case 'module-selection':
-        return <ModuleSelection 
-          onBack={() => goBack('gallery')} 
-          course={selectedCourse}
-          gallery={selectedGallery}
-          onSelectModule={(module) => {
-            setSelectedModule(module);
-            navigateTo('course-detail');
-          }}
-        />;
       case 'course-detail':
         return <CourseDetail
           key={selectedCourse?.id || 'no-course'}
-          onBack={() => goBack('module-selection')}
+          onBack={() => goBack('courses')}
           course={selectedCourse}
-          selectedModule={selectedModule}
           contentType="course"
         />;
       case 'mindful':
-        return <MindfulFlowList onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={(course) => {
-          setSelectedCourse(course);
-          navigateTo('mindful-detail');
-        }} />;
+        return <MediaLibraryList contentType="mindful" onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={setSelectedCourse} />;
       case 'mindful-detail':
         return <CourseDetail
           key={selectedCourse?.id || 'no-course'}
           onBack={() => goBack('mindful')}
           course={selectedCourse}
-          selectedModule={null}
           contentType="mindful"
         />;
       case 'music':
-        return <MusicList onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={(course) => {
-          setSelectedCourse(course);
-          navigateTo('music-detail');
-        }} />;
+        return <MediaLibraryList contentType="music" onNavigate={navigateTo} courseId={selectedCourse?.id} onSelectCourse={setSelectedCourse} />;
       case 'music-detail':
         return <CourseDetail
           key={selectedCourse?.id || 'no-course'}
           onBack={() => goBack('music')}
           course={selectedCourse}
-          selectedModule={null}
           contentType="music"
         />;
       case 'reminders':
@@ -394,10 +354,6 @@ const App: React.FC = () => {
         return <Profile />;
       case 'achievements':
         return user ? <Achievements studentId={user.uid} /> : null;
-      case 'leaderboard':
-        return user ? <Leaderboard currentUserId={user.uid} /> : null;
-      case 'attendance':
-        return user ? <AttendanceTracker studentId={user.uid} studentName={user.displayName || user.email || 'Student'} /> : null;
       default:
         return <StudentDashboard onNavigate={navigateTo} />;
     }

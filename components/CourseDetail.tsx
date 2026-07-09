@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ArrowLeft, CheckCircle, Download, MessageSquare, Share2, Bookmark, Play, ChevronDown, ChevronRight, FileText, Mic, PlayCircle, Image as ImageIcon, Paperclip, File, Maximize, Minimize, Circle } from 'lucide-react';
-import { Course, CourseLesson, CourseModule, CourseGallery, getStudentCompletion, markContentComplete, isAdminEmail, getLessonProgress, setLastLesson, countLessons } from '../lib/db';
+import { Course, CourseLesson, getStudentCompletion, markContentComplete, isAdminEmail, getLessonProgress, setLastLesson, countLessons } from '../lib/db';
 import { extractYouTubeId, getEmbedUrl, getGoogleDriveDirectVideoUrl, isGoogleDriveUrl, isYouTubeUrl, formatDuration } from '../lib/video';
 import { formatFileSize } from '../lib/media';
 import CourseChat from './CourseChat';
@@ -15,11 +15,10 @@ import { Breadcrumbs } from './ui/Breadcrumbs';
 interface CourseDetailProps {
   onBack: () => void;
   course: Course | null;
-  selectedModule?: CourseModule | null;
   contentType?: 'course' | 'mindful' | 'music';
 }
 
-const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedModule, contentType = 'course' }) => {
+const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, contentType = 'course' }) => {
   const isCourseContent = contentType === 'course';
   const [activeTab, setActiveTab] = useState<'content' | 'media' | 'chat'>('content');
   const [activeLesson, setActiveLesson] = useState<CourseLesson | null>(null);
@@ -150,9 +149,6 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
           setExpandedGalleries([firstGallery.id]);
           if (firstModule) setExpandedModules([firstModule.id]);
         }
-      } else if (selectedModule && selectedModule.lessons?.length) {
-        setActiveLesson(selectedModule.lessons[0]);
-        setExpandedModules([selectedModule.id]);
       } else if (course.modules?.length) {
         const firstModule = course.modules[0];
         if (firstModule.lessons.length > 0) {
@@ -163,7 +159,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
     };
 
     applyInitialLesson();
-  }, [course?.id, selectedModule?.id, isCourseContent, user, flatLessons]);
+  }, [course?.id, isCourseContent, user, flatLessons]);
 
   useEffect(() => {
     // Log course started activity and load completion status
@@ -403,58 +399,20 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ onBack, course, selectedMod
   const navigateTo = useAppStore(state => state.navigateTo);
   const setSelectedCourse = useCourseStore(state => state.setSelectedCourse);
   const setSelectedGallery = useCourseStore(state => state.setSelectedGallery);
-  const setSelectedModule = useCourseStore(state => state.setSelectedModule);
 
   const breadcrumbToCourses = () => {
     setSelectedCourse(null);
     setSelectedGallery(null);
-    setSelectedModule(null);
     navigateTo('courses');
   };
 
-  const breadcrumbToGalleries = () => {
-    setSelectedGallery(null);
-    setSelectedModule(null);
-    navigateTo('gallery');
-  };
-
-  const breadcrumbToModules = () => {
-    setSelectedModule(null);
-    navigateTo('module-selection');
-  };
-
-  // Locate the active lesson's parent gallery/module to build the trail
-  const activeBreadcrumbTrail = (() => {
-    if (!course || !isCourseContent) return null;
-    const activeId = activeLesson?.id;
-    let foundGallery: CourseGallery | undefined;
-    let foundModule: CourseModule | undefined;
-    for (const g of course.galleries || []) {
-      for (const m of g.modules || []) {
-        if ((m.lessons || []).some(l => l.id === activeId)) {
-          foundGallery = g;
-          foundModule = m;
-          break;
-        }
-      }
-      if (foundGallery) break;
-    }
-    if (!foundGallery && !foundModule && course.modules) {
-      for (const m of course.modules) {
-        if ((m.lessons || []).some(l => l.id === activeId)) {
-          foundModule = m;
-          break;
-        }
-      }
-    }
-    const items: { label: string; onClick?: () => void }[] = [
-      { label: 'Aulas', onClick: breadcrumbToCourses },
-      { label: course.title, onClick: breadcrumbToGalleries },
-    ];
-    if (foundGallery) items.push({ label: foundGallery.title, onClick: breadcrumbToModules });
-    if (foundModule && foundGallery) items.push({ label: foundModule.title });
-    return items;
-  })();
+  // Breadcrumb simples: Aulas › Nome do Curso (sem níveis intermediários)
+  const activeBreadcrumbTrail = course && isCourseContent
+    ? [
+        { label: 'Aulas', onClick: breadcrumbToCourses },
+        { label: course.title },
+      ]
+    : null;
 
   if (!course) {
     return (

@@ -1,19 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { PlayCircle, FileText, Mic, Clock, Filter, Loader2 } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, getMusicForUser } from '../lib/db';
+import { Course, getMindfulFlowsForUser, getMusicForUser } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/video';
 import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
 
-interface MusicListProps {
+type ContentType = 'mindful' | 'music';
+
+interface MediaLibraryListProps {
+  contentType: ContentType;
   onNavigate: (screen: Screen) => void;
   onSelectCourse: (course: Course) => void;
   courseId?: string | null;
 }
 
-const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, courseId }) => {
+const CONTENT_CONFIG: Record<ContentType, {
+  title: string;
+  subtitle: string;
+  searchPlaceholder: string;
+  detailScreen: Screen;
+  emptyText: string;
+  cta: { start: string; replay: string; resume: string };
+}> = {
+  mindful: {
+    title: 'Fluxo Mental',
+    subtitle: 'Pratique mindfulness e exercícios de meditação.',
+    searchPlaceholder: 'Buscar fluxos...',
+    detailScreen: 'mindful-detail',
+    emptyText: 'Nenhum fluxo mental disponível.',
+    cta: { start: 'Iniciar exercício', replay: 'Repetir exercício', resume: 'Continuar' },
+  },
+  music: {
+    title: 'Músicas',
+    subtitle: 'Explore músicas relaxantes e playlists para foco.',
+    searchPlaceholder: 'Buscar músicas...',
+    detailScreen: 'music-detail',
+    emptyText: 'Nenhuma música disponível.',
+    cta: { start: 'Tocar agora', replay: 'Repetir', resume: 'Continuar' },
+  },
+};
+
+const MediaLibraryList: React.FC<MediaLibraryListProps> = ({ contentType, onNavigate, onSelectCourse, courseId }) => {
   const user = useAppStore(state => state.user);
+  const config = CONTENT_CONFIG[contentType];
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,12 +52,13 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, cours
     const fetchCourses = async () => {
       if (!user) return;
       setLoading(true);
-      const data = await getMusicForUser(user.uid, courseId || undefined);
+      const fetcher = contentType === 'mindful' ? getMindfulFlowsForUser : getMusicForUser;
+      const data = await fetcher(user.uid, courseId || undefined);
       setCourses(data);
       setLoading(false);
     };
     fetchCourses();
-  }, [user, courseId]);
+  }, [user, courseId, contentType]);
 
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -38,15 +69,15 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, cours
     <div className="p-8 max-w-container mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-[44px] leading-[1.05] font-bold text-[#F3F4F6]">Music</h1>
-          <p className="text-[#9CA3AF] mt-1">Explore relaxing music and playlists for focus.</p>
+          <h1 className="text-[44px] leading-[1.05] font-bold text-[#F3F4F6]">{config.title}</h1>
+          <p className="text-[#9CA3AF] mt-1">{config.subtitle}</p>
         </div>
 
         <div className="flex gap-3 w-full md:w-auto">
           <div className="flex-grow md:flex-grow-0 md:w-64">
             <AnimatedInput
               type="search"
-              placeholder="Search music..."
+              placeholder={config.searchPlaceholder}
               value={searchTerm}
               onChange={setSearchTerm}
               icon="search"
@@ -62,6 +93,10 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, cours
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-[#FF6A00]" size={40} />
         </div>
+      ) : filteredCourses.length === 0 ? (
+        <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-xl">
+          <p className="text-[#9CA3AF]">{config.emptyText}</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => {
@@ -69,13 +104,18 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, cours
             const coverImage = course.coverImage;
             const thumbnailUrl = !coverImage && course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
             const displayImage = coverImage || thumbnailUrl;
+            const ctaLabel = course.progress === 0
+              ? config.cta.start
+              : course.progress === 100
+                ? config.cta.replay
+                : config.cta.resume;
 
             return (
               <div
                 key={course.id}
                 onClick={() => {
                   onSelectCourse(course);
-                  onNavigate('music-detail');
+                  onNavigate(config.detailScreen);
                 }}
                 className="group bg-[#111111] border border-white/[0.06] rounded-xl overflow-hidden hover:border-[#FF6A00]/50 hover:-translate-y-1 transition-all duration-200 cursor-pointer shadow-card hover:shadow-elevated"
               >
@@ -121,7 +161,7 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, cours
                   <p className="text-sm text-[#9CA3AF] mb-4">{course.author}</p>
 
                   <button className="w-full py-3 rounded-xl bg-white/[0.02] text-[#9CA3AF] text-sm font-medium border border-white/[0.06] group-hover:bg-[#FF6A00] group-hover:text-white group-hover:border-transparent transition-all duration-200">
-                    {course.progress === 0 ? 'Play Now' : course.progress === 100 ? 'Replay' : 'Continue'}
+                    {ctaLabel}
                   </button>
                 </div>
               </div>
@@ -133,4 +173,4 @@ const MusicList: React.FC<MusicListProps> = ({ onNavigate, onSelectCourse, cours
   );
 };
 
-export default MusicList;
+export default MediaLibraryList;

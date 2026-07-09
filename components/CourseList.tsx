@@ -12,10 +12,9 @@ import { Button } from './ui/Button';
 interface CourseListProps {
   onNavigate: (screen: Screen) => void;
   onSelectCourse: (course: Course) => void;
-  onContinueCourse?: (course: Course) => void;
 }
 
-const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse, onContinueCourse }) => {
+const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) => {
   const user = useAppStore(state => state.user);
   const [courses, setCourses] = useState<Course[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, CourseLessonProgress>>({});
@@ -104,11 +103,7 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse, onC
 
                   const handlePrimaryAction = (e: React.MouseEvent) => {
                     e.stopPropagation();
-                    if (percentage > 0 && percentage < 100 && onContinueCourse) {
-                      onContinueCourse(course);
-                    } else {
-                      onSelectCourse(course);
-                    }
+                    onSelectCourse(course);
                   };
 
                   return (
