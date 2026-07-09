@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Lock, TrendingUp, Medal, Award, Zap } from 'lucide-react';
 import { Achievement, StudentProgress } from '../types';
-import { getAchievements, getStudentProgress, getLeaderboard } from '../lib/gamification';
+import { getAchievements, getStudentProgress, getLeaderboard, syncProgressStats, evaluateAchievements } from '../lib/gamification';
 
 interface AchievementsProps {
   studentId: string;
@@ -19,6 +19,10 @@ const Achievements: React.FC<AchievementsProps> = ({ studentId }) => {
 
   const loadAchievements = async () => {
     setLoading(true);
+    // Sync statistics and evaluate achievements to ensure fresh UI state
+    await syncProgressStats(studentId);
+    await evaluateAchievements(studentId);
+
     const [allAchievements, studentProgress, leaderboardData] = await Promise.all([
       getAchievements(),
       getStudentProgress(studentId),

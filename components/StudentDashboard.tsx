@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, Clock, Award, ArrowUpRight, Sparkles, Trophy, Zap, PlayCircle, GraduationCap } from 'lucide-react';
 import { Screen } from '../types';
 import { auth } from '../lib/firebase';
-import { getStudentProgress, createStudentProgress } from '../lib/gamification';
+import { getStudentProgress, createStudentProgress, syncProgressStats, evaluateAchievements } from '../lib/gamification';
 import LevelProgress from './LevelProgress';
 import AttendanceTracker from './AttendanceTracker';
 import { Card } from './ui/Card';
@@ -39,6 +39,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
       await createStudentProgress(user.uid, user.displayName || user.email || 'Student', user.email || '');
       progress = await getStudentProgress(user.uid);
     }
+    // Reconcile and synchronize stats and achievements
+    await syncProgressStats(user.uid);
+    await evaluateAchievements(user.uid);
+    progress = await getStudentProgress(user.uid);
+    
     setStudentProgress(progress);
   };
 
@@ -180,7 +185,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ onNavigate }) => {
                 <Zap className="h-5 w-5" />
               </div>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-1">{studentProgress.totalXP}</div>
+            <div className="text-3xl font-bold text-foreground mb-1">{studentProgress.currentXP}</div>
             <p className="text-xs text-green-500 flex items-center gap-1">
               Nível {studentProgress.currentLevel} <ArrowUpRight className="w-3 h-3" />
             </p>

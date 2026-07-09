@@ -1,8 +1,8 @@
 import { db } from './firebase';
 import { collection, doc, getDoc, setDoc, updateDoc, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import { Achievement, StudentProgress } from '../types';
-import { getLessonProgress, toggleLessonComplete } from './db/lessonProgress';
-import { logActivity } from './attendance';
+import { getLessonProgress, toggleLessonComplete, getAllLessonProgress } from './db/lessonProgress';
+import { logActivity, getStudentActivities, calculateAttendanceStats } from './attendance';
 
 const PROGRESS_COLLECTION = 'student_progress';
 const ACHIEVEMENTS_COLLECTION = 'achievements';
@@ -164,6 +164,96 @@ export const unlockAchievement = async (studentId: string, achievementId: string
   }
 };
 
+// Sync Student Progress stats with real DB records
+export const syncProgressStats = async (studentId: string): Promise<void> => {
+  try {
+    // 1. Get all lesson progress to compute totalCoursesCompleted
+    const allLessonProgress = await getAllLessonProgress(studentId);
+    let totalCoursesCompleted = 0;
+    allLessonProgress.forEach(p => {
+      if (p.completedLessonIds) {
+        totalCoursesCompleted += p.completedLessonIds.length;
+      }
+    });
+
+    // 2. Get all student activities to compute streak stats
+    const activities = await getStudentActivities(studentId);
+    const attendanceStats = calculateAttendanceStats(activities);
+    const currentStreak = attendanceStats.currentStreak;
+
+    // Get existing progress to calculate longestStreak
+    const progress = await getStudentProgress(studentId);
+    let longestStreak = progress ? (progress.longestStreak || 0) : 0;
+    if (currentStreak > longestStreak) {
+      longestStreak = currentStreak;
+    }
+
+    // 3. Update Firestore student_progress document using merge to ensure creation
+    const progressDocRef = doc(db, PROGRESS_COLLECTION, studentId);
+    await setDoc(progressDocRef, {
+      totalCoursesCompleted,
+      currentStreak,
+      longestStreak,
+      updatedAt: Timestamp.now(),
+    }, { merge: true });
+  } catch (error) {
+    console.error("Error syncing progress stats:", error);
+  }
+};
+
+// Evaluate achievements and automatically unlock unlocked ones
+export const evaluateAchievements = async (studentId: string): Promise<string[]> => {
+  try {
+    const progress = await getStudentProgress(studentId);
+    if (!progress) {
+      return [];
+    }
+
+    const achievements = await getAchievements();
+    const unlockedList = progress.unlockedAchievements || [];
+    const newlyUnlocked: string[] = [];
+
+    // Evaluate each locked achievement sequentially to maintain state integrity
+    for (const achievement of achievements) {
+      if (unlockedList.includes(achievement.id)) {
+        continue;
+      }
+
+      let met = false;
+      const { type, threshold } = achievement.condition;
+
+      switch (type) {
+        case 'first_course':
+          met = progress.totalCoursesCompleted >= threshold;
+          break;
+        case 'course_count':
+          met = progress.totalCoursesCompleted >= threshold;
+          break;
+        case 'streak_days':
+          met = progress.currentStreak >= threshold;
+          break;
+        case 'hours_studied':
+          met = progress.totalHoursStudied >= threshold;
+          break;
+        default:
+          break;
+      }
+
+      if (met) {
+        const success = await unlockAchievement(studentId, achievement.id);
+        if (success) {
+          newlyUnlocked.push(achievement.id);
+        }
+      }
+    }
+
+    return newlyUnlocked;
+  } catch (error) {
+    console.error("Error evaluating achievements:", error);
+    return [];
+  }
+};
+
 // Achievements Management
 export const getAchievements = async (): Promise<Achievement[]> => {
   try {
@@ -287,6 +377,8 @@ export const markLessonCompleteWithXP = async (
   if (completed && !alreadyCompleted) {
     await addXP(studentId, XP_REWARDS.lesson_completed, `Lesson completed: ${lessonId}`);
     await logActivity(studentId, 'lesson_completed', courseId, undefined, { lessonId });
+    // Trigger sync and evaluation in the background without blocking the UI response
+    syncProgressStats(studentId).then(() => evaluateAchievements(studentId));
   }
 
   return toggleLessonComplete(studentId, courseId, lessonId, completed);

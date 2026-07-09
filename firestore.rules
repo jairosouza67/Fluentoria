@@ -8,11 +8,16 @@ service cloud.firestore {
     }
 
     // Helper: Check if user is admin (by role field or email)
+    // Uses exists() guard so that a missing /users/{uid} doc does NOT crash the
+    // entire rule evaluation (get() on a non-existent doc throws and aborts the
+    // whole expression, preventing the ownership fallback from ever running).
     function isAdmin() {
-      return isAuthenticated() && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'jairosouza67@gmail.com'
-      );
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'jairosouza67@gmail.com'
+        );
     }
 
     // Helper: Check if user is accessing their own document
