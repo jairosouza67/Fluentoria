@@ -168,7 +168,7 @@ const ReminderList: React.FC<ReminderListProps> = ({ onNavigate, onSelectReminde
               >
                 <div className="relative">
                   {thumbnail ? (
-                    <img src={thumbnail} alt={reminder.title} className="w-full h-40 object-cover" />
+                    <img src={thumbnail} alt={reminder.title} className="w-full h-auto block" />
                   ) : (
                     <div className="w-full h-40 bg-gradient-to-br from-[#1f1f1f] to-[#0f0f0f]" />
                   )}
