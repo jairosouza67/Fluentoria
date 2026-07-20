@@ -194,6 +194,41 @@ export const useCatalogData = () => {
     }
   }, [activeTab, editingCourse, fetchCourses, fetchMindfulFlows, fetchMusic, fetchReminders]);
 
+  const handleSaveReminderBatch = useCallback(async (items: Course[]): Promise<SaveCourseResult> => {
+    try {
+      for (const item of items) {
+        const reminder = courseToReminder(item);
+        if (item.id) {
+          const updated = await updateReminder(item.id, reminder);
+          if (!updated) {
+            return { success: false, error: `Nao foi possivel atualizar o lembrete "${item.title}".` };
+          }
+        } else {
+          const createdId = await addReminder(reminder);
+          if (!createdId) {
+            return { success: false, error: `Nao foi possivel criar o lembrete "${item.title}".` };
+          }
+        }
+      }
+
+      await fetchReminders();
+      setIsFormOpen(false);
+      setEditingCourse(null);
+      return { success: true };
+    } catch (error) {
+      console.error('[useCatalogData] failed to save reminder batch', {
+        count: items.length,
+        error,
+      });
+
+      const message = error instanceof Error && error.message
+        ? error.message
+        : 'Nao foi possivel salvar os lembretes. Tente novamente.';
+
+      return { success: false, error: message };
+    }
+  }, [fetchReminders]);
+
   const handleDeleteCourse = useCallback(async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este conteúdo?')) {
       if (activeTab === 'courses') {
@@ -238,6 +273,7 @@ export const useCatalogData = () => {
     setViewingCourse,
     getCurrentList,
     handleSaveCourse,
+    handleSaveReminderBatch,
     handleDeleteCourse,
     handleEditCourse,
     handleViewCourse,

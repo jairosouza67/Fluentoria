@@ -82,4 +82,111 @@ describe('CourseForm', () => {
     expect(screen.getByText('Falha ao atualizar curso')).toBeInTheDocument();
     expect(screen.getByText('Editar Lembrete')).toBeInTheDocument();
   });
+
+  it('permite adicionar e salvar varios lembretes de uma vez', async () => {
+    const onSaveMany = vi.fn().mockResolvedValue({ success: true });
+
+    render(
+      <CourseForm
+        course={null}
+        onSave={vi.fn().mockResolvedValue({ success: true })}
+        onSaveMany={onSaveMany}
+        onCancel={vi.fn()}
+        activeTab="reminders"
+        availableCourses={[]}
+      />
+    );
+
+    // Comeca com um unico lembrete
+    expect(screen.getByText('Novo Lembrete')).toBeInTheDocument();
+    expect(screen.getByText('Lembrete 1')).toBeInTheDocument();
+    expect(screen.queryByText('Lembrete 2')).not.toBeInTheDocument();
+
+    // Adiciona um segundo lembrete
+    fireEvent.click(screen.getByRole('button', { name: /Adicionar Lembrete/i }));
+    expect(screen.getByText('Lembrete 2')).toBeInTheDocument();
+
+    // Preenche os dois lembretes
+    const titleInputs = screen.getAllByPlaceholderText('Ex: Aviso importante da semana');
+    const urlInputs = screen.getAllByPlaceholderText('Cole a URL do vídeo do lembrete');
+    const messageInputs = screen.getAllByPlaceholderText('Digite a mensagem completa do lembrete');
+    expect(titleInputs).toHaveLength(2);
+
+    fireEvent.change(titleInputs[0], { target: { value: 'Lembrete A' } });
+    fireEvent.change(urlInputs[0], { target: { value: 'https://youtu.be/a' } });
+    fireEvent.change(messageInputs[0], { target: { value: 'Mensagem A' } });
+
+    fireEvent.change(titleInputs[1], { target: { value: 'Lembrete B' } });
+    fireEvent.change(urlInputs[1], { target: { value: 'https://youtu.be/b' } });
+    fireEvent.change(messageInputs[1], { target: { value: 'Mensagem B' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Salvar Lembretes/i }));
+
+    await waitFor(() => expect(onSaveMany).toHaveBeenCalledTimes(1));
+    const savedDrafts = onSaveMany.mock.calls[0][0];
+    expect(savedDrafts).toHaveLength(2);
+    expect(savedDrafts[0]).toMatchObject({
+      title: 'Lembrete A',
+      videoUrl: 'https://youtu.be/a',
+      description: 'Mensagem A',
+    });
+    expect(savedDrafts[1]).toMatchObject({
+      title: 'Lembrete B',
+      videoUrl: 'https://youtu.be/b',
+      description: 'Mensagem B',
+    });
+  });
+
+  it('permite remover um lembrete adicionado antes de salvar', () => {
+    render(
+      <CourseForm
+        course={null}
+        onSave={vi.fn()}
+        onSaveMany={vi.fn()}
+        onCancel={vi.fn()}
+        activeTab="reminders"
+        availableCourses={[]}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Adicionar Lembrete/i }));
+    expect(screen.getByText('Lembrete 2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByTitle('Remover lembrete')[1]);
+    expect(screen.queryByText('Lembrete 2')).not.toBeInTheDocument();
+    expect(screen.getByText('Lembrete 1')).toBeInTheDocument();
+  });
+
+  it('exibe erro identificando o lembrete incompleto ao salvar', async () => {
+    const onSaveMany = vi.fn().mockResolvedValue({ success: true });
+
+    render(
+      <CourseForm
+        course={null}
+        onSave={vi.fn()}
+        onSaveMany={onSaveMany}
+        onCancel={vi.fn()}
+        activeTab="reminders"
+        availableCourses={[]}
+      />
+    );
+
+    // Preenche com espacos para contornar a validacao nativa e exercitar a validacao do form
+    fireEvent.change(screen.getByPlaceholderText('Ex: Aviso importante da semana'), {
+      target: { value: '   ' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Cole a URL do vídeo do lembrete'), {
+      target: { value: 'https://youtu.be/a' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Digite a mensagem completa do lembrete'), {
+      target: { value: 'Mensagem valida' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Salvar Lembrete/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Lembrete 1: informe o título.')).toBeInTheDocument()
+    );
+    expect(onSaveMany).not.toHaveBeenCalled();
+  });
 });

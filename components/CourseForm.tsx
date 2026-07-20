@@ -32,6 +32,7 @@ import { cn } from '../lib/utils';
 interface CourseFormProps {
     course?: Course | null;
     onSave: (course: Course) => Promise<{ success: boolean; error?: string }>;
+    onSaveMany?: (courses: Course[]) => Promise<{ success: boolean; error?: string }>;
     onCancel: () => void;
     activeTab?: 'courses' | 'gallery' | 'mindful' | 'music' | 'reminders';
     availableCourses?: Course[];
@@ -39,6 +40,21 @@ interface CourseFormProps {
 
 type ContentMode = 'modules' | 'single';
 type ContentType = 'module' | 'video' | null;
+
+const createEmptyReminderDraft = (): Course => ({
+    title: '',
+    author: 'Equipe Fluentoria',
+    duration: '00:00',
+    type: 'video',
+    progress: 0,
+    thumbnail: 'from-orange-900 to-stone-900',
+    launchDate: '',
+    description: '',
+    videoUrl: '',
+    modules: [],
+    galleries: [],
+    coverImage: ''
+});
 
 const getDefaultContentConfig = (
     tab?: CourseFormProps['activeTab']
@@ -50,7 +66,7 @@ const getDefaultContentConfig = (
     return { mode: 'modules', type: 'module' };
 };
 
-const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activeTab, availableCourses }) => {
+const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onCancel, activeTab, availableCourses }) => {
     const [formData, setFormData] = useState<Course>({
         title: '',
         author: '',
@@ -74,10 +90,27 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
     const [coverType, setCoverType] = useState<'link' | 'upload'>('link');
     const [uploadingCover, setUploadingCover] = useState(false);
     const [uploadingMaterial, setUploadingMaterial] = useState<{ [key: string]: boolean }>({});
+    const [reminderDrafts, setReminderDrafts] = useState<Course[]>([]);
     const isReminderTab = activeTab === 'reminders';
 
     useEffect(() => {
         const defaultContentConfig = getDefaultContentConfig(activeTab);
+
+        if (isReminderTab) {
+            // Reminders are edited as a batch: existing reminder first, new drafts can be added
+            setReminderDrafts([
+                course
+                    ? {
+                        ...createEmptyReminderDraft(),
+                        id: course.id,
+                        title: course.title || '',
+                        description: course.description || '',
+                        videoUrl: typeof course.videoUrl === 'string' ? course.videoUrl.trim() : '',
+                        coverImage: course.coverImage || ''
+                    }
+                    : createEmptyReminderDraft()
+            ]);
+        }
 
         if (course) {
             const normalizedModules = Array.isArray(course.modules) ? course.modules : [];
@@ -150,8 +183,54 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
         setErrorMessage(null);
         setLoading(true);
         try {
+            // Reminders are saved as a batch (one or more drafts)
+            if (isReminderTab) {
+                for (let i = 0; i < reminderDrafts.length; i++) {
+                    const draft = reminderDrafts[i];
+                    if (!draft.title?.trim()) {
+                        setErrorMessage(`Lembrete ${i + 1}: informe o título.`);
+                        setLoading(false);
+                        return;
+                    }
+                    if (!draft.videoUrl?.trim()) {
+                        setErrorMessage(`Lembrete ${i + 1}: informe a URL do vídeo.`);
+                        setLoading(false);
+                        return;
+                    }
+                    if (!draft.description?.trim()) {
+                        setErrorMessage(`Lembrete ${i + 1}: informe a mensagem.`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+
+                const preparedDrafts = reminderDrafts.map(draft => ({
+                    ...draft,
+                    title: draft.title.trim(),
+                    author: draft.author?.trim() || 'Equipe Fluentoria',
+                    duration: draft.duration?.trim() || '00:00',
+                    type: 'video' as const,
+                    videoUrl: draft.videoUrl!.trim(),
+                    description: draft.description!.trim(),
+                    coverImage: draft.coverImage?.trim() || '',
+                    modules: [],
+                    galleries: []
+                }));
+                preparedDrafts.forEach(draft => {
+                    delete draft.productId;
+                });
+
+                const saveResult = onSaveMany
+                    ? await onSaveMany(preparedDrafts)
+                    : await onSave(preparedDrafts[0]);
+                if (!saveResult.success) {
+                    setErrorMessage(saveResult.error || 'Não foi possível salvar os lembretes. Tente novamente.');
+                }
+                return;
+            }
+
             // Check for duplicate title (only when creating new course)
-            if (!course && availableCourses && activeTab !== 'mindful' && activeTab !== 'music' && activeTab !== 'reminders') {
+            if (!course && availableCourses && activeTab !== 'mindful' && activeTab !== 'music') {
                 const normalizedTitle = formData.title.trim().toLowerCase();
                 const duplicateCourse = availableCourses.find(
                     c => c.title.trim().toLowerCase() === normalizedTitle
@@ -181,25 +260,6 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
             } else {
                 dataToSave.modules = []; // Clear modules if in single mode
                 dataToSave.galleries = []; // Clear galleries if in single mode
-            }
-
-            if (activeTab === 'reminders') {
-                if (!dataToSave.videoUrl?.trim()) {
-                    setErrorMessage('Informe a URL do video do lembrete.');
-                    setLoading(false);
-                    return;
-                }
-
-                if (!dataToSave.description?.trim()) {
-                    setErrorMessage('Informe a mensagem do lembrete.');
-                    setLoading(false);
-                    return;
-                }
-
-                dataToSave.author = dataToSave.author?.trim() || 'Equipe Fluentoria';
-                dataToSave.duration = dataToSave.duration?.trim() || '00:00';
-                dataToSave.type = 'video';
-                delete dataToSave.productId;
             }
 
             if (dataToSave.productId === undefined) {
@@ -549,6 +609,36 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
         }
     };
 
+    const addReminderDraft = () => {
+        setReminderDrafts(prev => [...prev, createEmptyReminderDraft()]);
+    };
+
+    const updateReminderDraft = (index: number, updates: Partial<Course>) => {
+        setReminderDrafts(prev => prev.map((draft, i) =>
+            i === index ? { ...draft, ...updates } : draft
+        ));
+    };
+
+    const removeReminderDraft = (index: number) => {
+        setReminderDrafts(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleReminderCoverUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setUploadingCover(true);
+            try {
+                const url = await uploadCourseCover(e.target.files[0]);
+                if (url) {
+                    updateReminderDraft(index, { coverImage: url });
+                }
+            } catch (error) {
+                console.error("Error uploading reminder cover:", error);
+            } finally {
+                setUploadingCover(false);
+            }
+        }
+    };
+
     const handleSupportMaterialUpload = async (
         file: File,
         galleryId: string,
@@ -708,7 +798,13 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
                         className="h-10 px-5 text-sm gap-2"
                     >
                         {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                        <span>Salvar {course ? 'Alterações' : 'Conteúdo'}</span>
+                        <span>
+                            Salvar {course
+                                ? 'Alterações'
+                                : isReminderTab
+                                    ? (reminderDrafts.length > 1 ? 'Lembretes' : 'Lembrete')
+                                    : 'Conteúdo'}
+                        </span>
                     </Button>
                 </div>
             }
@@ -1111,7 +1207,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
                 )}
 
                 {/* VIDEO TYPE - Simplified form */}
-                {contentType === 'video' && (
+                {contentType === 'video' && !isReminderTab && (
                     <div className="grid gap-6">
                         <div className="flex items-center gap-2 border-b border-border pb-2">
                             <Film size={18} className="text-primary" />
@@ -1252,6 +1348,114 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onCancel, activ
                                 placeholder={isReminderTab ? 'Digite a mensagem completa do lembrete' : 'Detalhes sobre este conteúdo...'}
                             />
                         </div>
+                    </div>
+                )}
+
+                {/* REMINDERS TYPE - Batch list form */}
+                {contentType === 'video' && isReminderTab && (
+                    <div className="grid gap-6">
+                        <div className="flex items-center gap-2 border-b border-border pb-2">
+                            <Film size={18} className="text-primary" />
+                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">
+                                Informações dos Lembretes
+                            </h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            {reminderDrafts.map((draft, index) => (
+                                <div key={index} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 space-y-4 transition-all hover:border-primary/20">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                                            Lembrete {index + 1}
+                                        </span>
+                                        {reminderDrafts.length > 1 && !draft.id && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeReminderDraft(index)}
+                                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                                title="Remover lembrete"
+                                            >
+                                                <Trash size={16} />
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <Input
+                                            label="Título do Lembrete *"
+                                            type="text"
+                                            value={draft.title}
+                                            onChange={(e) => updateReminderDraft(index, { title: e.target.value })}
+                                            required
+                                            placeholder="Ex: Aviso importante da semana"
+                                            icon={<Type size={18} className="text-muted-foreground" />}
+                                        />
+
+                                        <Input
+                                            label="URL do Vídeo *"
+                                            type="text"
+                                            value={draft.videoUrl || ''}
+                                            onChange={(e) => updateReminderDraft(index, { videoUrl: e.target.value })}
+                                            required
+                                            placeholder="Cole a URL do vídeo do lembrete"
+                                            icon={<Film size={18} className="text-muted-foreground" />}
+                                            className="font-mono text-sm"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <Input
+                                            label="Capa do Lembrete"
+                                            type="text"
+                                            value={draft.coverImage || ''}
+                                            onChange={(e) => updateReminderDraft(index, { coverImage: e.target.value })}
+                                            placeholder="URL da imagem (opcional)"
+                                            icon={<ImageIcon size={18} className="text-muted-foreground" />}
+                                        />
+                                        <div className="mt-3">
+                                            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer text-sm font-medium transition-colors border border-border shadow-sm">
+                                                {uploadingCover ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                                                Upload
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => handleReminderCoverUpload(index, e)}
+                                                    disabled={uploadingCover}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-2">
+                                            <AlignLeft size={14} />
+                                            Mensagem *
+                                        </label>
+                                        <textarea
+                                            value={draft.description || ''}
+                                            onChange={(e) => updateReminderDraft(index, { description: e.target.value })}
+                                            required
+                                            className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm p-4 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] resize-none h-32"
+                                            placeholder="Digite a mensagem completa do lembrete"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={addReminderDraft}
+                            className="w-full border-dashed border-border/60 hover:border-primary/40 text-muted-foreground h-9"
+                        >
+                            <Plus size={14} className="mr-2" />
+                            Adicionar Lembrete
+                        </Button>
                     </div>
                 )}
 

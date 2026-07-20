@@ -50,6 +50,7 @@ const AdminCatalog: React.FC = () => {
     setViewingCourse,
     getCurrentList,
     handleSaveCourse,
+    handleSaveReminderBatch,
     handleDeleteCourse,
     handleEditCourse,
     handleViewCourse,
@@ -250,6 +251,7 @@ const AdminCatalog: React.FC = () => {
           key={`${activeTab}-${editingCourse?.id || 'new-course'}`}
           course={editingCourse}
           onSave={handleSaveCourse}
+          onSaveMany={activeTab === 'reminders' ? handleSaveReminderBatch : undefined}
           onCancel={() => setIsFormOpen(false)}
           activeTab={activeTab}
           availableCourses={courses}
