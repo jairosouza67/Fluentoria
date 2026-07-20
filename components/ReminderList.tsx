@@ -85,7 +85,7 @@ const ReminderList: React.FC<ReminderListProps> = ({ onNavigate, onSelectReminde
         return aRead ? 1 : -1;
       }
 
-      return toMillis(b.updatedAt || b.createdAt) - toMillis(a.updatedAt || a.createdAt);
+      return toMillis(a.createdAt || a.updatedAt) - toMillis(b.createdAt || b.updatedAt);
     });
   }, [reminders, readReminderIds, searchTerm]);
 
