@@ -10,6 +10,8 @@ const db = admin.firestore();
 
 // --- Gen2 secrets for webhook ---
 const asaasWebhookToken = defineSecret('ASAAS_WEBHOOK_TOKEN');
+const asaasApiKey = defineSecret('ASAAS_API_KEY');
+const asaasEnvironment = defineSecret('ASAAS_ENVIRONMENT');
 
 // --- Helpers (keep intact) ---
 
@@ -138,7 +140,7 @@ const parseCourseIdFromExternalReference = (externalReference) => {
 // --- Webhook helpers ---
 
 const getAsaasApiBase = () => {
-  return process.env.ASAAS_ENVIRONMENT === 'sandbox'
+  return asaasEnvironment.value() === 'sandbox'
     ? 'https://sandbox.asaas.com/api/v3'
     : 'https://www.asaas.com/api/v3';
 };
@@ -270,7 +272,7 @@ const deactivateAccess = async (userId, paymentData, status) => {
 // --- Gen2 Webhook ---
 
 exports.asaasWebhook = onRequest(
-  { secrets: [asaasWebhookToken] },
+  { secrets: [asaasWebhookToken, asaasApiKey, asaasEnvironment] },
   async (req, res) => {
     if (req.method === 'OPTIONS') {
       res.set('Access-Control-Allow-Origin', '*');
@@ -338,7 +340,7 @@ exports.asaasWebhook = onRequest(
       });
 
       const apiBase = getAsaasApiBase();
-      const apiKey = process.env.ASAAS_API_KEY;
+      const apiKey = asaasApiKey.value();
       const { doc: userDoc, method, customerData, apiStatus } =
         await resolveUser(customerId, apiBase, apiKey);
 
