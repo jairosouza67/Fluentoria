@@ -147,6 +147,11 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Webhook events - server-only (Admin SDK bypasses rules)
+    match /webhook_events/{docId} {
+      allow read, write: if false;
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;

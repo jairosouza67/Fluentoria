@@ -5,11 +5,12 @@ import { auth } from '../lib/firebase';
 interface AsaasPaymentProps {
   plan: string;
   price: number;
+  courseId?: string; // F-16: links the payment to a specific course in user_courses
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onCancel }) => {
+const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, courseId, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -138,7 +139,12 @@ const AsaasPayment: React.FC<AsaasPaymentProps> = ({ plan, price, onSuccess, onC
         value: price, // Now using the correct scale for the function
         dueDate: new Date().toISOString().split('T')[0],
         description: `Plano ${plan} - Fluentoria`,
-        externalReference: `fluentoria_${Date.now()}`,
+        // F-16: webhook parses this JSON to link the payment to a course in user_courses.
+        // Falls back to courseId-less JSON (same net effect as the old fluentoria_<ts> string).
+        externalReference: JSON.stringify({
+          courseId: courseId || null,
+          timestamp: Date.now()
+        }),
         creditCard: {
           holderName: formData.name,
           number: formData.cardNumber.replace(/\D/g, ''),

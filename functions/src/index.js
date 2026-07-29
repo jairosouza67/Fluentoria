@@ -191,13 +191,23 @@ const resolveUser = async (paymentCustomerId, apiBase, apiKey) => {
 const activateAccess = async (userId, paymentData, customerId) => {
   const courseId = parseCourseIdFromExternalReference(paymentData.externalReference);
 
-  await db.collection('users').doc(userId).set({
+  const activationFields = {
     accessAuthorized: true,
     asaasCustomerId: customerId,
     paymentStatus: 'active',
     planStatus: 'active',
     lastAsaasSync: admin.firestore.FieldValue.serverTimestamp(),
-  }, { merge: true });
+  };
+
+  // F-11: never merge into an existing doc (could preserve tampered fields like
+  // an elevated role). Update existing docs; only create with a safe default role.
+  const userRef = db.collection('users').doc(userId);
+  const existingDoc = await userRef.get();
+  if (existingDoc.exists) {
+    await userRef.update(activationFields);
+  } else {
+    await userRef.set({ ...activationFields, role: 'student' });
+  }
 
   if (courseId) {
     const userCoursesRef = db.collection('user_courses');
@@ -229,7 +239,19 @@ const deactivateAccess = async (userId, paymentData, status) => {
   const userRef = db.collection('users').doc(userId);
   const userData = (await userRef.get()).data();
 
-  if (userData?.manualAuthorization) return false;
+  // F-12: observability when manual authorization blocks an automatic deactivation
+  if (userData?.manualAuthorization) {
+    console.warn(JSON.stringify({
+      userId,
+      event: 'deactivation_blocked',
+      reason: 'manualAuthorization',
+      attemptedStatus: status,
+    }));
+    return false;
+  }
+
+  // F-13: a deleted payment must surface as 'canceled', not 'pending'
+  const mappedPlanStatus = status === 'canceled' ? 'canceled' : 'pending';
 
   const courseId = parseCourseIdFromExternalReference(paymentData.externalReference);
   const userCoursesRef = db.collection('user_courses');
@@ -253,7 +275,7 @@ const deactivateAccess = async (userId, paymentData, status) => {
       await userRef.update({
         accessAuthorized: false,
         paymentStatus: status,
-        planStatus: 'pending',
+        planStatus: mappedPlanStatus,
         lastAsaasSync: admin.firestore.FieldValue.serverTimestamp(),
       });
     }
@@ -261,7 +283,7 @@ const deactivateAccess = async (userId, paymentData, status) => {
     await userRef.update({
       accessAuthorized: false,
       paymentStatus: status,
-      planStatus: 'pending',
+      planStatus: mappedPlanStatus,
       lastAsaasSync: admin.firestore.FieldValue.serverTimestamp(),
     });
   }
@@ -296,9 +318,10 @@ exports.asaasWebhook = onRequest(
       }
 
       const provided = req.headers['asaas-access-token'];
-      if (!provided ||
-        token.length !== String(provided).length ||
-        !crypto.timingSafeEqual(Buffer.from(token), Buffer.from(String(provided)))) {
+      // Compare SHA-256 hashes (fixed length) to avoid leaking token length via timing
+      const tokenHash = crypto.createHash('sha256').update(token).digest();
+      const providedHash = crypto.createHash('sha256').update(String(provided || '')).digest();
+      if (!crypto.timingSafeEqual(tokenHash, providedHash)) {
         console.warn(JSON.stringify({ error: 'Invalid webhook token' }));
         res.status(401).json({ error: 'Unauthorized' });
         return;
@@ -322,22 +345,31 @@ exports.asaasWebhook = onRequest(
 
       const idempotencyId = `${paymentId}_${event}`;
       const idemRef = db.collection('webhook_events').doc(idempotencyId);
-      const idemDoc = await idemRef.get();
 
-      if (idemDoc.exists && idemDoc.data()?.processed) {
+      // Atomic check-and-set: prevents two concurrent webhooks for the same
+      // event from both passing the idempotency guard (race condition).
+      let isDuplicate = false;
+      await db.runTransaction(async (tx) => {
+        const idemDoc = await tx.get(idemRef);
+        if (idemDoc.exists && idemDoc.data()?.processed) {
+          isDuplicate = true;
+          return;
+        }
+        tx.set(idemRef, {
+          event,
+          paymentId,
+          customerId,
+          processed: false,
+          welcomeEmailSent: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+
+      if (isDuplicate) {
         console.log(JSON.stringify({ event, paymentId, duplicate: true }));
         res.status(200).json({ duplicate: true });
         return;
       }
-
-      await idemRef.set({
-        event,
-        paymentId,
-        customerId,
-        processed: false,
-        welcomeEmailSent: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
 
       const apiBase = getAsaasApiBase();
       const apiKey = asaasApiKey.value();
@@ -404,13 +436,15 @@ exports.adoptOrphanUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
   }
 
-  const { uid, email, displayName, photoURL } = data;
+  const { uid, displayName, photoURL } = data;
 
   if (uid !== context.auth.uid) {
     throw new functions.https.HttpsError('permission-denied', 'UID mismatch.');
   }
 
-  const emailLower = (email || '').toLowerCase();
+  // F-06: use the authenticated token's email, never the client-supplied payload,
+  // so an attacker cannot adopt an orphan record belonging to another person's email.
+  const emailLower = (context.auth.token.email || '').toLowerCase();
   if (!emailLower) {
     return { adopted: false };
   }
@@ -481,9 +515,23 @@ exports.runAccessMigration = functions.https.onCall(async (_data, context) => {
   }
 });
 
+// F-14: restrict CORS to known front-ends instead of '*'.
+// (Non-browser callers like curl/Postman are not subject to CORS.)
+const MIGRATION_ALLOWED_ORIGINS = [
+  'https://fluentoria.netlify.app',
+  'https://fluentorialp.netlify.app',
+  'https://www.fluentoria.com',
+  'https://fluentoria.com',
+  'http://localhost:8888',
+  'http://localhost:5173',
+];
+
+const resolveMigrationOrigin = (origin) =>
+  MIGRATION_ALLOWED_ORIGINS.includes(origin) ? origin : MIGRATION_ALLOWED_ORIGINS[0];
+
 exports.runAccessMigrationHttp = functions.https.onRequest(async (req, res) => {
   if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Origin', resolveMigrationOrigin(req.headers.origin || ''));
     res.set('Access-Control-Allow-Methods', 'POST');
     res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.status(204).send('');
@@ -494,6 +542,8 @@ exports.runAccessMigrationHttp = functions.https.onRequest(async (req, res) => {
     res.status(405).send('Method Not Allowed');
     return;
   }
+
+  res.set('Access-Control-Allow-Origin', resolveMigrationOrigin(req.headers.origin || ''));
 
   try {
     await ensureAdminFromRequest(req);

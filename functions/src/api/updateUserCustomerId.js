@@ -8,16 +8,32 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// F-14: restrict CORS to known front-ends instead of '*'.
+// (Non-browser callers like curl/Postman are not subject to CORS.)
+const ALLOWED_ORIGINS = [
+  'https://fluentoria.netlify.app',
+  'https://fluentorialp.netlify.app',
+  'https://www.fluentoria.com',
+  'https://fluentoria.com',
+  'http://localhost:8888',
+  'http://localhost:5173',
+];
+
+const resolveOrigin = (origin) =>
+  ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+
 // API endpoint to update user's Asaas customer ID
 exports.updateUserCustomerId = functions.https.onRequest(async (req, res) => {
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Origin', resolveOrigin(req.headers.origin || ''));
     res.set('Access-Control-Allow-Methods', 'POST');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
     res.status(204).send('');
     return;
   }
+
+  res.set('Access-Control-Allow-Origin', resolveOrigin(req.headers.origin || ''));
 
   // Only accept POST requests
   if (req.method !== 'POST') {
@@ -51,8 +67,14 @@ exports.updateUserCustomerId = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    // Ensure user is updating their own record OR is an admin
-    const isAdmin = decodedToken.role === 'admin' || decodedToken.email === 'jairosouza67@gmail.com';
+    // Ensure user is updating their own record OR is an admin.
+    // F-05: Firebase ID tokens have no 'role' custom claim in this project —
+    // check the role in Firestore (same pattern as ensureAdminFromRequest).
+    let isAdmin = decodedToken.email === 'jairosouza67@gmail.com';
+    if (!isAdmin) {
+      const callerSnap = await db.collection('users').doc(decodedToken.uid).get();
+      isAdmin = callerSnap.exists && callerSnap.data()?.role === 'admin';
+    }
     if (decodedToken.uid !== userId && !isAdmin) {
       console.error(`User ${decodedToken.uid} tried to update customerId for user ${userId}`);
       res.status(403).send('Forbidden');

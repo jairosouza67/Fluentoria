@@ -103,13 +103,13 @@ export interface Student {
     createdAt?: Date;
     // Financial Data
     planType?: 'monthly' | 'annual' | 'lifetime';
-    planStatus?: 'active' | 'expired' | 'pending';
+    planStatus?: 'active' | 'expired' | 'pending' | 'canceled';
     planStartDate?: Date;
     planEndDate?: Date;
     planValue?: number;
     // Asaas Integration Data
     asaasCustomerId?: string;
-    paymentStatus?: 'active' | 'overdue' | 'pending' | 'no_payment' | 'admin';
+    paymentStatus?: 'active' | 'overdue' | 'pending' | 'no_payment' | 'admin' | 'canceled' | 'refunded';
     lastAsaasSync?: Date;
     accessAuthorized?: boolean;
     manualAuthorization?: boolean;

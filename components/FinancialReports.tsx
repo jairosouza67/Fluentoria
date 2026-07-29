@@ -69,6 +69,8 @@ const FinancialReports: React.FC = () => {
                 computedStatus = 'active';
             } else if (status === 'overdue') {
                 computedStatus = 'expired';
+            } else if (status === 'canceled' || status === 'refunded') {
+                computedStatus = 'canceled'; // Deleted/refunded payments surface as canceled
             } else if (status === 'admin') {
                 computedStatus = 'active'; // Admin always active
             } else {
@@ -341,7 +343,9 @@ const FinancialReports: React.FC = () => {
                                             ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                                             : student.computedStatus === 'expired'
                                                 ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                                                : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                                                : student.computedStatus === 'canceled'
+                                                    ? 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                                                    : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
                                     }`}
                                 >
                                     {student.isExpiring
@@ -350,7 +354,9 @@ const FinancialReports: React.FC = () => {
                                             ? 'Ativo'
                                             : student.computedStatus === 'expired'
                                                 ? 'Expirado'
-                                                : 'Pendente'}
+                                                : student.computedStatus === 'canceled'
+                                                    ? 'Cancelado'
+                                                    : 'Pendente'}
                                 </div>
                             </div>
                             <div>
@@ -418,11 +424,13 @@ const FinancialReports: React.FC = () => {
                                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${student.computedStatus === 'active' && !student.isExpiring ? 'bg-green-500/10 text-green-500 border-green-500/20' :
                                                 student.isExpiring ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
                                                     student.computedStatus === 'expired' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                                        'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                                                        student.computedStatus === 'canceled' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
+                                                            'bg-gray-500/10 text-gray-500 border-gray-500/20'
                                             }`}>
                                             {student.isExpiring ? 'Vencendo' :
                                                 student.computedStatus === 'active' ? 'Ativo' :
-                                                    student.computedStatus === 'expired' ? 'Expirado' : 'Pendente'}
+                                                    student.computedStatus === 'expired' ? 'Expirado' :
+                                                        student.computedStatus === 'canceled' ? 'Cancelado' : 'Pendente'}
                                         </div>
                                     </td>
                                     <td className="py-4 px-6">
@@ -494,6 +502,7 @@ const FinancialReports: React.FC = () => {
                                     <option value="active">Ativo</option>
                                     <option value="pending">Pendente</option>
                                     <option value="expired">Expirado</option>
+                                    <option value="canceled">Cancelado</option>
                                 </select>
                             </div>
 
