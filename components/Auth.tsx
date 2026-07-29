@@ -3,6 +3,7 @@ import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { createOrUpdateUser } from '../lib/db';
+import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
 
 interface AuthProps {
@@ -35,11 +36,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         }
 
         // Create user in Firestore
-        await createOrUpdateUser(userCredential.user.uid, {
+        const result = await createOrUpdateUser(userCredential.user.uid, {
           displayName: name || userCredential.user.displayName,
           email: userCredential.user.email,
           photoURL: userCredential.user.photoURL,
         });
+        if (result?.adopted) {
+          useAppStore.getState().triggerAccessRecheck();
+        }
       }
       onLogin();
     } catch (err: any) {
@@ -68,14 +72,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      const result = await signInWithPopup(auth, provider);
+      const authResult = await signInWithPopup(auth, provider);
 
       // Create or update user in Firestore, merging with existing student if email matches
-      await createOrUpdateUser(result.user.uid, {
-        displayName: result.user.displayName,
-        email: result.user.email,
-        photoURL: result.user.photoURL,
+      const createResult = await createOrUpdateUser(authResult.user.uid, {
+        displayName: authResult.user.displayName,
+        email: authResult.user.email,
+        photoURL: authResult.user.photoURL,
       });
+      if (createResult?.adopted) {
+        useAppStore.getState().triggerAccessRecheck();
+      }
 
       onLogin();
     } catch (err: any) {

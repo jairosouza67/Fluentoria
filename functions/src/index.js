@@ -1,11 +1,17 @@
 const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 
-// Initialize Firebase Admin SDK
 admin.initializeApp();
 
 const db = admin.firestore();
+
+// --- Gen2 secrets for webhook ---
+const asaasWebhookToken = defineSecret('ASAAS_WEBHOOK_TOKEN');
+
+// --- Helpers (keep intact) ---
 
 const ensureAdminContext = async (context) => {
   if (!context.auth || !context.auth.uid) {
@@ -41,12 +47,10 @@ const ensureAdminFromRequest = async (req) => {
 };
 
 const runLegacyMigrationAsAdmin = async () => {
-  // 1) Discover courses and primary course
   const coursesSnapshot = await db.collection('courses').get();
   const allCourseIds = coursesSnapshot.docs.map((d) => d.id);
   const primaryCourseId = allCourseIds[0] || 'default';
 
-  // 2) Migrate legacy authorized users into user_courses
   const usersSnapshot = await db.collection('users').where('accessAuthorized', '==', true).get();
   let userMigratedCount = 0;
 
@@ -69,7 +73,6 @@ const runLegacyMigrationAsAdmin = async () => {
     }
   }
 
-  // 3) Migrate mindful_flow missing productId
   const mindfulSnapshot = await db.collection('mindful_flow').get();
   let mindfulMigratedCount = 0;
   for (const flowDoc of mindfulSnapshot.docs) {
@@ -80,7 +83,6 @@ const runLegacyMigrationAsAdmin = async () => {
     }
   }
 
-  // 4) Migrate music missing productId
   const musicSnapshot = await db.collection('music').get();
   let musicMigratedCount = 0;
   for (const musicDoc of musicSnapshot.docs) {
@@ -110,23 +112,19 @@ const parseCourseIdFromExternalReference = (externalReference) => {
     const trimmed = externalReference.trim();
     if (!trimmed) return null;
 
-    // Try JSON payloads: {"courseId":"..."} or {"productId":"..."}
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       try {
         const parsed = JSON.parse(trimmed);
         return parsed.courseId || parsed.productId || null;
       } catch (_err) {
-        // Keep parsing using non-JSON formats
       }
     }
 
-    // Try prefixed formats: courseId:abc123 or course=abc123
     const prefixedMatch = trimmed.match(/(?:^|[?&,:\s])(?:courseId|course|productId)=?\s*([a-zA-Z0-9_-]+)/i);
     if (prefixedMatch && prefixedMatch[1]) {
       return prefixedMatch[1];
     }
 
-    // Fallback: treat raw string as courseId (legacy behavior)
     return trimmed;
   }
 
@@ -137,211 +135,337 @@ const parseCourseIdFromExternalReference = (externalReference) => {
   return null;
 };
 
-// Import API endpoints
-const { updateUserCustomerId } = require('./api/updateUserCustomerId');
+// --- Webhook helpers ---
 
-// Asaas webhook endpoint
-exports.asaasWebhook = functions.https.onRequest(async (req, res) => {
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'POST');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, X-Asaas-Access-Token');
-    res.status(204).send('');
-    return;
+const getAsaasApiBase = () => {
+  return process.env.ASAAS_ENVIRONMENT === 'sandbox'
+    ? 'https://sandbox.asaas.com/api/v3'
+    : 'https://www.asaas.com/api/v3';
+};
+
+const resolveUser = async (paymentCustomerId, apiBase, apiKey) => {
+  if (!paymentCustomerId) {
+    return { doc: null, method: 'no_customer_id' };
   }
 
-  // Only accept POST requests
-  if (req.method !== 'POST') {
-    res.status(405).send('Method Not Allowed');
-    return;
+  const byCustomerSnapshot = await db.collection('users')
+    .where('asaasCustomerId', '==', paymentCustomerId)
+    .limit(1).get();
+  if (!byCustomerSnapshot.empty) {
+    return { doc: byCustomerSnapshot.docs[0], method: 'customerId' };
   }
 
   try {
-    // Verify webhook signature (MANDATORY - fail-closed)
-    const webhookToken = functions.config().asaas?.webhook_token;
-    if (!webhookToken) {
-      console.error('CRITICAL: asaas.webhook_token not configured. Rejecting all webhook requests.');
-      res.status(500).send('Server misconfiguration');
+    const response = await fetch(`${apiBase}/customers/${paymentCustomerId}`, {
+      headers: { 'access_token': apiKey }
+    });
+
+    if (!response.ok) {
+      return { doc: null, method: 'api_failed', apiStatus: response.status };
+    }
+
+    const customer = await response.json();
+    const email = customer.email?.toLowerCase();
+    const name = customer.name;
+
+    if (!email) {
+      return { doc: null, method: 'no_email_in_api', customerData: { name } };
+    }
+
+    const byEmailSnapshot = await db.collection('users')
+      .where('email', '==', email)
+      .limit(1).get();
+
+    if (!byEmailSnapshot.empty) {
+      return { doc: byEmailSnapshot.docs[0], method: 'email', customerData: { email, name } };
+    }
+
+    return { doc: null, method: 'not_found', customerData: { email, name } };
+  } catch (err) {
+    return { doc: null, method: 'api_error', error: err.message };
+  }
+};
+
+const activateAccess = async (userId, paymentData, customerId) => {
+  const courseId = parseCourseIdFromExternalReference(paymentData.externalReference);
+
+  await db.collection('users').doc(userId).set({
+    accessAuthorized: true,
+    asaasCustomerId: customerId,
+    paymentStatus: 'active',
+    planStatus: 'active',
+    lastAsaasSync: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  if (courseId) {
+    const userCoursesRef = db.collection('user_courses');
+    const ucSnapshot = await userCoursesRef
+      .where('userId', '==', userId)
+      .where('courseId', '==', courseId)
+      .get();
+
+    if (ucSnapshot.empty) {
+      await userCoursesRef.add({
+        userId,
+        courseId,
+        status: 'active',
+        source: 'asaas',
+        asaasPaymentId: paymentData.id || null,
+        purchaseDate: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } else {
+      await userCoursesRef.doc(ucSnapshot.docs[0].id).update({
+        status: 'active',
+        source: 'asaas',
+        asaasPaymentId: paymentData.id || null,
+      });
+    }
+  }
+};
+
+const deactivateAccess = async (userId, paymentData, status) => {
+  const userRef = db.collection('users').doc(userId);
+  const userData = (await userRef.get()).data();
+
+  if (userData?.manualAuthorization) return false;
+
+  const courseId = parseCourseIdFromExternalReference(paymentData.externalReference);
+  const userCoursesRef = db.collection('user_courses');
+
+  if (courseId) {
+    const ucSnapshot = await userCoursesRef
+      .where('userId', '==', userId)
+      .where('courseId', '==', courseId)
+      .get();
+
+    if (!ucSnapshot.empty) {
+      await userCoursesRef.doc(ucSnapshot.docs[0].id).update({ status });
+    }
+
+    const activeSnapshot = await userCoursesRef
+      .where('userId', '==', userId)
+      .where('status', '==', 'active')
+      .get();
+
+    if (activeSnapshot.empty) {
+      await userRef.update({
+        accessAuthorized: false,
+        paymentStatus: status,
+        planStatus: 'pending',
+        lastAsaasSync: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  } else {
+    await userRef.update({
+      accessAuthorized: false,
+      paymentStatus: status,
+      planStatus: 'pending',
+      lastAsaasSync: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  return true;
+};
+
+// --- Gen2 Webhook ---
+
+exports.asaasWebhook = onRequest(
+  { secrets: [asaasWebhookToken] },
+  async (req, res) => {
+    if (req.method === 'OPTIONS') {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'POST');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, asaas-access-token');
+      res.status(204).send('');
       return;
     }
 
-    const providedToken = req.headers['x-asaas-access-token'] || req.headers['X-Asaas-Access-Token'];
-    if (!providedToken ||
-        webhookToken.length !== String(providedToken).length ||
-        !crypto.timingSafeEqual(
-          Buffer.from(webhookToken),
-          Buffer.from(String(providedToken))
-        )) {
-      console.error('Invalid webhook token. Provided:', providedToken ? 'exists' : 'missing');
-      res.status(401).send('Unauthorized');
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
       return;
     }
-    
-    // Get the event type and data from the request
-    const eventType = req.body.event;
-    const paymentData = req.body.payment || {};
-    const customerData = req.body.customer || {};
 
-    console.log('Asaas webhook received:', eventType, paymentData);
-
-    // Handle payment confirmation
-    if (eventType === 'PAYMENT_RECEIVED' || eventType === 'PAYMENT_CONFIRMED') {
-      // Find user by email
-      const email = customerData.email;
-      if (!email) {
-        console.error('No email found in customer data');
-        res.status(400).send('Bad Request: Missing email');
+    try {
+      const token = asaasWebhookToken.value();
+      if (!token) {
+        console.error(JSON.stringify({ error: 'ASAAS_WEBHOOK_TOKEN not configured' }));
+        res.status(500).json({ error: 'Server misconfiguration' });
         return;
       }
 
-      // Query Firestore for user with this email
-      const usersRef = db.collection('users');
-      const snapshot = await usersRef.where('email', '==', email.toLowerCase()).get();
+      const provided = req.headers['asaas-access-token'];
+      if (!provided ||
+          token.length !== String(provided).length ||
+          !crypto.timingSafeEqual(Buffer.from(token), Buffer.from(String(provided)))) {
+        console.warn(JSON.stringify({ error: 'Invalid webhook token' }));
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
+      const { event, payment } = req.body || {};
+      const paymentId = payment?.id;
+      const customerId = payment?.customer;
+
+      console.log(JSON.stringify({ event, paymentId, customerId }));
+
+      if (!event || !paymentId) {
+        res.status(400).json({ error: 'Missing event or payment.id' });
+        return;
+      }
+
+      if (event === 'TEST' || event.startsWith('WEBHOOK_TEST')) {
+        res.status(200).json({ received: true, test: true });
+        return;
+      }
+
+      const idempotencyId = `${paymentId}_${event}`;
+      const idemRef = db.collection('webhook_events').doc(idempotencyId);
+      const idemDoc = await idemRef.get();
+
+      if (idemDoc.exists && idemDoc.data()?.processed) {
+        console.log(JSON.stringify({ event, paymentId, duplicate: true }));
+        res.status(200).json({ duplicate: true });
+        return;
+      }
+
+      await idemRef.set({
+        event,
+        paymentId,
+        customerId,
+        processed: false,
+        welcomeEmailSent: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      const apiBase = getAsaasApiBase();
+      const apiKey = process.env.ASAAS_API_KEY;
+      const { doc: userDoc, method, customerData, apiStatus } =
+        await resolveUser(customerId, apiBase, apiKey);
 
       let userId;
-
-      if (snapshot.empty) {
-        console.log('No user found with email:', email);
-        // Create a new user if not found
-        const newUserRef = await usersRef.add({
-          email: email.toLowerCase(),
+      if (userDoc) {
+        userId = userDoc.id;
+      } else if (method === 'not_found') {
+        const newUserRef = await db.collection('users').add({
+          email: customerData.email || '',
           name: customerData.name || '',
           displayName: customerData.name || '',
           role: 'student',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          accessAuthorized: true,
-          asaasCustomerId: customerData.id,
-          paymentStatus: 'active',
-          planStatus: 'active', // Sync planStatus with paymentStatus
-          lastAsaasSync: admin.firestore.FieldValue.serverTimestamp()
         });
         userId = newUserRef.id;
-        console.log('New user created with Asaas payment:', userId);
       } else {
-        // Update existing user
-        const userDoc = snapshot.docs[0];
-        userId = userDoc.id;
-        await userDoc.ref.update({
-          accessAuthorized: true,
-          asaasCustomerId: customerData.id,
-          paymentStatus: 'active',
-          planStatus: 'active', // Sync planStatus with paymentStatus
-          lastAsaasSync: admin.firestore.FieldValue.serverTimestamp()
-        });
-        console.log('User access activated:', userId);
+        console.error(JSON.stringify({
+          event,
+          paymentId,
+          error: `resolveUser:${method}`,
+          apiStatus: apiStatus || null,
+        }));
+        res.status(400).json({ error: 'Could not resolve customer' });
+        return;
       }
 
-      // Handle Multi-Product mapping via externalReference
-        const courseId = parseCourseIdFromExternalReference(paymentData.externalReference);
-      if (courseId) {
-          const userCoursesRef = db.collection('user_courses');
-          const ucSnapshot = await userCoursesRef
-            .where('userId', '==', userId)
-            .where('courseId', '==', courseId)
-            .get();
-          
-          if (ucSnapshot.empty) {
-              await userCoursesRef.add({
-                  userId: userId,
-                  courseId: courseId,
-                  status: 'active',
-                  source: 'asaas',
-                  asaasPaymentId: paymentData.id || null,
-                  purchaseDate: admin.firestore.FieldValue.serverTimestamp()
-              });
-              console.log(`Created user_courses mapping for user ${userId} and course ${courseId}`);
-          } else {
-              const docId = ucSnapshot.docs[0].id;
-              await userCoursesRef.doc(docId).update({
-                  status: 'active',
-                  source: 'asaas',
-                  asaasPaymentId: paymentData.id || null
-              });
-              console.log(`Updated user_courses mapping for user ${userId} and course ${courseId}`);
-          }
+      const activationEvents = ['PAYMENT_RECEIVED', 'PAYMENT_CONFIRMED'];
+      const deactivationMap = {
+        PAYMENT_OVERDUE: 'overdue',
+        PAYMENT_REFUNDED: 'refunded',
+        PAYMENT_DELETED: 'canceled',
+      };
+
+      if (activationEvents.includes(event)) {
+        await activateAccess(userId, payment, customerId);
+      } else if (deactivationMap[event]) {
+        await deactivateAccess(userId, payment, deactivationMap[event]);
+      } else {
+        console.log(JSON.stringify({ event, paymentId, unhandled: true }));
       }
 
-      res.status(200).send('Payment processed successfully');
-      return;
+      await idemRef.update({ processed: true });
+
+      res.status(200).json({ processed: true });
+    } catch (error) {
+      console.error(JSON.stringify({ error: error.message }));
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    // Handle payment overdue
-    if (eventType === 'PAYMENT_OVERDUE') {
-      // Find user by email
-      const email = customerData.email;
-      if (email) {
-        const usersRef = db.collection('users');
-        const snapshot = await usersRef.where('email', '==', email.toLowerCase()).get();
-
-        if (!snapshot.empty) {
-          const userDoc = snapshot.docs[0];
-          const userId = userDoc.id;
-          const userData = userDoc.data();
-          
-          // Only deactivate if not manually authorized
-          if (!userData.manualAuthorization) {
-            const courseId = parseCourseIdFromExternalReference(paymentData.externalReference);
-            const userCoursesRef = db.collection('user_courses');
-            
-            if (courseId) {
-              const ucSnapshot = await userCoursesRef
-                .where('userId', '==', userId)
-                .where('courseId', '==', courseId)
-                .get();
-                
-              if (!ucSnapshot.empty) {
-                await userCoursesRef.doc(ucSnapshot.docs[0].id).update({ status: 'overdue' });
-                console.log(`Course ${courseId} for user ${userId} set to overdue`);
-              }
-              
-              // Check if user has any other active courses
-              const activeSnapshot = await userCoursesRef
-                .where('userId', '==', userId)
-                .where('status', '==', 'active')
-                .get();
-                
-              if (activeSnapshot.empty) {
-                 // No active courses left, deactivate global access
-                 await userDoc.ref.update({
-                  accessAuthorized: false,
-                  paymentStatus: 'overdue',
-                  planStatus: 'pending',
-                  lastAsaasSync: admin.firestore.FieldValue.serverTimestamp()
-                 });
-                 console.log('User access deactivated globally (no active courses left):', userId);
-              }
-            } else {
-               // Backward compatibility: no specific course ID, deactivate global access
-               await userDoc.ref.update({
-                 accessAuthorized: false,
-                 paymentStatus: 'overdue',
-                 planStatus: 'pending',
-                 lastAsaasSync: admin.firestore.FieldValue.serverTimestamp()
-               });
-               console.log('User access deactivated due to overdue payment (legacy global):', userId);
-            }
-          }
-        }
-      }
-
-      res.status(200).send('Payment overdue processed');
-      return;
-    }
-
-    // Handle other events as needed
-    console.log('Unhandled event type:', eventType);
-    res.status(200).send('Event received');
-  } catch (error) {
-    console.error('Error processing webhook:', error);
-    res.status(500).send('Internal Server Error');
   }
-});
+);
 
-// Update user customer ID endpoint
+// --- Gen1 exports (unchanged) ---
+
+const { updateUserCustomerId } = require('./api/updateUserCustomerId');
+
 exports.updateUserCustomerId = updateUserCustomerId;
 
-// Callable migration endpoint (runs with Admin SDK, bypassing Firestore client rules)
+// Adopt orphan user: runs with Admin SDK (bypasses client-side Firestore rules)
+exports.adoptOrphanUser = functions.https.onCall(async (data, context) => {
+  if (!context.auth || !context.auth.uid) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+  }
+
+  const { uid, email, displayName, photoURL } = data;
+
+  if (uid !== context.auth.uid) {
+    throw new functions.https.HttpsError('permission-denied', 'UID mismatch.');
+  }
+
+  const emailLower = (email || '').toLowerCase();
+  if (!emailLower) {
+    return { adopted: false };
+  }
+
+  const candidatesSnapshot = await db.collection('users')
+    .where('email', '==', emailLower).get();
+
+  const candidates = candidatesSnapshot.docs.filter(d => d.id !== uid);
+  if (candidates.length === 0) return { adopted: false };
+
+  let best = candidates[0];
+  for (const doc of candidates) {
+    const d = doc.data();
+    if (d.accessAuthorized || d.asaasCustomerId) { best = doc; break; }
+  }
+
+  const orphanData = best.data();
+  const isAdminEmail = emailLower === 'jairosouza67@gmail.com';
+  const role = isAdminEmail ? 'admin' : (orphanData.role || 'student');
+
+  const paymentFields = [
+    'accessAuthorized', 'paymentStatus', 'planStatus', 'asaasCustomerId',
+    'planType', 'planValue', 'planStartDate', 'planEndDate',
+    'manualAuthorization', 'lastAsaasSync',
+  ];
+
+  const merged = {};
+  merged.email = emailLower;
+  merged.name = displayName || orphanData.name || '';
+  merged.displayName = displayName || orphanData.displayName || '';
+  merged.photoURL = photoURL || orphanData.photoURL || '';
+  merged.lastLogin = new Date();
+  merged.role = role;
+
+  for (const field of paymentFields) {
+    if (orphanData[field] !== undefined) {
+      merged[field] = orphanData[field];
+    }
+  }
+
+  await db.collection('users').doc(uid).set(merged);
+
+  const ucSnapshot = await db.collection('user_courses')
+    .where('userId', '==', best.id).get();
+
+  const batch = [];
+  for (const ucDoc of ucSnapshot.docs) {
+    batch.push(ucDoc.ref.update({ userId: uid }));
+  }
+  for (const c of candidates) {
+    batch.push(c.ref.delete());
+  }
+  await Promise.all(batch);
+
+  return { adopted: true };
+});
+
 exports.runAccessMigration = functions.https.onCall(async (_data, context) => {
   try {
     await ensureAdminContext(context);
@@ -355,7 +479,6 @@ exports.runAccessMigration = functions.https.onCall(async (_data, context) => {
   }
 });
 
-// HTTP migration endpoint with explicit Bearer token auth (fallback for callable auth issues)
 exports.runAccessMigrationHttp = functions.https.onRequest(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.set('Access-Control-Allow-Origin', '*');

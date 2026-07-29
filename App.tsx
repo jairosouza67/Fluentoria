@@ -52,6 +52,7 @@ const App: React.FC = () => {
     showProfileMenu, setShowProfileMenu,
     selectedReminder, setSelectedReminder,
     selectedReminderRead, setSelectedReminderRead,
+    accessRecheckTrigger,
     navigateTo,
     goBack,
     toggleViewMode,
@@ -108,6 +109,18 @@ const App: React.FC = () => {
 
     return () => unsubscribe();
   }, [currentScreen, user, roleLoaded]);
+
+  // Re-check access after orphan adoption (race condition fix)
+  useEffect(() => {
+    if (!user || accessRecheckTrigger === 0) return;
+
+    const recheck = async () => {
+      const accessInfo = await checkUserAccess(user.uid);
+      setHasAccess(accessInfo.authorized);
+      setPaymentStatus(accessInfo.paymentStatus || 'pending');
+    };
+    recheck();
+  }, [accessRecheckTrigger, user]);
 
   // Close profile menu when clicking outside
   useEffect(() => {

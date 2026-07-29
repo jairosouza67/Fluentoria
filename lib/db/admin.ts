@@ -1,7 +1,7 @@
 import { db, auth } from '../firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, getDoc, setDoc } from 'firebase/firestore';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import { isAdminEmail, isPrimaryAdmin, USERS_COLLECTION, ADMIN_EMAILS_COLLECTION, PRIMARY_ADMIN_EMAIL } from './config';
-import { findAndMergeStudentByEmail } from './students';
 
 // Security: Verify the current user is an admin before performing sensitive operations
 export const requireAdmin = async (): Promise<void> => {
@@ -21,21 +21,98 @@ export const requireAdmin = async (): Promise<void> => {
     }
 };
 
+// ponytail: adoption resolves the "paga antes, cadastra depois" orphan problem
+export const adoptOrphanUserByEmail = async (uid: string, email: string, userData: any): Promise<boolean> => {
+  try {
+    const emailLower = email.toLowerCase();
+    const usersRef = collection(db, USERS_COLLECTION);
+    const q = query(usersRef, where('email', '==', emailLower));
+    const querySnapshot = await getDocs(q);
+
+    const candidates = querySnapshot.docs.filter(d => d.id !== uid);
+    if (candidates.length === 0) return false;
+
+    let best = candidates[0];
+    for (const doc of candidates) {
+      const d = doc.data();
+      if (d.accessAuthorized || d.asaasCustomerId) { best = doc; break; }
+    }
+
+    const orphanData = best.data();
+    const isAdmin = isAdminEmail(emailLower);
+    const role = isAdmin ? 'admin' : (orphanData.role || 'student');
+
+    const paymentFields = [
+      'accessAuthorized', 'paymentStatus', 'planStatus', 'asaasCustomerId',
+      'planType', 'planValue', 'planStartDate', 'planEndDate',
+      'manualAuthorization', 'lastAsaasSync',
+    ];
+
+    const merged: Record<string, any> = {
+      email: emailLower,
+      name: userData.displayName || orphanData.name || '',
+      displayName: userData.displayName || orphanData.displayName || '',
+      photoURL: userData.photoURL || orphanData.photoURL || '',
+      lastLogin: new Date(),
+      role,
+    };
+
+    for (const field of paymentFields) {
+      if (orphanData[field] !== undefined) {
+        merged[field] = orphanData[field];
+      }
+    }
+
+    await setDoc(doc(db, USERS_COLLECTION, uid), merged);
+
+    const userCoursesRef = collection(db, 'user_courses');
+    const ucQuery = query(userCoursesRef, where('userId', '==', best.id));
+    const ucSnapshot = await getDocs(ucQuery);
+
+    const batch: Promise<void>[] = [];
+    for (const ucDoc of ucSnapshot.docs) {
+      batch.push(updateDoc(doc(db, 'user_courses', ucDoc.id), { userId: uid }));
+    }
+    for (const c of candidates) {
+      batch.push(deleteDoc(doc(db, USERS_COLLECTION, c.id)));
+    }
+    await Promise.all(batch);
+
+    return true;
+  } catch (error) {
+    console.error('Error adopting orphan user:', error);
+    return false;
+  }
+};
+
 // Create user in Firestore if doesn't exist
-export const createOrUpdateUser = async (uid: string, userData: any): Promise<void> => {
+export const createOrUpdateUser = async (uid: string, userData: any): Promise<{ adopted: boolean }> => {
+    let adopted = false;
+
     try {
         const userRef = doc(db, USERS_COLLECTION, uid);
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-            // Check if a student with this email was manually added
-            const merged = await findAndMergeStudentByEmail(userData.email, userData);
+            // Try server-side adoption first (Admin SDK, bypasses Firestore rules)
+            try {
+                const functions = getFunctions();
+                const adoptFn = httpsCallable(functions, 'adoptOrphanUser');
+                const result = await adoptFn({
+                    uid,
+                    email: userData.email,
+                    displayName: userData.displayName,
+                    photoURL: userData.photoURL,
+                });
+                adopted = (result.data as any)?.adopted === true;
+            } catch (fnErr) {
+                console.warn('adoptOrphanUser callable failed, falling back to local:', fnErr);
+                adopted = await adoptOrphanUserByEmail(uid, userData.email, userData);
+            }
 
-            if (!merged) {
-                // Determine role: admin emails get admin role, all others are students
+            if (!adopted) {
                 const role = isAdminEmail(userData.email) ? 'admin' : 'student';
 
-                // No existing student, create new user
                 await setDoc(userRef, {
                     name: userData.displayName || '',
                     displayName: userData.displayName || '',
@@ -44,14 +121,11 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<vo
                     createdAt: new Date(),
                     lastLogin: new Date(),
                     role: role,
-                    // New users are NOT authorized by default (unless admin)
                     accessAuthorized: role === 'admin' ? true : false,
                     paymentStatus: role === 'admin' ? 'admin' : 'pending',
                 });
-
             }
         } else {
-            // Update last login and photo URL (in case it changed)
             await updateDoc(userRef, {
                 lastLogin: new Date(),
                 ...(userData.photoURL && { photoURL: userData.photoURL }),
@@ -61,6 +135,8 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<vo
     } catch (error) {
         console.error("Error creating/updating user:", error);
     }
+
+    return { adopted };
 };
 
 // Get user role from Firestore

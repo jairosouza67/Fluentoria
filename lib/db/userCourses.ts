@@ -29,10 +29,7 @@ export const grantCourseAccess = async (
     asaasPaymentId?: string
 ): Promise<string | null> => {
     try {
-        // Only admins can grant access (except for asaas webhook which uses admin SDK)
-        if (source === 'manual') {
-            await requireAdmin();
-        }
+        await requireAdmin();
         
         // Check if already has access
         const userCoursesRef = collection(db, USER_COURSES_COLLECTION);

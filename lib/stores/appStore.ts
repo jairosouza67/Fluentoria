@@ -63,7 +63,10 @@ interface AppState {
   // Reminder selection
   selectedReminder: Reminder | null;
   selectedReminderRead: boolean;
+  // Access recheck (triggered after orphan adoption)
+  accessRecheckTrigger: number;
   // Actions
+  triggerAccessRecheck: () => void;
   setUser: (user: User | null) => void;
   setUserRole: (role: 'admin' | 'student') => void;
   setRoleLoaded: (loaded: boolean) => void;
@@ -96,6 +99,7 @@ const initialState = {
   showProfileMenu: false,
   selectedReminder: null as Reminder | null,
   selectedReminderRead: false,
+  accessRecheckTrigger: 0,
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -116,6 +120,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   setShowProfileMenu: (showProfileMenu) => set({ showProfileMenu }),
   setSelectedReminder: (selectedReminder) => set({ selectedReminder }),
   setSelectedReminderRead: (selectedReminderRead) => set({ selectedReminderRead }),
+
+  triggerAccessRecheck: () => set((state) => ({ accessRecheckTrigger: state.accessRecheckTrigger + 1 })),
 
   navigateTo: (screen) => {
     set((state) => {

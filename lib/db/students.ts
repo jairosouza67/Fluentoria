@@ -106,6 +106,7 @@ export const deleteStudent = async (id: string): Promise<boolean> => {
 };
 
 // Check if student exists by email and merge Google user data
+// @deprecated Use adoptOrphanUserByEmail from admin.ts instead
 export const findAndMergeStudentByEmail = async (email: string, googleUserData: any): Promise<boolean> => {
     try {
         const emailLower = email.toLowerCase();
