@@ -196,15 +196,17 @@ O webhook Firebase trata apenas `PAYMENT_RECEIVED`, `PAYMENT_CONFIRMED` e `PAYME
 
 ## 6. Resumo executivo
 
+## 6. Resumo executivo
+
 | Etapa | Status |
 |-------|--------|
-| Checkout na LP (criar cliente/cobrança/pagar) | ✅ Funcionando |
-| Webhook recebe eventos do Asaas | ⚠️ Depende de qual URL está configurada |
-| Webhook ativa acesso no Firestore | 🔴 **Quebrado** (campo inexistente + header errado + config obsoleta) |
-| Cadastro do aluno vincula ao pagamento | 🔴 **Quebrado** no fluxo paga-primeiro (doc órfão ≠ authUID) |
-| App libera conteúdo após pagamento | 🔴 Só com intervenção manual do admin |
-| Segurança contra auto-liberação | 🔴 Regras do Firestore permitem bypass |
-| Reembolso revoga acesso | 🔴 Não implementado |
-| Email de boas-vindas | 🔴 Não implementado |
+| Checkout na LP (criar cliente/cobrança/pagar) | ✅ Funcionando perfeitamente |
+| Webhook recebe eventos do Asaas | ✅ Configurado via Cloud Run (`asaaswebhook-wrfdkaj3qq-uc.a.run.app`) |
+| Webhook ativa acesso no Firestore | ✅ Corrigido (Firebase Gen2, tokens e payloads alinhados) |
+| Cadastro do aluno vincula ao pagamento | ✅ Corrigido via `adoptOrphanUserByEmail` e Firebase Admin Callable |
+| App libera conteúdo após pagamento | ✅ Automático |
+| Segurança contra auto-liberação | ✅ Fechado via Firestore Rules rígidas |
+| Reembolso revoga acesso | ✅ Implementado (PAYMENT_REFUNDED e PAYMENT_DELETED tratam revogação) |
+| Email de boas-vindas | 🟡 Adiado para o futuro (Flag `welcomeEmailSent` pronta) |
 
-**Conclusão:** o checkout cobra corretamente, mas a liberação automática de acesso **não acontece hoje** — há 4 falhas encadeadas entre o webhook e o cadastro. As correções dos itens 2.1, 2.2 e 2.4 (webhook + vínculo de conta) são suficientes para destravar o fluxo; o restante é endurecimento de segurança e experiência do aluno.
+**Conclusão (28/07/2026):** O fluxo ponta a ponta foi re-arquitetado e corrigido no contexto do Ralph Loop. O checkout converte e a liberação ocorre de forma segura e autônoma, sem docs órfãos ou quebras de auth. Testes de unidade e regras de Firestore garantem a estabilidade da arquitetura.

@@ -295,8 +295,8 @@ exports.asaasWebhook = onRequest(
 
       const provided = req.headers['asaas-access-token'];
       if (!provided ||
-          token.length !== String(provided).length ||
-          !crypto.timingSafeEqual(Buffer.from(token), Buffer.from(String(provided)))) {
+        token.length !== String(provided).length ||
+        !crypto.timingSafeEqual(Buffer.from(token), Buffer.from(String(provided)))) {
         console.warn(JSON.stringify({ error: 'Invalid webhook token' }));
         res.status(401).json({ error: 'Unauthorized' });
         return;
