@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
 import { createOrUpdateUser } from '../lib/db';
 import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
@@ -11,9 +11,13 @@ interface AuthProps {
 }
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const isLogin = mode === 'login';
+  const isReset = mode === 'reset';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +60,35 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
       if (err.code === 'auth/email-already-in-use') message = "Email já está em uso.";
       if (err.code === 'auth/weak-password') message = "A senha deve ter pelo menos 6 caracteres.";
+
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (!email.trim()) {
+      setError("Informe seu e-mail para recuperar a senha.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setSuccess("E-mail de recuperação enviado! Verifique sua caixa de entrada e a pasta de spam.");
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+      let message = "Não foi possível enviar o e-mail de recuperação. Tente novamente.";
+      if (err.code === 'auth/invalid-email') message = "Email inválido.";
+      if (err.code === 'auth/user-not-found') message = "Nenhuma conta encontrada com este e-mail.";
+      if (err.code === 'auth/too-many-requests') message = "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+      if (err.code === 'auth/network-request-failed') message = "Erro de conexão. Verifique sua internet.";
 
       setError(message);
     } finally {
@@ -140,7 +173,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <div className="h-1 bg-gradient-to-r from-[#FF6A00] via-[#FFB800] to-transparent rounded-full mx-auto w-1/2" />
           </div>
           <p className="text-[#F3F4F6] text-base font-medium mt-4">
-            {isLogin ? 'Welcome back to your learning journey' : 'Start your English fluency journey'}
+            {isReset ? 'Recover access to your account' : isLogin ? 'Welcome back to your learning journey' : 'Start your English fluency journey'}
           </p>
         </div>
 
@@ -148,10 +181,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="bg-[#0B0B0B]/70 backdrop-blur-3xl rounded-3xl p-9 border border-white/[0.2] shadow-2xl shadow-black/40 hover:shadow-[#FF6A00]/20 transition-all duration-500">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-[#F3F4F6] mb-2">
-              {isLogin ? 'Sign In' : 'Create Account'}
+              {isReset ? 'Reset Password' : isLogin ? 'Sign In' : 'Create Account'}
             </h2>
             <p className="text-[#9CA3AF] text-sm">
-              {isLogin ? 'Continue your path to fluency' : 'Begin your transformation today'}
+              {isReset ? 'Enter your email to receive a recovery link' : isLogin ? 'Continue your path to fluency' : 'Begin your transformation today'}
             </p>
           </div>
 
@@ -162,8 +195,15 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
+          {success && (
+            <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3 text-green-400 text-sm backdrop-blur-sm">
+              <CheckCircle size={18} />
+              <span>{success}</span>
+            </div>
+          )}
+
+          <form onSubmit={isReset ? handlePasswordReset : handleSubmit} className="space-y-5">
+            {mode === 'signup' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-[#F3F4F6]">Nome Completo</label>
                 <AnimatedInput
@@ -187,16 +227,18 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-[#F3F4F6]">Senha</label>
-              <AnimatedInput
-                type="password"
-                value={password}
-                onChange={setPassword}
-                placeholder="••••••••"
-                icon="password"
-              />
-            </div>
+            {!isReset && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#F3F4F6]">Senha</label>
+                <AnimatedInput
+                  type="password"
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="••••••••"
+                  icon="password"
+                />
+              </div>
+            )}
 
             <button
               type="submit"
@@ -207,7 +249,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 <Loader2 size={20} className="animate-spin" />
               ) : (
                 <>
-                  {isLogin ? 'Sign In' : 'Create Account'}
+                  {isReset ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Create Account'}
                   <ArrowRight size={18} />
                 </>
               )}
@@ -215,16 +257,19 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </form>
 
           {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/[0.08]"></div>
+          {!isReset && (
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/[0.08]"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-3 bg-[#111111]/40 text-[#9CA3AF] backdrop-blur-sm">or continue with</span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-3 bg-[#111111]/40 text-[#9CA3AF] backdrop-blur-sm">or continue with</span>
-            </div>
-          </div>
+          )}
 
           {/* Google Login Button - More Discrete */}
+          {!isReset && (
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -244,22 +289,52 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               </>
             )}
           </button>
+          )}
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-              }}
-              className="text-sm text-[#9CA3AF] hover:text-[#FF6A00] transition-colors font-medium"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </div>
+          {!isReset && (
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => {
+                  setMode(isLogin ? 'signup' : 'login');
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className="text-sm text-[#9CA3AF] hover:text-[#FF6A00] transition-colors font-medium"
+              >
+                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              </button>
+            </div>
+          )}
 
           {isLogin && (
             <div className="mt-4 text-center">
-              <a href="#" className="text-xs text-[#9CA3AF] hover:text-[#FF6A00] transition-colors">Forgot your password?</a>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('reset');
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className="text-xs text-[#9CA3AF] hover:text-[#FF6A00] transition-colors"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          )}
+
+          {isReset && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className="text-sm text-[#9CA3AF] hover:text-[#FF6A00] transition-colors font-medium"
+              >
+                Back to Sign In
+              </button>
             </div>
           )}
         </div>
