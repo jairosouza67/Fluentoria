@@ -23,7 +23,7 @@ import { ArrowLeft, Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
-import { getUserRole, forceUpdateUserRole, checkUserAccess, isAdminEmail } from './lib/db';
+import { getUserRole, forceUpdateUserRole, checkUserAccess, isAdminEmail, createOrUpdateUser } from './lib/db';
 import { useAppStore } from './lib/stores/appStore';
 import { useCourseStore } from './lib/stores/courseStore';
 
@@ -71,6 +71,16 @@ const App: React.FC = () => {
 
         // Only load role once per session
         if (!roleLoaded || user?.uid !== currentUser.uid) {
+          // Ensure the Firestore profile exists before role/access checks:
+          // adopts orphan payment records or creates the doc server-side.
+          // Self-heals accounts on ANY login method (email login, restored
+          // sessions) — previously only signup/Google login did this.
+          await createOrUpdateUser(currentUser.uid, {
+            displayName: currentUser.displayName,
+            email: currentUser.email,
+            photoURL: currentUser.photoURL,
+          });
+
           // Force update role if admin email (ensures admin always has correct role)
           if (currentUser.email && isAdminEmail(currentUser.email)) {
             await forceUpdateUserRole(currentUser.uid, currentUser.email);

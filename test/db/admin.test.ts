@@ -246,43 +246,41 @@ describe('createOrUpdateUser', () => {
         expect(mockCallable).toHaveBeenCalled();
         expect(result).toEqual({ adopted: false });
 
+        // Local fallback writes whitelisted profile fields only, with merge:true.
+        // role/payment fields are blocked by Firestore rules on owner create and
+        // are set exclusively by the server-side callable path.
         expect(firestoreModule.setDoc).toHaveBeenCalledWith(
             { __type: 'docRef', path: 'users/new-uid' },
             expect.objectContaining({
                 email: 'test@test.com',
-                accessAuthorized: false,
-                paymentStatus: 'pending',
-                role: 'student',
-            })
+            }),
+            { merge: true }
         );
+        const setDocData = vi.mocked(firestoreModule.setDoc).mock.calls[0][1] as any;
+        expect(setDocData).not.toHaveProperty('role');
+        expect(setDocData).not.toHaveProperty('accessAuthorized');
+        expect(setDocData).not.toHaveProperty('paymentStatus');
     });
 
-    it('should create new admin user with accessAuthorized true', async () => {
+    it('should skip local setDoc when callable creates the profile', async () => {
         vi.mocked(firestoreModule.getDoc).mockResolvedValueOnce({
             exists: () => false,
         } as any);
 
-        // callable fails → fallback
-        const mockCallable = vi.fn().mockRejectedValue(new Error('fail'));
+        // callable reports it created the profile server-side (created: true)
+        const mockCallable = vi.fn().mockResolvedValue({
+            data: { adopted: false, created: true },
+        });
         vi.mocked(httpsCallable).mockReturnValue(mockCallable);
 
-        // no orphans
-        vi.mocked(firestoreModule.getDocs).mockResolvedValueOnce({ docs: [] } as any);
-
-        await createOrUpdateUser('admin-uid', {
+        const result = await createOrUpdateUser('admin-uid', {
             email: 'jairosouza67@gmail.com',
             displayName: 'Admin',
         });
 
-        expect(firestoreModule.setDoc).toHaveBeenCalledWith(
-            { __type: 'docRef', path: 'users/admin-uid' },
-            expect.objectContaining({
-                email: 'jairosouza67@gmail.com',
-                role: 'admin',
-                accessAuthorized: true,
-                paymentStatus: 'admin',
-            })
-        );
+        expect(result).toEqual({ adopted: false });
+        // profile already created by the callable → no local write at all
+        expect(firestoreModule.setDoc).not.toHaveBeenCalled();
     });
 
     it('should update lastLogin if user already exists', async () => {

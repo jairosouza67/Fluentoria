@@ -94,7 +94,10 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<{ 
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-            // Try server-side adoption first (Admin SDK, bypasses Firestore rules)
+            let handledServerSide = false;
+
+            // Server-side path (Admin SDK, bypasses Firestore rules): adopts
+            // orphan payment records OR creates the profile with safe defaults.
             try {
                 const functions = getFunctions();
                 const adoptFn = httpsCallable(functions, 'adoptOrphanUser');
@@ -104,15 +107,20 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<{ 
                     displayName: userData.displayName,
                     photoURL: userData.photoURL,
                 });
-                adopted = (result.data as any)?.adopted === true;
+                const data = result.data as any;
+                adopted = data?.adopted === true;
+                handledServerSide = adopted || data?.created === true;
             } catch (fnErr) {
                 console.warn('adoptOrphanUser callable failed, falling back to local:', fnErr);
                 adopted = await adoptOrphanUserByEmail(uid, userData.email, userData);
+                handledServerSide = adopted;
             }
 
-            if (!adopted) {
-                const role = isAdminEmail(userData.email) ? 'admin' : 'student';
-
+            if (!handledServerSide) {
+                // Last-resort local profile: whitelisted fields only — Firestore
+                // rules block role/payment fields on owner create (those are set
+                // by the server-side path above). merge:true avoids wiping any
+                // fields set concurrently by the callable.
                 await setDoc(userRef, {
                     name: userData.displayName || '',
                     displayName: userData.displayName || '',
@@ -120,10 +128,7 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<{ 
                     photoURL: userData.photoURL || '',
                     createdAt: new Date(),
                     lastLogin: new Date(),
-                    role: role,
-                    accessAuthorized: role === 'admin' ? true : false,
-                    paymentStatus: role === 'admin' ? 'admin' : 'pending',
-                });
+                }, { merge: true });
             }
         } else {
             await updateDoc(userRef, {

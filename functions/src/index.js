@@ -453,7 +453,35 @@ exports.adoptOrphanUser = functions.https.onCall(async (data, context) => {
     .where('email', '==', emailLower).get();
 
   const candidates = candidatesSnapshot.docs.filter(d => d.id !== uid);
-  if (candidates.length === 0) return { adopted: false };
+
+  if (candidates.length === 0) {
+    // No orphan to adopt — ensure the profile doc exists with safe defaults.
+    // Client-side creation with role/payment fields is blocked by Firestore
+    // rules, so profile creation must happen here via Admin SDK.
+    const existing = await db.collection('users').doc(uid).get();
+    if (existing.exists) return { adopted: false, created: false };
+
+    let role = emailLower === 'jairosouza67@gmail.com' ? 'admin' : 'student';
+    if (role !== 'admin') {
+      const inviteSnap = await db.collection('adminEmails')
+        .where('email', '==', emailLower).limit(1).get();
+      if (!inviteSnap.empty) role = 'admin';
+    }
+
+    await db.collection('users').doc(uid).set({
+      email: emailLower,
+      name: displayName || '',
+      displayName: displayName || '',
+      photoURL: photoURL || '',
+      role,
+      accessAuthorized: role === 'admin',
+      paymentStatus: role === 'admin' ? 'admin' : 'pending',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { adopted: false, created: true };
+  }
 
   let best = candidates[0];
   for (const doc of candidates) {
