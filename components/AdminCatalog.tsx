@@ -15,13 +15,15 @@ import {
   Music,
   Bell,
   Zap,
-  MoreVertical
+  MoreVertical,
+  Video
 } from 'lucide-react';
 import { Course } from '../lib/db';
 import { useCatalogData, TabType } from '../hooks/useCatalogData';
 import { useCatalogFilters } from '../hooks/useCatalogFilters';
 import CourseForm from './CourseForm';
 import CourseDetail from './CourseDetail';
+import WelcomeSettingsForm from './WelcomeSettingsForm';
 import { getYouTubeThumbnail } from '../lib/video';
 import { PageHeader } from './ui/PageHeader';
 import { Card } from './ui/Card';
@@ -34,6 +36,7 @@ const tabs = [
   { id: 'mindful', label: 'Mindful Flow', icon: Zap },
   { id: 'music', label: 'Músicas', icon: Music },
   { id: 'reminders', label: 'Lembretes', icon: Bell },
+  { id: 'welcome', label: 'Boas-vindas', icon: Video },
 ];
 
 const AdminCatalog: React.FC = () => {
@@ -71,10 +74,13 @@ const AdminCatalog: React.FC = () => {
     clearFilters,
   } = useCatalogFilters({ getCurrentList });
 
+  const isWelcomeTab = activeTab === 'welcome';
   const createLabel = activeTab === 'reminders' ? 'Novo Lembrete' : 'Novo Conteudo';
   const headerDescription = activeTab === 'reminders'
     ? 'Gerencie lembretes globais para os alunos autorizados.'
-    : 'Gerencie seus cursos, aulas, galerias e materiais audiovisuais.';
+    : isWelcomeTab
+      ? 'Configure o vídeo de recepção exibido na tela de Aulas dos alunos.'
+      : 'Gerencie seus cursos, aulas, galerias e materiais audiovisuais.';
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
@@ -82,10 +88,12 @@ const AdminCatalog: React.FC = () => {
         title="Catálogo de Conteúdo"
         description={headerDescription}
         action={
-          <Button onClick={() => { setEditingCourse(null); setIsFormOpen(true); }} className="gap-2 w-full sm:w-auto">
-            <Plus size={20} />
-            {createLabel}
-          </Button>
+          isWelcomeTab ? undefined : (
+            <Button onClick={() => { setEditingCourse(null); setIsFormOpen(true); }} className="gap-2 w-full sm:w-auto">
+              <Plus size={20} />
+              {createLabel}
+            </Button>
+          )
         }
       />
 
@@ -114,6 +122,7 @@ const AdminCatalog: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
+      {!isWelcomeTab && (
       <div className="bg-[#111111] border border-white/[0.06] rounded-xl p-4 shadow-card">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="flex-1">
@@ -210,9 +219,12 @@ const AdminCatalog: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Course Grid */}
-      {loading ? (
+      {/* Course Grid / Welcome Settings */}
+      {isWelcomeTab ? (
+        <WelcomeSettingsForm />
+      ) : loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader2 className="animate-spin text-[#FF6A00]" size={40} />
           <p className="text-[#9CA3AF] animate-pulse">Carregando catálogo...</p>
@@ -246,14 +258,14 @@ const AdminCatalog: React.FC = () => {
         />
       )}
 
-      {isFormOpen && (
+      {isFormOpen && !isWelcomeTab && (
         <CourseForm
           key={`${activeTab}-${editingCourse?.id || 'new-course'}`}
           course={editingCourse}
           onSave={handleSaveCourse}
           onSaveMany={activeTab === 'reminders' ? handleSaveReminderBatch : undefined}
           onCancel={() => setIsFormOpen(false)}
-          activeTab={activeTab}
+          activeTab={activeTab as Exclude<TabType, 'welcome'>}
           availableCourses={courses}
         />
       )}

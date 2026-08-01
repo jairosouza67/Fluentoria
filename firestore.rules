@@ -147,6 +147,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // App settings (welcome video, etc.) - read for authenticated users, admin write only
+    match /settings/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
     // Webhook events - server-only (Admin SDK bypasses rules)
     match /webhook_events/{docId} {
       allow read, write: if false;

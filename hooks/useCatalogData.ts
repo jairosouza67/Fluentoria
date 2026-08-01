@@ -20,7 +20,7 @@ import {
   deleteReminder,
 } from '../lib/db';
 
-export type TabType = 'courses' | 'gallery' | 'mindful' | 'music' | 'reminders';
+export type TabType = 'courses' | 'gallery' | 'mindful' | 'music' | 'reminders' | 'welcome';
 
 export interface SaveCourseResult {
   success: boolean;

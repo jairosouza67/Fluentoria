@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PlayCircle, FileText, Mic, Filter, Loader2, BookOpen, Layers, CheckCircle2, Info, X } from 'lucide-react';
 import { Screen } from '../types';
-import { Course, getCoursesForUser, getAllLessonProgress, countLessons, CourseLessonProgress } from '../lib/db';
+import { Course, getCoursesForUser, getAllLessonProgress, countLessons, CourseLessonProgress, getWelcomeVideo } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/video';
 import { useAppStore } from '../lib/stores/appStore';
 import AnimatedInput from './ui/AnimatedInput';
 import { PageHeader } from './ui/PageHeader';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import WelcomeVideoPlayer from './WelcomeVideoPlayer';
 
 interface CourseDetailsCardProps {
   course: Course;
@@ -172,6 +173,8 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
   const [progressMap, setProgressMap] = useState<Record<string, CourseLessonProgress>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [welcomeVideoUrl, setWelcomeVideoUrl] = useState<string | null>(null);
+  const [welcomeLoading, setWelcomeLoading] = useState(true);
 
   // Hover popover states
   const [hoveredCourse, setHoveredCourse] = useState<Course | null>(null);
@@ -182,14 +185,17 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
     const fetchCourses = async () => {
       if (!user) return;
       setLoading(true);
-      const [data, progress] = await Promise.all([
+      const [data, progress, welcomeSettings] = await Promise.all([
         getCoursesForUser(user.uid),
         getAllLessonProgress(user.uid),
+        getWelcomeVideo(),
       ]);
       setCourses(data);
       const map: Record<string, CourseLessonProgress> = {};
       progress.forEach(p => { if (p.courseId) map[p.courseId] = p; });
       setProgressMap(map);
+      setWelcomeVideoUrl(welcomeSettings?.videoUrl || null);
+      setWelcomeLoading(false);
       setLoading(false);
     };
     fetchCourses();
@@ -417,6 +423,28 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
               </div>
 
               {/* Main Content */}
+              {welcomeLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="animate-spin text-primary" size={32} />
+                </div>
+              ) : welcomeVideoUrl ? (
+                <div className="space-y-8">
+                  <WelcomeVideoPlayer videoUrl={welcomeVideoUrl} />
+
+                  <div className="bg-primary/10 border-l-4 border-primary rounded-r-2xl p-6 shadow-sm">
+                    <p className="text-sm text-primary font-semibold uppercase tracking-widest mb-2">O Princípio</p>
+                    <p className="text-2xl font-black text-foreground italic leading-tight">
+                      "Fluência não é conhecimento — é hábito."
+                    </p>
+                  </div>
+
+                  <div className="pt-8 border-t border-border">
+                    <p className="text-2xl font-black text-primary">
+                      Vai lá, arrebenta! 🚀
+                    </p>
+                  </div>
+                </div>
+              ) : (
               <div className="space-y-8 text-foreground/80">
                 <p className="text-lg leading-relaxed">
                   Antes de qualquer coisa, é importante alinhar uma ideia fundamental:
@@ -468,6 +496,7 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                   </div>
                 </div>
               </div>
+              )}
             </Card>
           </div>
         </div>

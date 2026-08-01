@@ -39,5 +39,9 @@ export { syncStudentWithAsaas, checkAsaasPaymentStatus, syncAllStudentsWithAsaas
 // User Courses
 export { getUserCourses, grantCourseAccess, revokeCourseAccess } from './userCourses';
 
+// Settings (Welcome video, etc.)
+export type { WelcomeVideoSettings } from './settings';
+export { getWelcomeVideo, saveWelcomeVideo } from './settings';
+
 // Migration
 export { runAccessMigration } from './migration';
