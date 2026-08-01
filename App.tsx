@@ -19,7 +19,9 @@ const Profile = React.lazy(() => import('./components/Profile'));
 const Achievements = React.lazy(() => import('./components/Achievements'));
 
 import { Screen } from './types';
-import { ArrowLeft, Eye, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
+import { ArrowLeft, Eye, Filter, Loader2, User as UserIcon, LogOut as LogOutIcon } from 'lucide-react';
+import AnimatedInput from './components/ui/AnimatedInput';
+import { Button } from './components/ui/Button';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import MobileNav from './components/MobileNav';
@@ -61,6 +63,7 @@ const App: React.FC = () => {
   const {
     selectedCourse, setSelectedCourse,
     selectedGallery, setSelectedGallery,
+    courseSearchTerm, setCourseSearchTerm,
   } = useCourseStore();
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -422,7 +425,25 @@ const App: React.FC = () => {
               )}
             </div>
 
-            <div className="relative" ref={profileMenuRef}>
+            <div className="flex items-center gap-3 flex-1 justify-end min-w-0">
+              {viewMode === 'student' && currentScreen === 'courses' && (
+                <div className="flex gap-3 flex-1 md:flex-none min-w-0">
+                  <div className="flex-grow md:flex-grow-0 md:w-64 min-w-0">
+                    <AnimatedInput
+                      type="search"
+                      placeholder="Buscar aulas..."
+                      value={courseSearchTerm}
+                      onChange={setCourseSearchTerm}
+                      icon="search"
+                    />
+                  </div>
+                  <Button variant="outline" size="icon" className="h-10 w-10 flex-none">
+                    <Filter size={20} />
+                  </Button>
+                </div>
+              )}
+
+              <div className="relative flex-none" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="relative group focus:outline-none"
@@ -485,6 +506,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>

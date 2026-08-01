@@ -4,6 +4,8 @@ import { Course, CourseGallery } from '../db';
 interface CourseState {
   selectedCourse: Course | null;
   selectedGallery: CourseGallery | null;
+  courseSearchTerm: string;
+  setCourseSearchTerm: (term: string) => void;
   setSelectedCourse: (course: Course | null) => void;
   setSelectedGallery: (gallery: CourseGallery | null) => void;
   clearSelection: () => void;
@@ -12,6 +14,8 @@ interface CourseState {
 export const useCourseStore = create<CourseState>((set) => ({
   selectedCourse: null,
   selectedGallery: null,
+  courseSearchTerm: '',
+  setCourseSearchTerm: (courseSearchTerm) => set({ courseSearchTerm }),
   // Deep copy all objects to avoid reference mutations
   setSelectedCourse: (selectedCourse) => set({
     selectedCourse: selectedCourse ? JSON.parse(JSON.stringify(selectedCourse)) : null

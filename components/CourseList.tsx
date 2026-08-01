@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlayCircle, FileText, Mic, Filter, Loader2, BookOpen, Layers, CheckCircle2, Info, X } from 'lucide-react';
+import { PlayCircle, FileText, Mic, Loader2, BookOpen, Layers, CheckCircle2, Info, X } from 'lucide-react';
 import { Screen } from '../types';
 import { Course, getCoursesForUser, getAllLessonProgress, countLessons, CourseLessonProgress, getWelcomeVideo } from '../lib/db';
 import { getYouTubeThumbnail } from '../lib/video';
 import { useAppStore } from '../lib/stores/appStore';
-import AnimatedInput from './ui/AnimatedInput';
+import { useCourseStore } from '../lib/stores/courseStore';
 import { PageHeader } from './ui/PageHeader';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -172,7 +172,7 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
   const [courses, setCourses] = useState<Course[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, CourseLessonProgress>>({});
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const searchTerm = useCourseStore(state => state.courseSearchTerm);
   const [welcomeVideoUrl, setWelcomeVideoUrl] = useState<string | null>(null);
   const [welcomeLoading, setWelcomeLoading] = useState(true);
 
@@ -277,41 +277,24 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
     course.author.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const searchAction = (
-    <div className="flex gap-3 w-full md:w-auto">
-      <div className="flex-grow md:flex-grow-0 md:w-64">
-        <AnimatedInput
-          type="search"
-          placeholder="Buscar aulas..."
-          value={searchTerm}
-          onChange={setSearchTerm}
-          icon="search"
-        />
-      </div>
-      <Button variant="outline" size="icon" className="h-10 w-10">
-        <Filter size={20} />
-      </Button>
-    </div>
-  );
-
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <PageHeader
-        title="Minhas Aulas"
-        description="Explore o catálogo e continue seu aprendizado."
-        icon={<BookOpen size={24} />}
-        action={searchAction}
-      />
-
+    <div className="p-6 md:p-8 max-w-7xl mx-auto animate-in fade-in duration-500 lg:h-[calc(100vh-5rem)]">
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-primary" size={40} />
         </div>
       ) : (
-        <div className="flex flex-col lg:flex-row lg:items-start gap-8">
+        <div className="flex flex-col lg:flex-row gap-8 lg:h-full lg:min-h-0">
           {/* Courses - Left side */}
-          <div className="w-full lg:w-[380px] lg:flex-none lg:sticky lg:top-8 lg:self-start z-30">
-            <div className="grid grid-cols-1 gap-4">
+          <div className="w-full lg:w-[380px] lg:flex-none lg:min-h-0 lg:flex lg:flex-col">
+            <PageHeader
+              title="Minhas Aulas"
+              description="Explore o catálogo e continue seu aprendizado."
+              icon={<BookOpen size={24} />}
+              compact
+            />
+            <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:pr-2 z-30">
+              <div className="grid grid-cols-1 gap-4">
               {filteredCourses.length === 0 ? (
                 <Card className="p-8 text-center bg-card/20 border-dashed">
                   <p className="text-muted-foreground">Nenhuma aula encontrada.</p>
@@ -408,12 +391,13 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
                   );
                 })
               )}
+              </div>
             </div>
           </div>
 
           {/* Welcome Section - Right side */}
-          <div className="min-w-0 flex-1">
-            <Card className="sticky top-8 lg:max-h-[calc(100vh-6rem)] overflow-y-auto bg-gradient-to-br from-primary/5 via-card to-background border-primary/20 p-8 shadow-2xl">
+          <div className="min-w-0 flex-1 lg:min-h-0">
+            <Card className="lg:h-full lg:overflow-y-auto bg-gradient-to-br from-primary/5 via-card to-background border-primary/20 p-8 shadow-2xl">
               {/* Header */}
               <div className="mb-8">
                 <h2 className="text-4xl font-black text-foreground mb-3 tracking-tight">

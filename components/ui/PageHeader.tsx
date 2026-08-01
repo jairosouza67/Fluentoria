@@ -7,6 +7,7 @@ interface PageHeaderProps {
   action?: React.ReactNode;
   sticky?: boolean;
   icon?: React.ReactNode;
+  compact?: boolean;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ 
@@ -14,11 +15,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   description, 
   action, 
   sticky = false,
-  icon
+  icon,
+  compact = false
 }) => {
   return (
     <div className={cn(
-      "flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8 pb-6 border-b border-white/[0.06]",
+      "flex flex-col md:flex-row md:items-center md:justify-between gap-6 border-b border-white/[0.06]",
+      compact ? "mb-4 pb-3" : "mb-8 pb-6",
       sticky && "sticky top-0 z-30 bg-background/80 backdrop-blur-md -mx-6 md:-mx-8 px-6 md:px-8 py-6"
     )}>
       <div className="space-y-1">
