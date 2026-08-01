@@ -272,10 +272,20 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
     handleMouseLeave();
   };
 
+  const courseSort = useCourseStore(state => state.courseSort);
+
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     course.author.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const sortedCourses = courseSort === 'none'
+    ? filteredCourses
+    : [...filteredCourses].sort((a, b) =>
+        courseSort === 'name-asc'
+          ? a.title.localeCompare(b.title, 'pt-BR')
+          : b.title.localeCompare(a.title, 'pt-BR')
+      );
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto animate-in fade-in duration-500 lg:h-[calc(100vh-5rem)]">
@@ -295,12 +305,12 @@ const CourseList: React.FC<CourseListProps> = ({ onNavigate, onSelectCourse }) =
             />
             <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto lg:pr-2 z-30">
               <div className="grid grid-cols-1 gap-4">
-              {filteredCourses.length === 0 ? (
+              {sortedCourses.length === 0 ? (
                 <Card className="p-8 text-center bg-card/20 border-dashed">
                   <p className="text-muted-foreground">Nenhuma aula encontrada.</p>
                 </Card>
               ) : (
-                filteredCourses.map((course) => {
+                sortedCourses.map((course) => {
                   const coverImage = course.coverImage;
                   const thumbnailUrl = !coverImage && course.videoUrl ? getYouTubeThumbnail(course.videoUrl) : null;
                   const displayImage = coverImage || thumbnailUrl;

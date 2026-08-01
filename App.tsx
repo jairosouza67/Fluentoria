@@ -64,9 +64,12 @@ const App: React.FC = () => {
     selectedCourse, setSelectedCourse,
     selectedGallery, setSelectedGallery,
     courseSearchTerm, setCourseSearchTerm,
+    courseSort, setCourseSort,
   } = useCourseStore();
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -135,22 +138,25 @@ const App: React.FC = () => {
     recheck();
   }, [accessRecheckTrigger, user]);
 
-  // Close profile menu when clicking outside
+  // Close profile/filter menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setShowProfileMenu(false);
       }
+      if (filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
+        setShowFilterMenu(false);
+      }
     };
 
-    if (showProfileMenu) {
+    if (showProfileMenu || showFilterMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showProfileMenu]);
+  }, [showProfileMenu, showFilterMenu]);
 
   // Handle PWA shortcuts
   useEffect(() => {
@@ -437,9 +443,37 @@ const App: React.FC = () => {
                       icon="search"
                     />
                   </div>
-                  <Button variant="outline" size="icon" className="h-10 w-10 flex-none">
-                    <Filter size={20} />
-                  </Button>
+                  <div className="relative flex-none" ref={filterMenuRef}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={`h-10 w-10 ${courseSort !== 'none' ? 'text-[#FF6A00] border-[#FF6A00]/50' : ''}`}
+                      onClick={() => setShowFilterMenu(!showFilterMenu)}
+                      title="Filtrar cursos"
+                    >
+                      <Filter size={20} />
+                    </Button>
+                    {showFilterMenu && (
+                      <div className="absolute right-0 mt-2 w-44 bg-[#111111]/95 backdrop-blur-xl border border-white/[0.08] rounded-lg shadow-2xl overflow-hidden animate-fade-in z-50">
+                        {([
+                          ['none', 'Padrão'],
+                          ['name-asc', 'Nome (A–Z)'],
+                          ['name-desc', 'Nome (Z–A)'],
+                        ] as const).map(([value, label]) => (
+                          <button
+                            key={value}
+                            onClick={() => {
+                              setCourseSort(value);
+                              setShowFilterMenu(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 text-sm transition-all duration-150 ${courseSort === value ? 'text-[#FF6A00] bg-white/[0.04]' : 'text-[#9CA3AF] hover:text-[#F3F4F6] hover:bg-white/[0.04]'}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
