@@ -25,7 +25,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             className={cn(
               'input-pluma w-full pr-3',
-              icon ? 'pl-16' : 'pl-3',
+              icon ? 'pl-11 md:pl-16' : 'pl-3',
               className
             )}
             {...props}

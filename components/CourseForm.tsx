@@ -285,19 +285,16 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
     };
 
 
+    // Accordion behavior: only one module/gallery expanded at a time
     const toggleModule = (moduleId: string) => {
         setExpandedModules(prev =>
-            prev.includes(moduleId)
-                ? prev.filter(id => id !== moduleId)
-                : [...prev, moduleId]
+            prev.includes(moduleId) ? [] : [moduleId]
         );
     };
 
     const toggleGallery = (galleryId: string) => {
         setExpandedGalleries(prev =>
-            prev.includes(galleryId)
-                ? prev.filter(id => id !== galleryId)
-                : [...prev, galleryId]
+            prev.includes(galleryId) ? [] : [galleryId]
         );
     };
 
@@ -313,7 +310,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
             ...prev,
             galleries: [...(prev.galleries || []), newGallery]
         }));
-        setExpandedGalleries(prev => [...prev, newGallery.id]);
+        setExpandedGalleries([newGallery.id]);
     };
 
     const updateGallery = (galleryId: string, updates: Partial<CourseGallery>) => {
@@ -345,7 +342,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
             ...prev,
             modules: [...(prev.modules || []), newModule]
         }));
-        setExpandedModules(prev => [...prev, newModule.id]);
+        setExpandedModules([newModule.id]);
     };
 
     const addModuleToGallery = (galleryId: string) => {
@@ -363,7 +360,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                     : g
             )
         }));
-        setExpandedModules(prev => [...prev, newModule.id]);
+        setExpandedModules([newModule.id]);
     };
 
     const updateModule = (moduleId: string, updates: Partial<CourseModule>) => {
@@ -944,7 +941,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
 
                             <div className="space-y-4">
                                 {formData.galleries?.map((gallery, galleryIndex) => (
-                                    <Card key={gallery.id} className="glass border-white/[0.08] overflow-hidden rounded-2xl shadow-elevated transition-all duration-300 hover:border-primary/30">
+                                    <Card key={gallery.id} variant="glass" className="overflow-hidden rounded-xl transition-all duration-300 hover:border-primary/30">
                                         {/* Gallery Header */}
                                         <div className="p-3 md:p-5 bg-white/[0.02] border-b border-white/[0.06] space-y-4 md:space-y-5">
                                             <div className="flex items-center gap-2 md:gap-3">
@@ -1037,9 +1034,9 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
 
                                                 <div className="space-y-4">
                                                     {gallery.modules.map((module) => (
-                                                        <div key={module.id} className="bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm transition-all hover:bg-white/[0.04]">
+                                                        <div key={module.id} className="border-l-2 border-primary/40 md:border md:border-white/[0.08] md:bg-white/[0.03] md:rounded-xl overflow-hidden transition-all hover:bg-white/[0.04]">
                                                             {/* Module Header */}
-                                                            <div className="p-2 md:p-3 flex items-center gap-2 md:gap-3 bg-white/[0.02]">
+                                                            <div className="py-2 pl-2 pr-0 md:p-3 flex items-center gap-2 md:gap-3 md:bg-white/[0.02]">
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => toggleModule(module.id)}
@@ -1065,7 +1062,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
 
                                                             {/* Module Content */}
                                                             {expandedModules.includes(module.id) && (
-                                                                <div className="p-3 md:p-4 space-y-4 bg-transparent">
+                                                                <div className="py-3 pl-2 pr-0 md:p-4 space-y-4 bg-transparent">
                                                                     {/* Module Meta */}
                                                                     <div className="grid md:grid-cols-2 gap-4">
                                                                         <div className="space-y-2">
@@ -1111,7 +1108,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                                                             {module.lessons.map((lesson) => {
                                                                                 const thumbnailUrl = lesson.videoUrl ? getYouTubeThumbnail(lesson.videoUrl) : null;
                                                                                 return (
-                                                                                    <div key={lesson.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 md:p-4 transition-all hover:border-primary/20 hover:bg-white/[0.05]">
+                                                                                    <div key={lesson.id} className="border-l-2 border-white/15 py-3 pl-3 md:border md:border-white/[0.06] md:bg-white/[0.03] md:rounded-xl md:p-4 transition-all hover:border-primary/20 hover:bg-white/[0.05]">
                                                                                         <div className="flex flex-col sm:flex-row gap-4">
                                                                                             {thumbnailUrl && (
                                                                                                 <div className="w-full sm:w-28 h-36 sm:h-16 rounded-lg overflow-hidden border border-border/50 flex-shrink-0 bg-black">

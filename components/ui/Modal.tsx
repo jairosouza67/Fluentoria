@@ -66,7 +66,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content (scrollable) */}
-        <div className="p-4 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
+        <div className="p-3 md:p-6 overflow-y-auto flex-1 custom-scrollbar">
           {children}
         </div>
 
