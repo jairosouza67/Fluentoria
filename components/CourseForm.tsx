@@ -787,7 +787,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                         type="button"
                         variant="ghost"
                         onClick={onCancel}
-                        className="h-10 px-5 text-sm"
+                        className="h-11 md:h-10 px-4 md:px-5 text-sm flex-1 md:flex-none"
                     >
                         Cancelar
                     </Button>
@@ -795,7 +795,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                         type="submit"
                         form="course-form"
                         disabled={loading}
-                        className="h-10 px-5 text-sm gap-2"
+                        className="h-11 md:h-10 px-4 md:px-5 text-sm gap-2 flex-[2] md:flex-none"
                     >
                         {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                         <span>
@@ -887,10 +887,10 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                             </div>
 
                             {/* Course Cover Image */}
-                            <div className="grid md:grid-cols-4 gap-6 items-start">
+                            <div className="grid md:grid-cols-4 gap-4 md:gap-6 items-start">
                                 {formData.coverImage && (
-                                    <div className="md:col-span-1 rounded-xl overflow-hidden border border-white/[0.08] shadow-lg group relative">
-                                        <img src={formData.coverImage} alt={formData.title} className="w-full h-auto block transition-transform duration-500 group-hover:scale-110" />
+                                    <div className="md:col-span-1 max-w-[200px] md:max-w-none rounded-xl overflow-hidden border border-white/[0.08] shadow-lg group relative">
+                                        <img src={formData.coverImage} alt={formData.title} className="w-full aspect-video object-cover block transition-transform duration-500 group-hover:scale-110" />
                                         <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                                     </div>
                                 )}
@@ -946,8 +946,8 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                 {formData.galleries?.map((gallery, galleryIndex) => (
                                     <Card key={gallery.id} className="glass border-white/[0.08] overflow-hidden rounded-2xl shadow-elevated transition-all duration-300 hover:border-primary/30">
                                         {/* Gallery Header */}
-                                        <div className="p-5 bg-white/[0.02] border-b border-white/[0.06] space-y-5">
-                                            <div className="flex items-center gap-3">
+                                        <div className="p-3 md:p-5 bg-white/[0.02] border-b border-white/[0.06] space-y-4 md:space-y-5">
+                                            <div className="flex items-center gap-2 md:gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => toggleGallery(gallery.id)}
@@ -1011,7 +1011,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
 
                                         {/* Modules within Gallery */}
                                         {expandedGalleries.includes(gallery.id) && (
-                                            <div className="p-4 border-t border-border/50 bg-background/40 space-y-4">
+                                            <div className="p-3 md:p-4 border-t border-border/50 bg-background/40 space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                                         <Layers size={14} className="text-primary/70" />
@@ -1039,7 +1039,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                                     {gallery.modules.map((module) => (
                                                         <div key={module.id} className="bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden shadow-sm transition-all hover:bg-white/[0.04]">
                                                             {/* Module Header */}
-                                                            <div className="p-3 flex items-center gap-3 bg-white/[0.02]">
+                                                            <div className="p-2 md:p-3 flex items-center gap-2 md:gap-3 bg-white/[0.02]">
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => toggleModule(module.id)}
@@ -1065,7 +1065,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
 
                                                             {/* Module Content */}
                                                             {expandedModules.includes(module.id) && (
-                                                                <div className="p-4 space-y-4 bg-transparent">
+                                                                <div className="p-3 md:p-4 space-y-4 bg-transparent">
                                                                     {/* Module Meta */}
                                                                     <div className="grid md:grid-cols-2 gap-4">
                                                                         <div className="space-y-2">
@@ -1111,14 +1111,14 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                                                             {module.lessons.map((lesson) => {
                                                                                 const thumbnailUrl = lesson.videoUrl ? getYouTubeThumbnail(lesson.videoUrl) : null;
                                                                                 return (
-                                                                                    <div key={lesson.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 flex flex-col sm:flex-row items-start gap-4 transition-all hover:border-primary/20 hover:bg-white/[0.05] group">
-                                                                                        <div className="flex gap-4 flex-1 min-w-0 w-full">
+                                                                                    <div key={lesson.id} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 md:p-4 transition-all hover:border-primary/20 hover:bg-white/[0.05]">
+                                                                                        <div className="flex flex-col sm:flex-row gap-4">
                                                                                             {thumbnailUrl && (
-                                                                                                <div className="w-24 h-14 rounded-lg overflow-hidden border border-border/50 flex-shrink-0 bg-black">
+                                                                                                <div className="w-full sm:w-28 h-36 sm:h-16 rounded-lg overflow-hidden border border-border/50 flex-shrink-0 bg-black">
                                                                                                     <img src={thumbnailUrl} alt={lesson.title} className="w-full h-full object-cover" />
                                                                                                 </div>
                                                                                             )}
-                                                                                            <div className="flex-1 space-y-3 min-w-0">
+                                                                                            <div className="flex-1 min-w-0 space-y-3">
                                                                                                 <Input
                                                                                                     value={lesson.title}
                                                                                                     onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { title: e.target.value })}
@@ -1132,33 +1132,32 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                                                                                     className="font-mono text-xs text-muted-foreground border-white/[0.05]"
                                                                                                     icon={<Video size={14} />}
                                                                                                 />
-                                                                                            </div>
-                                                                                        </div>
 
-                                                                                        <div className="flex items-center gap-4 w-full sm:w-auto">
-                                                                                            <div className="flex items-center gap-2 flex-1">
-                                                                                                <Clock size={12} className="text-muted-foreground" />
-                                                                                                <Input
-                                                                                                    value={lesson.duration || '00:00'}
-                                                                                                    onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { duration: e.target.value })}
-                                                                                                    placeholder="00:00"
-                                                                                                    className="w-24 text-center"
-                                                                                                    icon={<Clock size={12} />}
-                                                                                                />
+                                                                                                {/* Duration, attachments & delete */}
+                                                                                                <div className="flex flex-wrap items-center gap-3 pt-1">
+                                                                                                    <div className="w-24 flex-shrink-0">
+                                                                                                        <Input
+                                                                                                            value={lesson.duration || '00:00'}
+                                                                                                            onChange={(e) => updateLessonInGallery(gallery.id, module.id, lesson.id, { duration: e.target.value })}
+                                                                                                            placeholder="00:00"
+                                                                                                            className="text-center"
+                                                                                                            icon={<Clock size={12} />}
+                                                                                                        />
+                                                                                                    </div>
+                                                                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                                                                                        <Paperclip size={10} />
+                                                                                                        {lesson.supportMaterials?.length || 0} anexos
+                                                                                                    </span>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={() => deleteLessonFromGallery(gallery.id, module.id, lesson.id)}
+                                                                                                        title="Remover esta aula"
+                                                                                                        className="ml-auto flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.08] text-muted-foreground transition-colors hover:text-destructive hover:bg-white/[0.02]"
+                                                                                                    >
+                                                                                                        <Trash size={16} />
+                                                                                                    </button>
+                                                                                                </div>
                                                                                             </div>
-                                                                                            {/* Support Materials summary */}
-                                                                                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                                                                                <Paperclip size={10} />
-                                                                                                {lesson.supportMaterials?.length || 0} anexos
-                                                                                            </span>
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={() => deleteLessonFromGallery(gallery.id, module.id, lesson.id)}
-                                                                                                title="Remover esta aula"
-                                                                                                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border border-white/[0.08] text-muted-foreground transition-colors hover:text-destructive hover:bg-white/[0.02]"
-                                                                                            >
-                                                                                                <Trash size={16} />
-                                                                                            </button>
                                                                                         </div>
                                                                                     </div>
                                                                                 );

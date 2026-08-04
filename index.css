@@ -81,6 +81,14 @@
 
 .input-pluma {
   @apply bg-white/[0.02] border border-white/[0.06] rounded-lg py-3 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms];
+  /* Prevent iOS Safari auto-zoom when focusing inputs (requires >=16px) */
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  .input-pluma {
+    font-size: 14px;
+  }
 }
 
 .surface-pluma {
