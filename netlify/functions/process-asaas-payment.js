@@ -75,6 +75,13 @@ exports.handler = async (event) => {
       };
     }
 
+    // Disable Asaas automatic customer emails ("cobrança criada", "pagamento
+    // confirmado"). The Fluentoria welcome email is sent via webhook → Resend.
+    const payload = {
+      ...paymentData,
+      notificationDisabled: true,
+    };
+
     // Proxy the request to Asaas
     const response = await fetch(`${ASAAS_API_URL}/payments`, {
       method: 'POST',
@@ -82,7 +89,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json',
         'access_token': ASAAS_ACCESS_TOKEN,
       },
-      body: JSON.stringify(paymentData),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();

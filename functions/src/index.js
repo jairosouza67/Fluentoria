@@ -1,5 +1,5 @@
 const functions = require('firebase-functions');
-const { onRequest } = require('firebase-functions/v2/https');
+const { onRequest, onCall } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
@@ -775,3 +775,50 @@ exports.runAccessMigrationHttp = functions.https.onRequest(async (req, res) => {
     res.status(500).json({ success: false, message: 'Erro interno na migração.' });
   }
 });
+
+// --- Manual resend of the welcome email (admin-only, Gen2 callable) ---
+// Use case: customer paid, access is active, but the welcome email was lost
+// (spam folder, typo'd address fixed later, Resend transient failure, etc).
+exports.resendWelcomeEmail = onCall(
+  { secrets: [resendApiKey] },
+  async (request) => {
+    // Gen2 callable: auth context lives on request.auth
+    if (!request.auth || !request.auth.uid) {
+      throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+
+    const adminSnap = await db.collection('users').doc(request.auth.uid).get();
+    if (!adminSnap.exists || adminSnap.data()?.role !== 'admin') {
+      throw new functions.https.HttpsError('permission-denied', 'Apenas administradores podem reenviar o email.');
+    }
+
+    const email = String(request.data?.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Email inválido.');
+    }
+
+    // Prefer the name stored on the user doc (if any) for a personalized greeting
+    let name = String(request.data?.name || '').trim();
+    if (!name) {
+      const userSnap = await db.collection('users').where('email', '==', email).limit(1).get();
+      if (!userSnap.empty) {
+        name = userSnap.docs[0].data()?.name || '';
+      }
+    }
+
+    const sent = await sendWelcomeEmail(email, name, resendApiKey.value());
+
+    console.log(JSON.stringify({
+      event: 'resendWelcomeEmail',
+      email,
+      sent,
+      requestedBy: request.auth.uid,
+    }));
+
+    if (!sent) {
+      throw new functions.https.HttpsError('internal', 'Falha ao enviar email via Resend. Verifique os logs.');
+    }
+
+    return { sent: true, email };
+  }
+);
