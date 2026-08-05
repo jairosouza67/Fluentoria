@@ -41,7 +41,7 @@ interface CourseFormProps {
 type ContentMode = 'modules' | 'single';
 type ContentType = 'module' | 'video' | null;
 
-const createEmptyReminderDraft = (): Course => ({
+const createEmptyBatchDraft = (): Course => ({
     title: '',
     author: 'Equipe Fluentoria',
     duration: '00:00',
@@ -90,26 +90,32 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
     const [coverType, setCoverType] = useState<'link' | 'upload'>('link');
     const [uploadingCover, setUploadingCover] = useState(false);
     const [uploadingMaterial, setUploadingMaterial] = useState<{ [key: string]: boolean }>({});
-    const [reminderDrafts, setReminderDrafts] = useState<Course[]>([]);
+    const [batchDrafts, setBatchDrafts] = useState<Course[]>([]);
+    const [batchProductId, setBatchProductId] = useState<string | undefined>(undefined);
     const isReminderTab = activeTab === 'reminders';
+    const isMediaBatch = (activeTab === 'mindful' || activeTab === 'music') && !course;
 
     useEffect(() => {
         const defaultContentConfig = getDefaultContentConfig(activeTab);
 
         if (isReminderTab) {
             // Reminders are edited as a batch: existing reminder first, new drafts can be added
-            setReminderDrafts([
+            setBatchDrafts([
                 course
                     ? {
-                        ...createEmptyReminderDraft(),
+                        ...createEmptyBatchDraft(),
                         id: course.id,
                         title: course.title || '',
                         description: course.description || '',
                         videoUrl: typeof course.videoUrl === 'string' ? course.videoUrl.trim() : '',
                         coverImage: course.coverImage || ''
                     }
-                    : createEmptyReminderDraft()
+                    : createEmptyBatchDraft()
             ]);
+        }
+
+        if (!isReminderTab && !course && (activeTab === 'mindful' || activeTab === 'music')) {
+            setBatchDrafts([createEmptyBatchDraft()]);
         }
 
         if (course) {
@@ -185,8 +191,8 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
         try {
             // Reminders are saved as a batch (one or more drafts)
             if (isReminderTab) {
-                for (let i = 0; i < reminderDrafts.length; i++) {
-                    const draft = reminderDrafts[i];
+                for (let i = 0; i < batchDrafts.length; i++) {
+                    const draft = batchDrafts[i];
                     if (!draft.title?.trim()) {
                         setErrorMessage(`Lembrete ${i + 1}: informe o título.`);
                         setLoading(false);
@@ -204,7 +210,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                     }
                 }
 
-                const preparedDrafts = reminderDrafts.map(draft => ({
+                const preparedDrafts = batchDrafts.map(draft => ({
                     ...draft,
                     title: draft.title.trim(),
                     author: draft.author?.trim() || 'Equipe Fluentoria',
@@ -225,6 +231,58 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                     : await onSave(preparedDrafts[0]);
                 if (!saveResult.success) {
                     setErrorMessage(saveResult.error || 'Não foi possível salvar os lembretes. Tente novamente.');
+                }
+                return;
+            }
+
+            // Meditations/Music are saved as a batch (one or more drafts) when creating
+            if (isMediaBatch) {
+                const itemLabel = activeTab === 'music' ? 'Música' : 'Meditação';
+                for (let i = 0; i < batchDrafts.length; i++) {
+                    const draft = batchDrafts[i];
+                    if (!draft.title?.trim()) {
+                        setErrorMessage(`${itemLabel} ${i + 1}: informe o título.`);
+                        setLoading(false);
+                        return;
+                    }
+                    if (!draft.author?.trim()) {
+                        setErrorMessage(`${itemLabel} ${i + 1}: informe o autor.`);
+                        setLoading(false);
+                        return;
+                    }
+                    if (!draft.videoUrl?.trim()) {
+                        setErrorMessage(`${itemLabel} ${i + 1}: informe a URL do vídeo.`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+                if (!batchProductId) {
+                    setErrorMessage('Selecione o curso vinculado, vale para todos os itens do lote.');
+                    setLoading(false);
+                    return;
+                }
+
+                const preparedDrafts = batchDrafts.map(draft => ({
+                    ...draft,
+                    title: draft.title.trim(),
+                    author: draft.author?.trim() || 'Equipe Fluentoria',
+                    duration: draft.duration?.trim() || '00:00',
+                    type: 'video' as const,
+                    videoUrl: draft.videoUrl!.trim(),
+                    description: draft.description?.trim() || '',
+                    coverImage: draft.coverImage?.trim() || '',
+                    productId: batchProductId,
+                    launchDate: '',
+                    progress: 0,
+                    modules: [],
+                    galleries: []
+                }));
+
+                const saveResult = onSaveMany
+                    ? await onSaveMany(preparedDrafts)
+                    : await onSave(preparedDrafts[0]);
+                if (!saveResult.success) {
+                    setErrorMessage(saveResult.error || 'Não foi possível salvar o conteúdo. Tente novamente.');
                 }
                 return;
             }
@@ -606,27 +664,27 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
         }
     };
 
-    const addReminderDraft = () => {
-        setReminderDrafts(prev => [...prev, createEmptyReminderDraft()]);
+    const addBatchDraft = () => {
+        setBatchDrafts(prev => [...prev, createEmptyBatchDraft()]);
     };
 
-    const updateReminderDraft = (index: number, updates: Partial<Course>) => {
-        setReminderDrafts(prev => prev.map((draft, i) =>
+    const updateBatchDraft = (index: number, updates: Partial<Course>) => {
+        setBatchDrafts(prev => prev.map((draft, i) =>
             i === index ? { ...draft, ...updates } : draft
         ));
     };
 
-    const removeReminderDraft = (index: number) => {
-        setReminderDrafts(prev => prev.filter((_, i) => i !== index));
+    const removeBatchDraft = (index: number) => {
+        setBatchDrafts(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleReminderCoverUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleBatchCoverUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setUploadingCover(true);
             try {
                 const url = await uploadCourseCover(e.target.files[0]);
                 if (url) {
-                    updateReminderDraft(index, { coverImage: url });
+                    updateBatchDraft(index, { coverImage: url });
                 }
             } catch (error) {
                 console.error("Error uploading reminder cover:", error);
@@ -740,12 +798,12 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
             title={
                 course
                     ? (isReminderTab ? 'Editar Lembrete' : 'Editar Conteúdo')
-                    : activeTab === 'mindful'
-                        ? 'Novo Mindful Flow'
-                        : activeTab === 'music'
-                            ? 'Nova Música'
-                            : isReminderTab
-                                ? 'Novo Lembrete'
+                    : isReminderTab
+                        ? 'Novo Lembrete'
+                        : activeTab === 'mindful'
+                            ? 'Novas Meditações'
+                            : activeTab === 'music'
+                                ? 'Novas Músicas'
                                 : contentType === 'video'
                                     ? 'Novo Vídeo Solto'
                                     : 'Criar Galerias'
@@ -799,8 +857,12 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                             Salvar {course
                                 ? 'Alterações'
                                 : isReminderTab
-                                    ? (reminderDrafts.length > 1 ? 'Lembretes' : 'Lembrete')
-                                    : 'Conteúdo'}
+                                    ? (batchDrafts.length > 1 ? 'Lembretes' : 'Lembrete')
+                                    : (activeTab === 'mindful' || activeTab === 'music')
+                                        ? (batchDrafts.length > 1
+                                            ? (activeTab === 'music' ? 'Músicas' : 'Meditações')
+                                            : (activeTab === 'music' ? 'Música' : 'Meditação'))
+                                        : 'Conteúdo'}
                         </span>
                     </Button>
                 </div>
@@ -1203,7 +1265,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                 )}
 
                 {/* VIDEO TYPE - Simplified form */}
-                {contentType === 'video' && !isReminderTab && (
+                {contentType === 'video' && !isReminderTab && !isMediaBatch && (
                     <div className="grid gap-6">
                         <div className="flex items-center gap-2 border-b border-border pb-2">
                             <Film size={18} className="text-primary" />
@@ -1347,6 +1409,157 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                     </div>
                 )}
 
+                {/* MEDIA TYPE - Batch list form (Meditations / Music) */}
+                {isMediaBatch && (
+                    <div className="grid gap-6">
+                        <div className="flex items-center gap-2 border-b border-border pb-2">
+                            <Film size={18} className="text-primary" />
+                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">
+                                {activeTab === 'music' ? 'Informações das Músicas' : 'Informações das Meditações'}
+                            </h3>
+                        </div>
+
+                        {/* Curso Vinculado compartilhado para todo o lote */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
+                                Curso Vinculado (vale para todas) *
+                            </label>
+                            <div className="relative">
+                                <select
+                                    value={batchProductId || ''}
+                                    onChange={(e) => setBatchProductId(e.target.value === '' ? undefined : e.target.value)}
+                                    required
+                                    className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm h-12 px-4 text-[#F3F4F6] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] cursor-pointer appearance-none"
+                                >
+                                    <option value="" disabled className="bg-stone-900">Selecione um curso</option>
+                                    {availableCourses?.map(c => (
+                                        <option key={c.id} value={c.id} className="bg-stone-900">
+                                            {c.title}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-muted-foreground">
+                                    <ChevronDown size={16} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {batchDrafts.map((draft, index) => (
+                                <div key={index} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 space-y-4 transition-all hover:border-primary/20">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                                            {activeTab === 'music' ? `Música ${index + 1}` : `Meditação ${index + 1}`}
+                                        </span>
+                                        {batchDrafts.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => removeBatchDraft(index)}
+                                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                                title="Remover"
+                                            >
+                                                <Trash size={16} />
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <Input
+                                            label="Título *"
+                                            type="text"
+                                            value={draft.title}
+                                            onChange={(e) => updateBatchDraft(index, { title: e.target.value })}
+                                            required
+                                            placeholder={activeTab === 'music' ? 'Ex: Playlist para foco' : 'Ex: Meditação para ansiedade'}
+                                            icon={<Type size={18} className="text-muted-foreground" />}
+                                        />
+                                        <Input
+                                            label="Autor / Instrutor *"
+                                            type="text"
+                                            value={draft.author}
+                                            onChange={(e) => updateBatchDraft(index, { author: e.target.value })}
+                                            required
+                                            placeholder="Nome do autor"
+                                            icon={<Type size={18} className="text-muted-foreground" />}
+                                        />
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <Input
+                                            label="Link do Vídeo *"
+                                            type="text"
+                                            value={draft.videoUrl || ''}
+                                            onChange={(e) => updateBatchDraft(index, { videoUrl: e.target.value })}
+                                            required
+                                            placeholder="YouTube link ou link direto (.mp4)"
+                                            icon={<Film size={18} className="text-muted-foreground" />}
+                                            className="font-mono text-sm"
+                                        />
+                                        <Input
+                                            label="Duração"
+                                            type="text"
+                                            value={draft.duration || ''}
+                                            onChange={(e) => updateBatchDraft(index, { duration: e.target.value })}
+                                            placeholder="Ex: 15:00"
+                                            icon={<Clock size={18} className="text-muted-foreground" />}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <Input
+                                            label="Capa"
+                                            type="text"
+                                            value={draft.coverImage || ''}
+                                            onChange={(e) => updateBatchDraft(index, { coverImage: e.target.value })}
+                                            placeholder="URL da imagem (opcional)"
+                                            icon={<ImageIcon size={18} className="text-muted-foreground" />}
+                                        />
+                                        <div className="mt-3">
+                                            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer text-sm font-medium transition-colors border border-border shadow-sm">
+                                                {uploadingCover ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                                                Upload
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={(e) => handleBatchCoverUpload(index, e)}
+                                                    disabled={uploadingCover}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-2">
+                                            <AlignLeft size={14} />
+                                            Descrição
+                                        </label>
+                                        <textarea
+                                            value={draft.description || ''}
+                                            onChange={(e) => updateBatchDraft(index, { description: e.target.value })}
+                                            className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm p-4 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] resize-none h-24"
+                                            placeholder="Detalhes sobre este conteúdo..."
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={addBatchDraft}
+                            className="w-full border-dashed border-border/60 hover:border-primary/40 text-muted-foreground h-9"
+                        >
+                            <Plus size={14} className="mr-2" />
+                            Adicionar {activeTab === 'music' ? 'Música' : 'Meditação'}
+                        </Button>
+                    </div>
+                )}
+
                 {/* REMINDERS TYPE - Batch list form */}
                 {contentType === 'video' && isReminderTab && (
                     <div className="grid gap-6">
@@ -1358,18 +1571,18 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                         </div>
 
                         <div className="space-y-4">
-                            {reminderDrafts.map((draft, index) => (
+                            {batchDrafts.map((draft, index) => (
                                 <div key={index} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 space-y-4 transition-all hover:border-primary/20">
                                     <div className="flex items-center justify-between">
                                         <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
                                             Lembrete {index + 1}
                                         </span>
-                                        {reminderDrafts.length > 1 && !draft.id && (
+                                        {batchDrafts.length > 1 && !draft.id && (
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => removeReminderDraft(index)}
+                                                onClick={() => removeBatchDraft(index)}
                                                 className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                                                 title="Remover lembrete"
                                             >
@@ -1383,7 +1596,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                             label="Título do Lembrete *"
                                             type="text"
                                             value={draft.title}
-                                            onChange={(e) => updateReminderDraft(index, { title: e.target.value })}
+                                            onChange={(e) => updateBatchDraft(index, { title: e.target.value })}
                                             required
                                             placeholder="Ex: Aviso importante da semana"
                                             icon={<Type size={18} className="text-muted-foreground" />}
@@ -1393,7 +1606,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                             label="URL do Vídeo *"
                                             type="text"
                                             value={draft.videoUrl || ''}
-                                            onChange={(e) => updateReminderDraft(index, { videoUrl: e.target.value })}
+                                            onChange={(e) => updateBatchDraft(index, { videoUrl: e.target.value })}
                                             required
                                             placeholder="Cole a URL do vídeo do lembrete"
                                             icon={<Film size={18} className="text-muted-foreground" />}
@@ -1406,7 +1619,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                             label="Capa do Lembrete"
                                             type="text"
                                             value={draft.coverImage || ''}
-                                            onChange={(e) => updateReminderDraft(index, { coverImage: e.target.value })}
+                                            onChange={(e) => updateBatchDraft(index, { coverImage: e.target.value })}
                                             placeholder="URL da imagem (opcional)"
                                             icon={<ImageIcon size={18} className="text-muted-foreground" />}
                                         />
@@ -1418,7 +1631,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                                     type="file"
                                                     accept="image/*"
                                                     className="hidden"
-                                                    onChange={(e) => handleReminderCoverUpload(index, e)}
+                                                    onChange={(e) => handleBatchCoverUpload(index, e)}
                                                     disabled={uploadingCover}
                                                 />
                                             </label>
@@ -1432,7 +1645,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                                         </label>
                                         <textarea
                                             value={draft.description || ''}
-                                            onChange={(e) => updateReminderDraft(index, { description: e.target.value })}
+                                            onChange={(e) => updateBatchDraft(index, { description: e.target.value })}
                                             required
                                             className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl text-sm p-4 text-[#F3F4F6] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#FF6A00]/40 transition-colors duration-[120ms] resize-none h-32"
                                             placeholder="Digite a mensagem completa do lembrete"
@@ -1446,7 +1659,7 @@ const CourseForm: React.FC<CourseFormProps> = ({ course, onSave, onSaveMany, onC
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={addReminderDraft}
+                            onClick={addBatchDraft}
                             className="w-full border-dashed border-border/60 hover:border-primary/40 text-muted-foreground h-9"
                         >
                             <Plus size={14} className="mr-2" />

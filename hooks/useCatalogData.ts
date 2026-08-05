@@ -229,6 +229,39 @@ export const useCatalogData = () => {
     }
   }, [fetchReminders]);
 
+  const handleSaveMediaBatch = useCallback(async (items: Course[]): Promise<SaveCourseResult> => {
+    const isMindful = activeTab === 'mindful';
+    try {
+      for (const item of items) {
+        const createdId = isMindful ? await addMindfulFlow(item) : await addMusic(item);
+        if (!createdId) {
+          return { success: false, error: `Nao foi possivel criar "${item.title}".` };
+        }
+      }
+
+      if (isMindful) {
+        await fetchMindfulFlows();
+      } else {
+        await fetchMusic();
+      }
+      setIsFormOpen(false);
+      setEditingCourse(null);
+      return { success: true };
+    } catch (error) {
+      console.error('[useCatalogData] failed to save media batch', {
+        activeTab,
+        count: items.length,
+        error,
+      });
+
+      const message = error instanceof Error && error.message
+        ? error.message
+        : 'Nao foi possivel salvar o conteudo. Tente novamente.';
+
+      return { success: false, error: message };
+    }
+  }, [activeTab, fetchMindfulFlows, fetchMusic]);
+
   const handleDeleteCourse = useCallback(async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este conteúdo?')) {
       if (activeTab === 'courses') {
@@ -274,6 +307,7 @@ export const useCatalogData = () => {
     getCurrentList,
     handleSaveCourse,
     handleSaveReminderBatch,
+    handleSaveMediaBatch,
     handleDeleteCourse,
     handleEditCourse,
     handleViewCourse,

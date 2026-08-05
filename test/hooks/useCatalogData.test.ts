@@ -113,4 +113,66 @@ describe('useCatalogData', () => {
     expect(result.current.isFormOpen).toBe(false);
     expect(result.current.editingCourse).toBeNull();
   });
+
+  it('salva em lote todas as meditacoes e fecha o modal', async () => {
+    dbMocks.addMindfulFlow.mockResolvedValueOnce('flow-1').mockResolvedValueOnce('flow-2');
+
+    const { result } = renderHook(() => useCatalogData());
+
+    await waitFor(() => expect(dbMocks.getCourses).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setActiveTab('mindful');
+    });
+
+    await waitFor(() => expect(dbMocks.getMindfulFlows).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setIsFormOpen(true);
+    });
+
+    const saveResult = await act(async () => {
+      return await result.current.handleSaveMediaBatch([
+        buildCourse({ id: undefined, title: 'Meditacao 1' }),
+        buildCourse({ id: undefined, title: 'Meditacao 2' }),
+      ]);
+    });
+
+    expect(saveResult).toEqual({ success: true });
+    expect(dbMocks.addMindfulFlow).toHaveBeenCalledTimes(2);
+    expect(dbMocks.addMindfulFlow).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Meditacao 1' })
+    );
+    expect(result.current.isFormOpen).toBe(false);
+  });
+
+  it('retorna erro quando uma meditacao falha no lote', async () => {
+    dbMocks.addMindfulFlow.mockResolvedValueOnce('flow-1').mockResolvedValueOnce(null);
+
+    const { result } = renderHook(() => useCatalogData());
+
+    await waitFor(() => expect(dbMocks.getCourses).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setActiveTab('mindful');
+    });
+
+    await waitFor(() => expect(dbMocks.getMindfulFlows).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setIsFormOpen(true);
+    });
+
+    const saveResult = await act(async () => {
+      return await result.current.handleSaveMediaBatch([
+        buildCourse({ id: undefined, title: 'Meditacao 1' }),
+        buildCourse({ id: undefined, title: 'Meditacao 2' }),
+      ]);
+    });
+
+    expect(saveResult?.success).toBe(false);
+    expect(saveResult?.error).toContain('Meditacao 2');
+    expect(dbMocks.addMindfulFlow).toHaveBeenCalledTimes(2);
+    expect(result.current.isFormOpen).toBe(true);
+  });
 });
