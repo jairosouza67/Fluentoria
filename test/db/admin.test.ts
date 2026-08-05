@@ -286,6 +286,7 @@ describe('createOrUpdateUser', () => {
     it('should update lastLogin if user already exists', async () => {
         vi.mocked(firestoreModule.getDoc).mockResolvedValueOnce({
             exists: () => true,
+            data: () => ({ email: 'exist@test.com', role: 'student' }),
         } as any);
 
         await createOrUpdateUser('existing-uid', { email: 'exist@test.com' });
@@ -299,6 +300,7 @@ describe('createOrUpdateUser', () => {
     it('should update photoURL and displayName when user already exists', async () => {
         vi.mocked(firestoreModule.getDoc).mockResolvedValueOnce({
             exists: () => true,
+            data: () => ({ email: 'exist@test.com', role: 'student' }),
         } as any);
 
         await createOrUpdateUser('existing-uid', {
@@ -315,6 +317,26 @@ describe('createOrUpdateUser', () => {
                 photoURL: 'https://photo.url',
             })
         );
+    });
+
+    it('should retry adoption when existing profile is bare (previous attempt failed)', async () => {
+        // Doc exists but has no role/payment fields — last-resort profile left
+        // behind when the callable was unreachable. Must retry adoption.
+        vi.mocked(firestoreModule.getDoc).mockResolvedValueOnce({
+            exists: () => true,
+            data: () => ({ email: 'test@test.com' }),
+        } as any);
+
+        const mockCallable = vi.fn().mockResolvedValue({
+            data: { adopted: true },
+        });
+        vi.mocked(httpsCallable).mockReturnValue(mockCallable);
+
+        const result = await createOrUpdateUser('bare-uid', { email: 'test@test.com' });
+
+        expect(mockCallable).toHaveBeenCalled();
+        expect(result).toEqual({ adopted: true });
+        expect(firestoreModule.updateDoc).not.toHaveBeenCalled();
     });
 });
 

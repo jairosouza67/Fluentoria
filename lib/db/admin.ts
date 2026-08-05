@@ -93,7 +93,15 @@ export const createOrUpdateUser = async (uid: string, userData: any): Promise<{ 
         const userRef = doc(db, USERS_COLLECTION, uid);
         const userSnap = await getDoc(userRef);
 
-        if (!userSnap.exists()) {
+        // Bare profile (exists but no role/payment fields) = a previous adoption
+        // attempt failed (e.g. callable unreachable). Retry on every login so the
+        // account self-heals instead of sticking on "Acesso Pendente" forever.
+        const profile = userSnap.exists() ? userSnap.data() : null;
+        const isBareProfile = profile !== null
+            && profile.role === undefined
+            && profile.accessAuthorized === undefined;
+
+        if (!userSnap.exists() || isBareProfile) {
             let handledServerSide = false;
 
             // Server-side path (Admin SDK, bypasses Firestore rules): adopts
